@@ -2,6 +2,7 @@
 Simple Voice Typer - Press Ctrl+Shift+Space to record, release to transcribe and type.
 """
 import sys
+import os
 import threading
 import time
 import numpy as np
@@ -9,6 +10,8 @@ import sounddevice as sd
 from faster_whisper import WhisperModel
 from pynput import keyboard
 from pynput.keyboard import Controller
+from PIL import Image
+import pystray
 
 # Configuration
 MODEL_SIZE = "tiny.en"  # Options: tiny.en, base.en, small.en, medium.en
@@ -19,7 +22,7 @@ model = WhisperModel(MODEL_SIZE, device="cpu", compute_type="int8")
 print("Model loaded!", flush=True)
 print("Press Ctrl+Shift+Space to start recording.", flush=True)
 print("Release to stop and transcribe.", flush=True)
-print("Press Ctrl+C to quit.", flush=True)
+print("Use the system tray icon to quit.", flush=True)
 
 keyboard_controller = Controller()
 current_keys = set()
@@ -84,9 +87,42 @@ def on_release(key):
     if is_recording:
         threading.Thread(target=stop_recording).start()
 
+# System tray
+def get_icon_path():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(script_dir, "icon.ico")
+
+def on_quit(icon, item):
+    print("\nExiting...", flush=True)
+    icon.stop()
+    os._exit(0)
+
+def create_tray_icon():
+    icon_path = get_icon_path()
+    if os.path.exists(icon_path):
+        image = Image.open(icon_path)
+    else:
+        # Fallback: create a simple colored icon
+        image = Image.new('RGB', (64, 64), color='#4a9eff')
+
+    menu = pystray.Menu(
+        pystray.MenuItem("Voice Typer", None, enabled=False),
+        pystray.Menu.SEPARATOR,
+        pystray.MenuItem("Exit", on_quit)
+    )
+
+    icon = pystray.Icon("voice_typer", image, "Voice Typer", menu)
+    return icon
+
 # Main loop
-try:
+def run_keyboard_listener():
     with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
         listener.join()
-except KeyboardInterrupt:
-    print("\nExiting.", flush=True)
+
+# Start keyboard listener in background thread
+listener_thread = threading.Thread(target=run_keyboard_listener, daemon=True)
+listener_thread.start()
+
+# Run system tray (this blocks)
+tray_icon = create_tray_icon()
+tray_icon.run()
