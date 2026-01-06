@@ -7,7 +7,6 @@ import threading
 import time
 import numpy as np
 import sounddevice as sd
-from faster_whisper import WhisperModel
 from pynput import keyboard
 from pynput.keyboard import Controller
 from PIL import Image
@@ -17,18 +16,26 @@ import pystray
 MODEL_SIZE = "tiny.en"  # Options: tiny.en, base.en, small.en, medium.en
 SAMPLE_RATE = 16000
 
-print("Loading Whisper model (this may take a minute)...", flush=True)
-model = WhisperModel(MODEL_SIZE, device="cpu", compute_type="int8")
-print("Model loaded!", flush=True)
-print("Press Ctrl+Shift+Space to start recording.", flush=True)
-print("Release to stop and transcribe.", flush=True)
-print("Use the system tray icon to quit.", flush=True)
-
+# Global state
+model = None
+model_ready = False
 keyboard_controller = Controller()
 current_keys = set()
 is_recording = False
 audio_data = []
 stream = None
+tray_icon = None
+
+def load_model():
+    global model, model_ready
+    print("Loading Whisper model...", flush=True)
+    from faster_whisper import WhisperModel
+    model = WhisperModel(MODEL_SIZE, device="cpu", compute_type="int8")
+    model_ready = True
+    print("Model loaded! Ready.", flush=True)
+    # Update tray tooltip
+    if tray_icon:
+        tray_icon.title = "Voice Typer - Ready"
 
 def audio_callback(indata, frames, time_info, status):
     global audio_data, is_recording
@@ -37,6 +44,9 @@ def audio_callback(indata, frames, time_info, status):
 
 def start_recording():
     global is_recording, audio_data, stream
+    if not model_ready:
+        print("Model still loading, please wait...", flush=True)
+        return
     if is_recording:
         return
     print("\n>> Recording...", flush=True)
@@ -97,32 +107,48 @@ def on_quit(icon, item):
     icon.stop()
     os._exit(0)
 
+def get_status_text(item):
+    if model_ready:
+        return "Status: Ready"
+    return "Status: Loading model..."
+
 def create_tray_icon():
     icon_path = get_icon_path()
     if os.path.exists(icon_path):
         image = Image.open(icon_path)
     else:
-        # Fallback: create a simple colored icon
         image = Image.new('RGB', (64, 64), color='#4a9eff')
 
     menu = pystray.Menu(
         pystray.MenuItem("Voice Typer", None, enabled=False),
+        pystray.MenuItem(get_status_text, None, enabled=False),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Exit", on_quit)
     )
 
-    icon = pystray.Icon("voice_typer", image, "Voice Typer", menu)
+    icon = pystray.Icon("voice_typer", image, "Voice Typer - Loading...", menu)
     return icon
 
-# Main loop
 def run_keyboard_listener():
     with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
         listener.join()
 
-# Start keyboard listener in background thread
-listener_thread = threading.Thread(target=run_keyboard_listener, daemon=True)
-listener_thread.start()
+def main():
+    global tray_icon
 
-# Run system tray (this blocks)
-tray_icon = create_tray_icon()
-tray_icon.run()
+    # Start keyboard listener
+    listener_thread = threading.Thread(target=run_keyboard_listener, daemon=True)
+    listener_thread.start()
+
+    # Load model in background
+    model_thread = threading.Thread(target=load_model, daemon=True)
+    model_thread.start()
+
+    # Create and run tray icon (blocks)
+    tray_icon = create_tray_icon()
+    print("System tray icon started.", flush=True)
+    print("Press Ctrl+Shift+Space to record (after model loads).", flush=True)
+    tray_icon.run()
+
+if __name__ == "__main__":
+    main()
