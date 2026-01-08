@@ -427,6 +427,7 @@ def create_tray_icon():
     )
 
     icon = pystray.Icon("murmurtone", icon_ready, "MurmurTone - Loading...", menu)
+    icon.default_action = on_settings
     return icon
 
 
