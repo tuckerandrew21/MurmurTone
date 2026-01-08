@@ -238,7 +238,10 @@ def start_recording():
     audio_data = []
     silence_start_time = None
     sample_rate = app_config.get("sample_rate", 16000)
-    stream = sd.InputStream(samplerate=sample_rate, channels=1, dtype=np.float32, callback=audio_callback)
+    # Get selected input device (None = system default)
+    device_index = config.get_device_index(app_config.get("input_device"))
+    stream = sd.InputStream(samplerate=sample_rate, channels=1, dtype=np.float32,
+                            device=device_index, callback=audio_callback)
     stream.start()
 
 

@@ -3,6 +3,8 @@ Settings GUI for MurmurTone using tkinter.
 """
 import tkinter as tk
 from tkinter import ttk, messagebox
+import numpy as np
+import sounddevice as sd
 import config
 
 
@@ -79,6 +81,10 @@ class SettingsWindow:
         self.config = current_config.copy()
         self.on_save_callback = on_save_callback
         self.window = None
+        # Device test state
+        self.test_stream = None
+        self.test_running = False
+        self.devices_list = []  # List of (display_name, device_info) tuples
 
     def show(self):
         """Show the settings window."""
@@ -88,14 +94,14 @@ class SettingsWindow:
             return
 
         self.window = tk.Tk()
-        self.window.title("MurmurTone Settings")
-        self.window.geometry("400x420")
+        self.window.title(f"{config.APP_NAME} Settings v{config.VERSION}")
+        self.window.geometry("500x520")
         self.window.resizable(False, False)
 
         # Center on screen
         self.window.update_idletasks()
-        x = (self.window.winfo_screenwidth() - 400) // 2
-        y = (self.window.winfo_screenheight() - 420) // 2
+        x = (self.window.winfo_screenwidth() - 500) // 2
+        y = (self.window.winfo_screenheight() - 520) // 2
         self.window.geometry(f"+{x}+{y}")
 
         # Main frame with padding
@@ -123,6 +129,38 @@ class SettingsWindow:
         lang_combo = ttk.Combobox(main_frame, textvariable=self.lang_var,
                                   values=config.LANGUAGE_OPTIONS, state="readonly", width=15)
         lang_combo.grid(row=row, column=1, sticky=tk.W, pady=5)
+
+        # Input Device
+        row += 1
+        ttk.Label(main_frame, text="Input Device:").grid(row=row, column=0, sticky=tk.W, pady=5)
+        device_frame = ttk.Frame(main_frame)
+        device_frame.grid(row=row, column=1, sticky=tk.W, pady=5)
+        self.device_var = tk.StringVar()
+        self.device_combo = ttk.Combobox(device_frame, textvariable=self.device_var,
+                                         state="readonly", width=40)
+        self.device_combo.pack(side=tk.LEFT)
+        ttk.Button(device_frame, text="↻", width=2, command=self.refresh_devices).pack(side=tk.LEFT, padx=2)
+
+        # Populate devices and select current
+        self.refresh_devices()
+
+        # Device hint
+        row += 1
+        device_hint = ttk.Label(main_frame, text="(showing enabled devices only)",
+                                font=("", 8), foreground="gray")
+        device_hint.grid(row=row, column=1, sticky=tk.W)
+
+        # Test button and level meter
+        row += 1
+        test_frame = ttk.Frame(main_frame)
+        test_frame.grid(row=row, column=1, sticky=tk.W, pady=2)
+        self.test_btn = ttk.Button(test_frame, text="Test", width=6, command=self.toggle_test)
+        self.test_btn.pack(side=tk.LEFT)
+        self.level_canvas = tk.Canvas(test_frame, width=180, height=16, bg="#333333",
+                                      highlightthickness=1, highlightbackground="#666666")
+        self.level_canvas.pack(side=tk.LEFT, padx=5)
+        # Draw empty level bar
+        self.level_bar = self.level_canvas.create_rectangle(0, 0, 0, 16, fill="#00aa00", width=0)
 
         # Sample rate
         row += 1
@@ -227,6 +265,133 @@ if your keyboard has it."""
         else:
             self.silence_frame.grid_remove()
 
+    def refresh_devices(self):
+        """Refresh the list of available input devices."""
+        self.devices_list = config.get_input_devices()
+        display_names = [name for name, _ in self.devices_list]
+
+        # Check if current saved device is available
+        saved_device = self.config.get("input_device")
+        # First item is always System Default (with device name)
+        current_selection = display_names[0] if display_names else "System Default"
+
+        if saved_device is not None:
+            saved_name = saved_device.get("name") if isinstance(saved_device, dict) else saved_device
+            # Find matching device in list
+            device_available = False
+            for display_name, device_info in self.devices_list:
+                if device_info and device_info.get("name") == saved_name:
+                    current_selection = display_name
+                    device_available = True
+                    break
+            # If not available, show it as unavailable
+            if not device_available and saved_name:
+                unavailable_name = f"{saved_name} (unavailable)"
+                display_names.append(unavailable_name)
+                current_selection = unavailable_name
+
+        self.device_combo["values"] = display_names
+        self.device_var.set(current_selection)
+
+    def get_selected_device_info(self):
+        """Get the device_info dict for the currently selected device."""
+        selected = self.device_var.get()
+        if "(unavailable)" in selected:
+            # Return the original saved device
+            return self.config.get("input_device")
+        for display_name, device_info in self.devices_list:
+            if display_name == selected:
+                return device_info
+        return None  # System Default
+
+    def toggle_test(self):
+        """Start or stop the microphone test."""
+        if self.test_running:
+            self.stop_test()
+        else:
+            self.start_test()
+
+    def start_test(self):
+        """Start testing the selected microphone with level meter."""
+        device_info = self.get_selected_device_info()
+
+        # Get device index
+        device_index = None
+        if device_info:
+            device_index = device_info.get("index")
+
+        try:
+            sample_rate = int(self.rate_var.get())
+        except ValueError:
+            sample_rate = 16000
+
+        try:
+            self.test_stream = sd.InputStream(
+                samplerate=sample_rate,
+                channels=1,
+                dtype='float32',
+                device=device_index,
+                callback=self.test_audio_callback
+            )
+            self.test_stream.start()
+            self.test_running = True
+            self.test_btn.config(text="Stop")
+            # Schedule auto-stop after 5 seconds
+            self.window.after(5000, self.auto_stop_test)
+        except Exception as e:
+            messagebox.showerror("Test Failed", f"Could not open device:\n{e}")
+
+    def test_audio_callback(self, indata, frames, time_info, status):
+        """Callback for test audio stream - updates level meter."""
+        if not self.test_running:
+            return
+        # Calculate RMS level
+        rms = np.sqrt(np.mean(indata**2))
+        # Convert to dB (with floor at -60dB)
+        db = 20 * np.log10(max(rms, 1e-6))
+        # Normalize to 0-1 range (-60dB to 0dB)
+        level = max(0, min(1, (db + 60) / 60))
+        # Schedule UI update on main thread
+        try:
+            self.window.after_idle(lambda: self.update_level_meter(level))
+        except Exception:
+            pass  # Window may be closing
+
+    def update_level_meter(self, level):
+        """Update the level meter display."""
+        if not self.test_running or not self.level_canvas:
+            return
+        width = int(level * 180)
+        # Color gradient: green -> yellow -> red
+        if level < 0.5:
+            color = "#00aa00"  # Green
+        elif level < 0.75:
+            color = "#aaaa00"  # Yellow
+        else:
+            color = "#aa0000"  # Red
+        self.level_canvas.coords(self.level_bar, 0, 0, width, 16)
+        self.level_canvas.itemconfig(self.level_bar, fill=color)
+
+    def auto_stop_test(self):
+        """Auto-stop test after timeout."""
+        if self.test_running:
+            self.stop_test()
+
+    def stop_test(self):
+        """Stop the microphone test."""
+        self.test_running = False
+        if self.test_stream:
+            try:
+                self.test_stream.stop()
+                self.test_stream.close()
+            except Exception:
+                pass
+            self.test_stream = None
+        self.test_btn.config(text="Test")
+        # Reset level meter
+        if self.level_canvas:
+            self.level_canvas.coords(self.level_bar, 0, 0, 0, 16)
+
     def save(self):
         """Save settings and close."""
         try:
@@ -240,6 +405,9 @@ if your keyboard has it."""
         except ValueError:
             silence_duration = 2.0
 
+        # Get selected device info (None for System Default)
+        device_info = self.get_selected_device_info()
+
         new_config = {
             "model_size": self.model_var.get(),
             "language": self.lang_var.get(),
@@ -247,7 +415,8 @@ if your keyboard has it."""
             "hotkey": self.hotkey_capture.get_hotkey(),
             "recording_mode": self.mode_var.get(),
             "silence_duration_sec": silence_duration,
-            "audio_feedback": self.feedback_var.get()
+            "audio_feedback": self.feedback_var.get(),
+            "input_device": device_info
         }
 
         config.save_config(new_config)
@@ -259,6 +428,8 @@ if your keyboard has it."""
 
     def close(self):
         """Close the window."""
+        # Stop any running test
+        self.stop_test()
         if self.window:
             self.window.destroy()
             self.window = None

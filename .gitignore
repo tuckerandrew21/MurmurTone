@@ -3,3 +3,12 @@ __pycache__/
 *.pyc
 *.vbs
 settings.json
+
+# Build artifacts
+build/
+dist/
+build_venv/
+*.spec
+
+# Bundled models (too large for git)
+models/
