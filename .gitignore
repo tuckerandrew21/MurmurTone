@@ -3,6 +3,9 @@ __pycache__/
 *.pyc
 *.vbs
 settings.json
+venv/
+.claude/
+nul
 
 # Build artifacts
 build/
