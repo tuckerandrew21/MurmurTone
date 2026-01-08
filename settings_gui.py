@@ -1,5 +1,5 @@
 """
-Settings GUI for Voice Typer using tkinter.
+Settings GUI for MurmurTone using tkinter.
 """
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -88,7 +88,7 @@ class SettingsWindow:
             return
 
         self.window = tk.Tk()
-        self.window.title("Voice Typer Settings")
+        self.window.title("MurmurTone Settings")
         self.window.geometry("400x420")
         self.window.resizable(False, False)
 

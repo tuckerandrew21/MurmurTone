@@ -1,5 +1,5 @@
 """
-Configuration management for Voice Typer.
+Configuration management for MurmurTone.
 Handles loading/saving settings to JSON file.
 """
 import json
@@ -27,9 +27,11 @@ RECORDING_MODE_OPTIONS = ["push_to_talk", "auto_stop"]
 
 
 def get_config_path():
-    """Get path to settings.json in app directory."""
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(script_dir, "settings.json")
+    """Get path to settings.json in user's AppData directory."""
+    app_data = os.environ.get("APPDATA", os.path.expanduser("~"))
+    config_dir = os.path.join(app_data, "MurmurTone")
+    os.makedirs(config_dir, exist_ok=True)
+    return os.path.join(config_dir, "settings.json")
 
 
 def load_config():

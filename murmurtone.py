@@ -1,5 +1,6 @@
 """
-Simple Voice Typer - Press hotkey to record, release to transcribe and type.
+MurmurTone - Private, local voice-to-text for Windows.
+Press hotkey to record, release to transcribe and type.
 """
 import sys
 import os
@@ -39,6 +40,28 @@ silence_start_time = None
 # Status icons
 icon_ready = None
 icon_recording = None
+
+
+# Path helpers for PyInstaller bundled exe
+def get_resource_path(filename):
+    """Get path to bundled resource, handling PyInstaller frozen exe."""
+    if getattr(sys, 'frozen', False):
+        # Running as compiled exe - resources in temp _MEIPASS folder
+        return os.path.join(sys._MEIPASS, filename)
+    else:
+        # Running as script - resources in script directory
+        return os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
+
+
+def get_model_path(model_size):
+    """Get path to Whisper model, checking for bundled model first."""
+    if getattr(sys, 'frozen', False):
+        # Check for bundled model in exe
+        bundled = os.path.join(sys._MEIPASS, "models", model_size)
+        if os.path.exists(bundled):
+            return bundled
+    # Fall back to HuggingFace download (will cache in ~/.cache/huggingface/)
+    return model_size
 
 
 def generate_click_sound(frequency=800, duration_ms=50, volume=0.3):
@@ -123,17 +146,20 @@ def load_model(model_size=None):
     model_loading = True
 
     if tray_icon:
-        tray_icon.title = f"Voice Typer - Loading {model_size}..."
+        tray_icon.title = f"MurmurTone - Loading {model_size}..."
 
     print(f"Loading Whisper model ({model_size})...", flush=True)
     from faster_whisper import WhisperModel
-    model = WhisperModel(model_size, device="cpu", compute_type="int8")
+
+    # Use bundled model if available, otherwise download from HuggingFace
+    model_path = get_model_path(model_size)
+    model = WhisperModel(model_path, device="cpu", compute_type="int8")
     model_ready = True
     model_loading = False
     print("Model loaded! Ready.", flush=True)
 
     if tray_icon:
-        tray_icon.title = "Voice Typer - Ready"
+        tray_icon.title = "MurmurTone - Ready"
 
 
 def calculate_rms(audio_chunk):
@@ -318,8 +344,7 @@ def on_release(key):
 
 # System tray
 def get_icon_path():
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(script_dir, "icon.ico")
+    return get_resource_path("icon.ico")
 
 
 def on_quit(icon, item):
@@ -367,14 +392,14 @@ def get_status_text(item):
 
 def create_tray_icon():
     menu = pystray.Menu(
-        pystray.MenuItem("Voice Typer", None, enabled=False),
+        pystray.MenuItem("MurmurTone", None, enabled=False),
         pystray.MenuItem(get_status_text, None, enabled=False),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Settings", on_settings),
         pystray.MenuItem("Exit", on_quit)
     )
 
-    icon = pystray.Icon("voice_typer", icon_ready, "Voice Typer - Loading...", menu)
+    icon = pystray.Icon("murmurtone", icon_ready, "MurmurTone - Loading...", menu)
     return icon
 
 
