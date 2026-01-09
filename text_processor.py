@@ -33,10 +33,31 @@ STRUCTURE_COMMANDS = {
     "new paragraph": "\n\n",
 }
 
+# Formatting commands that insert special text
+FORMATTING_COMMANDS = {
+    "bullet point": "• ",
+    "new bullet": "\n• ",  # "new" explicitly adds newline
+    "bullet": "• ",
+    "numbered list": "1. ",
+    "new number": "\n1. ",  # "new" explicitly adds newline
+    "number one": "1. ",
+    "number two": "2. ",
+    "number three": "3. ",
+    "number four": "4. ",
+    "number five": "5. ",
+}
+
 EDITING_COMMANDS = {
     "scratch that",
     "delete that",
     "undo that",
+}
+
+# Action commands that trigger keyboard shortcuts
+ACTION_COMMANDS = {
+    "select all": "ctrl+a",
+    "undo": "ctrl+z",
+    "redo": "ctrl+y",
 }
 
 # Filler words (always removed)
@@ -53,37 +74,72 @@ FILLER_PHRASES = [
 
 class TranscriptionHistory:
     """
-    Track recent transcriptions for "scratch that" functionality.
-    Stores text and character count for backspace deletion.
+    Track recent transcriptions for "scratch that" and history display.
+    Stores text, character count, and timestamp.
     """
 
-    def __init__(self, max_entries=10):
-        self.entries = []  # List of (text, char_count)
+    def __init__(self, max_entries=50):
+        self.entries = []  # List of {"text": str, "char_count": int, "timestamp": datetime}
         self.max_entries = max_entries
+        self._on_change_callbacks = []
 
     def add(self, text):
         """Add a transcription to history."""
         if text:
-            char_count = len(text)
-            self.entries.append((text, char_count))
+            from datetime import datetime
+            entry = {
+                "text": text,
+                "char_count": len(text),
+                "timestamp": datetime.now()
+            }
+            self.entries.append(entry)
             if len(self.entries) > self.max_entries:
                 self.entries.pop(0)
+            self._notify_change()
 
     def get_last_length(self):
         """Return character count of last entry for backspace deletion."""
         if self.entries:
-            return self.entries[-1][1]
+            return self.entries[-1]["char_count"]
         return 0
 
     def pop_last(self):
         """Remove and return last entry."""
         if self.entries:
-            return self.entries.pop()
+            entry = self.entries.pop()
+            self._notify_change()
+            return entry
         return None
 
     def clear(self):
         """Clear all history."""
         self.entries = []
+        self._notify_change()
+
+    def get_all(self):
+        """Return all entries (newest first for display)."""
+        return list(reversed(self.entries))
+
+    def get_entry_count(self):
+        """Return number of entries."""
+        return len(self.entries)
+
+    def on_change(self, callback):
+        """Register a callback to be notified when history changes."""
+        self._on_change_callbacks.append(callback)
+
+    def remove_change_callback(self, callback):
+        """Remove a change callback."""
+        if callback in self._on_change_callbacks:
+            self._on_change_callbacks.remove(callback)
+
+    def _notify_change(self):
+        """Notify all registered callbacks of a change."""
+        for callback in self._on_change_callbacks:
+            try:
+                callback()
+            except Exception:
+                pass  # Don't let callback errors break history
 
 
 def apply_custom_dictionary(text, dictionary):
@@ -119,6 +175,41 @@ def apply_custom_dictionary(text, dictionary):
         else:
             pattern = r'\b' + re.escape(source) + r'\b'
             text = re.sub(pattern, target, text, flags=re.IGNORECASE)
+
+    return text
+
+
+def apply_custom_commands(text, commands):
+    """
+    Apply custom voice commands (trigger phrases that expand to text blocks).
+
+    Unlike custom dictionary (which fixes mishearings), custom commands are
+    intentional expansions: "email signature" -> full signature block.
+
+    Args:
+        text: Input text
+        commands: List of {"trigger": str, "replacement": str, "enabled": bool}
+
+    Returns:
+        Text with command triggers expanded
+    """
+    if not commands:
+        return text
+
+    # Filter to enabled commands and sort by trigger length (longest first)
+    active_commands = [c for c in commands if c.get("enabled", True)]
+    sorted_commands = sorted(active_commands, key=lambda x: len(x.get("trigger", "")), reverse=True)
+
+    for cmd in sorted_commands:
+        trigger = cmd.get("trigger", "").strip()
+        replacement = cmd.get("replacement", "")
+
+        if not trigger:
+            continue
+
+        # Match trigger phrase case-insensitively with word boundaries
+        pattern = r'\b' + re.escape(trigger) + r'\b'
+        text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
 
     return text
 
@@ -199,22 +290,27 @@ def process_voice_commands(text):
     Handles:
     - Punctuation: "period" -> "."
     - Structure: "new line" -> "\\n"
+    - Formatting: "bullet point" -> "• "
     - Editing: "scratch that" -> signals deletion
+    - Actions: "select all" -> keyboard shortcut
 
     Args:
         text: Input text
 
     Returns:
-        Tuple of (processed_text, should_scratch)
-        If should_scratch is True, the last transcription should be deleted.
+        Tuple of (processed_text, should_scratch, actions)
+        - processed_text: Text with commands replaced
+        - should_scratch: True if "scratch that" was detected
+        - actions: List of action commands to execute (e.g., ["ctrl+a"])
     """
     if not text:
-        return text, False
+        return text, False, []
 
     words = text.split()
     result = []
     i = 0
     should_scratch = False
+    actions = []
 
     def strip_punctuation(word):
         """Strip leading/trailing punctuation from a word."""
@@ -233,6 +329,12 @@ def process_voice_commands(text):
                 i += 2
                 continue
 
+            # Check action commands (select all)
+            if two_word in ACTION_COMMANDS:
+                actions.append(ACTION_COMMANDS[two_word])
+                i += 2
+                continue
+
             # Check structure commands (new line, new paragraph)
             if two_word in STRUCTURE_COMMANDS:
                 # Attach to previous word without space
@@ -240,6 +342,12 @@ def process_voice_commands(text):
                     result[-1] = result[-1].rstrip() + STRUCTURE_COMMANDS[two_word]
                 else:
                     result.append(STRUCTURE_COMMANDS[two_word])
+                i += 2
+                continue
+
+            # Check formatting commands (bullet point, numbered list)
+            if two_word in FORMATTING_COMMANDS:
+                result.append(FORMATTING_COMMANDS[two_word])
                 i += 2
                 continue
 
@@ -255,6 +363,18 @@ def process_voice_commands(text):
 
         # Single word commands - strip punctuation for matching
         word_clean = strip_punctuation(words[i]).lower()
+
+        # Check single-word action commands (undo, redo)
+        if word_clean in ACTION_COMMANDS:
+            actions.append(ACTION_COMMANDS[word_clean])
+            i += 1
+            continue
+
+        # Check single-word formatting commands (bullet)
+        if word_clean in FORMATTING_COMMANDS:
+            result.append(FORMATTING_COMMANDS[word_clean])
+            i += 1
+            continue
 
         # Check single-word punctuation commands
         if word_clean in PUNCTUATION_COMMANDS:
@@ -286,7 +406,7 @@ def process_voice_commands(text):
     # Join and clean up spaces after newlines
     output = ' '.join(result)
     output = output.replace('\n ', '\n')  # Remove space after newline
-    return output, should_scratch
+    return output, should_scratch, actions
 
 
 def process_text(text, config, history=None):
@@ -304,13 +424,14 @@ def process_text(text, config, history=None):
         history: TranscriptionHistory instance (optional, for scratch that)
 
     Returns:
-        Tuple of (processed_text, should_scratch, scratch_length)
+        Tuple of (processed_text, should_scratch, scratch_length, actions)
         - processed_text: Final processed text
         - should_scratch: True if "scratch that" was detected
         - scratch_length: Number of characters to delete (if scratching)
+        - actions: List of action commands to execute (e.g., ["ctrl+a"])
     """
     if not text:
-        return text, False, 0
+        return text, False, 0, []
 
     processed = text
 
@@ -325,16 +446,22 @@ def process_text(text, config, history=None):
         custom_fillers = config.get("custom_fillers", [])
         processed = remove_fillers(processed, aggressive, custom_fillers)
 
-    # Step 3: Voice commands
+    # Step 3: Custom commands (user-defined trigger -> expansion)
+    custom_commands = config.get("custom_commands", [])
+    if custom_commands:
+        processed = apply_custom_commands(processed, custom_commands)
+
+    # Step 4: Voice commands
     should_scratch = False
     scratch_length = 0
+    actions = []
 
     if config.get("voice_commands_enabled", True):
-        processed, should_scratch = process_voice_commands(processed)
+        processed, should_scratch, actions = process_voice_commands(processed)
 
         # Handle scratch that
         if should_scratch and config.get("scratch_that_enabled", True) and history:
             scratch_length = history.get_last_length()
             history.pop_last()
 
-    return processed, should_scratch, scratch_length
+    return processed, should_scratch, scratch_length, actions

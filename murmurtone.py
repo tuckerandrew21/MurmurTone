@@ -17,6 +17,8 @@ from PIL import Image, ImageDraw
 import pystray
 import config
 import text_processor
+import stats
+import preview_window
 
 # Global state
 app_config = None
@@ -236,6 +238,10 @@ def start_recording():
     play_sound(start_sound)
     update_tray_icon(recording=True)
 
+    # Show preview window if enabled
+    if app_config.get("preview_enabled", True):
+        preview_window.show_recording()
+
     print("\n>> Recording...", flush=True)
     is_recording = True
     audio_data = []
@@ -265,9 +271,13 @@ def stop_recording():
 
     if not audio_data:
         print("No audio.", flush=True)
+        if app_config.get("preview_enabled", True):
+            preview_window.hide()
         return
 
     print(">> Transcribing...", flush=True)
+    if app_config.get("preview_enabled", True):
+        preview_window.show_transcribing()
     audio = np.concatenate(audio_data, axis=0).flatten()
 
     language = app_config.get("language", "en")
@@ -278,13 +288,27 @@ def stop_recording():
     raw_text = "".join(segment.text for segment in segments).strip()
 
     # Process text through the pipeline (dictionary, fillers, commands)
-    text, should_scratch, scratch_length = text_processor.process_text(
+    text, should_scratch, scratch_length, actions = text_processor.process_text(
         raw_text, app_config, transcription_history
     )
+
+    # Execute any action commands (select all, undo, redo)
+    actions_executed = False
+    for action in actions:
+        if action.startswith("ctrl+"):
+            key = action.split("+")[1]
+            keyboard_controller.press(Key.ctrl)
+            keyboard_controller.press(key)
+            keyboard_controller.release(key)
+            keyboard_controller.release(Key.ctrl)
+            time.sleep(0.05)
+            actions_executed = True
 
     # Handle "scratch that" - delete previous transcription
     if should_scratch and scratch_length > 0:
         print(f">> Scratching last {scratch_length} characters...", flush=True)
+        if app_config.get("preview_enabled", True):
+            preview_window.hide()
         time.sleep(0.1)
         for _ in range(scratch_length):
             keyboard_controller.press(Key.backspace)
@@ -298,6 +322,13 @@ def stop_recording():
         # Track this transcription for potential "scratch that"
         text_with_space = text + " "
         transcription_history.add(text_with_space)
+
+        # Record usage statistics
+        stats.record_transcription(text)
+
+        # Show transcribed text in preview (will auto-hide)
+        if app_config.get("preview_enabled", True):
+            preview_window.show_text(text, auto_hide=True)
 
         # Copy to clipboard using tkinter (more reliable than ctypes)
         try:
@@ -323,8 +354,14 @@ def stop_recording():
             keyboard_controller.release(Key.ctrl_l)
         else:
             print(f">> Copied to clipboard: {text}", flush=True)
+    elif actions_executed:
+        print(f">> Action executed: {', '.join(actions)}", flush=True)
+        if app_config.get("preview_enabled", True):
+            preview_window.hide()
     else:
         print(">> No speech detected.", flush=True)
+        if app_config.get("preview_enabled", True):
+            preview_window.hide()
 
     hotkey_str = config.hotkey_to_string(app_config["hotkey"])
     print(f"\nReady. Press {hotkey_str}.", flush=True)
@@ -438,6 +475,13 @@ def on_settings_saved(new_config):
         print(f"Model changed from {old_model} to {new_model}, reloading...", flush=True)
         threading.Thread(target=load_model, args=(new_model,), daemon=True).start()
 
+    # Update preview window configuration
+    preview_window.configure(
+        enabled=app_config.get("preview_enabled", True),
+        position=app_config.get("preview_position", "bottom-right"),
+        auto_hide_delay=app_config.get("preview_auto_hide_delay", 2.0)
+    )
+
     hotkey_str = config.hotkey_to_string(app_config["hotkey"])
     print(f"Settings saved. Hotkey: {hotkey_str}", flush=True)
 
@@ -483,6 +527,13 @@ def main():
 
     # Initialize status icons
     init_icons()
+
+    # Configure preview window
+    preview_window.configure(
+        enabled=app_config.get("preview_enabled", True),
+        position=app_config.get("preview_position", "bottom-right"),
+        auto_hide_delay=app_config.get("preview_auto_hide_delay", 2.0)
+    )
 
     # Start keyboard listener
     listener_thread = threading.Thread(target=run_keyboard_listener, daemon=True)

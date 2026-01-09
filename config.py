@@ -33,7 +33,12 @@ DEFAULTS = {
     "filler_removal_enabled": True,  # Remove filler words (um, uh, etc.)
     "filler_removal_aggressive": False,  # Also remove context-sensitive fillers like "like"
     "custom_fillers": [],  # Additional filler words to remove
-    "custom_dictionary": []  # Text replacements: [{"from": "...", "to": "...", "case_sensitive": False}]
+    "custom_dictionary": [],  # Text replacements: [{"from": "...", "to": "...", "case_sensitive": False}]
+    "custom_commands": [],  # Voice commands: [{"trigger": "...", "replacement": "...", "enabled": True}]
+    # Preview window settings
+    "preview_enabled": True,
+    "preview_position": "bottom-right",  # top-right, bottom-right, top-left, bottom-left
+    "preview_auto_hide_delay": 2.0,  # seconds, 0 to disable auto-hide
 }
 
 # GitHub repo for updates (TODO: update with real URLs)

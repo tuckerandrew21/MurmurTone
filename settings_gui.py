@@ -131,13 +131,13 @@ class SettingsWindow:
 
         self.window = tk.Tk()
         self.window.title(f"{config.APP_NAME} Settings v{config.VERSION}")
-        self.window.geometry("500x750")
+        self.window.geometry("500x950")
         self.window.resizable(False, False)
 
         # Center on screen
         self.window.update_idletasks()
         x = (self.window.winfo_screenwidth() - 500) // 2
-        y = (self.window.winfo_screenheight() - 750) // 2
+        y = (self.window.winfo_screenheight() - 950) // 2
         self.window.geometry(f"+{x}+{y}")
 
         # Main frame with padding
@@ -285,6 +285,57 @@ class SettingsWindow:
                                         variable=self.startup_var)
         startup_check.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=5)
 
+        # Preview Window Section
+        row += 1
+        ttk.Separator(main_frame, orient=tk.HORIZONTAL).grid(row=row, column=0, columnspan=2, sticky="ew", pady=10)
+
+        row += 1
+        preview_label = ttk.Label(main_frame, text="Preview Window", font=("", 10, "bold"))
+        preview_label.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
+
+        # Preview enabled checkbox
+        row += 1
+        preview_frame = ttk.Frame(main_frame)
+        preview_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=2)
+        self.preview_enabled_var = tk.BooleanVar(value=self.config.get("preview_enabled", True))
+        preview_check = ttk.Checkbutton(preview_frame, text="Show preview overlay",
+                                        variable=self.preview_enabled_var)
+        preview_check.pack(side=tk.LEFT)
+        preview_help = ttk.Label(preview_frame, text="?", font=("", 9, "bold"),
+                                 foreground="#888888", cursor="question_arrow")
+        preview_help.pack(side=tk.LEFT, padx=5)
+        Tooltip(preview_help, "Shows a floating overlay with:\n"
+                             "• \"Recording...\" while recording (red)\n"
+                             "• \"Transcribing...\" while processing (yellow)\n"
+                             "• Transcribed text briefly (white)")
+
+        # Preview position dropdown
+        row += 1
+        position_frame = ttk.Frame(main_frame)
+        position_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=2, padx=(20, 0))
+        ttk.Label(position_frame, text="Position:").pack(side=tk.LEFT)
+        self.preview_position_var = tk.StringVar(value=self.config.get("preview_position", "bottom-right"))
+        position_options = ["bottom-right", "bottom-left", "top-right", "top-left"]
+        position_combo = ttk.Combobox(position_frame, textvariable=self.preview_position_var,
+                                      values=position_options, state="readonly", width=12)
+        position_combo.pack(side=tk.LEFT, padx=(5, 0))
+
+        # Preview auto-hide delay
+        row += 1
+        delay_frame = ttk.Frame(main_frame)
+        delay_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=2, padx=(20, 0))
+        ttk.Label(delay_frame, text="Auto-hide delay:").pack(side=tk.LEFT)
+        self.preview_delay_var = tk.StringVar(value=str(self.config.get("preview_auto_hide_delay", 2.0)))
+        delay_entry = ttk.Entry(delay_frame, textvariable=self.preview_delay_var, width=5)
+        delay_entry.pack(side=tk.LEFT, padx=(5, 0))
+        ttk.Label(delay_frame, text="seconds").pack(side=tk.LEFT, padx=(5, 0))
+        delay_help = ttk.Label(delay_frame, text="?", font=("", 9, "bold"),
+                               foreground="#888888", cursor="question_arrow")
+        delay_help.pack(side=tk.LEFT, padx=5)
+        Tooltip(delay_help, "How long the transcribed text stays visible\n"
+                           "before the preview window disappears.\n\n"
+                           "Set to 0 to keep it visible until next recording.")
+
         # Text Processing Section
         row += 1
         ttk.Separator(main_frame, orient=tk.HORIZONTAL).grid(row=row, column=0, columnspan=2, sticky="ew", pady=10)
@@ -372,6 +423,34 @@ class SettingsWindow:
         dict_btn_frame.pack(side=tk.LEFT, padx=5)
         ttk.Button(dict_btn_frame, text="Add", width=6, command=self.add_dict_entry).pack(pady=1)
         ttk.Button(dict_btn_frame, text="Remove", width=6, command=self.remove_dict_entry).pack(pady=1)
+
+        # Custom Commands section
+        row += 1
+        cmd_label_frame = ttk.Frame(main_frame)
+        cmd_label_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=(10, 2))
+        ttk.Label(cmd_label_frame, text="Custom Commands:").pack(side=tk.LEFT)
+        cmd_help = ttk.Label(cmd_label_frame, text="?", font=("", 9, "bold"),
+                             foreground="#888888", cursor="question_arrow")
+        cmd_help.pack(side=tk.LEFT, padx=5)
+        Tooltip(cmd_help, "Trigger phrases that expand to text blocks:\n\n"
+                         "\"email signature\" → full signature\n"
+                         "\"my address\" → your address\n"
+                         "\"bug template\" → bug report format")
+
+        # Commands list
+        row += 1
+        cmd_frame = ttk.Frame(main_frame)
+        cmd_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=2)
+
+        self.cmd_listbox = tk.Listbox(cmd_frame, width=50, height=3, selectmode=tk.SINGLE)
+        self.cmd_listbox.pack(side=tk.LEFT)
+        self.custom_commands = self.config.get("custom_commands", []).copy()
+        self._refresh_cmd_listbox()
+
+        cmd_btn_frame = ttk.Frame(cmd_frame)
+        cmd_btn_frame.pack(side=tk.LEFT, padx=5)
+        ttk.Button(cmd_btn_frame, text="Add", width=6, command=self.add_cmd_entry).pack(pady=1)
+        ttk.Button(cmd_btn_frame, text="Remove", width=6, command=self.remove_cmd_entry).pack(pady=1)
 
         # Buttons frame
         row += 1
@@ -570,6 +649,12 @@ class SettingsWindow:
         except ValueError:
             silence_duration = 2.0
 
+        try:
+            preview_delay = float(self.preview_delay_var.get())
+            preview_delay = max(0.0, min(10.0, preview_delay))  # Clamp to reasonable range
+        except ValueError:
+            preview_delay = 2.0
+
         # Get selected device info (None for System Default)
         device_info = self.get_selected_device_info()
 
@@ -590,7 +675,12 @@ class SettingsWindow:
             "filler_removal_enabled": self.filler_var.get(),
             "filler_removal_aggressive": self.filler_aggressive_var.get(),
             "custom_fillers": self.config.get("custom_fillers", []),  # Preserve existing
-            "custom_dictionary": self.custom_dictionary
+            "custom_dictionary": self.custom_dictionary,
+            "custom_commands": self.custom_commands,
+            # Preview window settings
+            "preview_enabled": self.preview_enabled_var.get(),
+            "preview_position": self.preview_position_var.get(),
+            "preview_auto_hide_delay": preview_delay
         }
 
         config.save_config(new_config)
@@ -625,6 +715,12 @@ class SettingsWindow:
         self.filler_aggressive_var.set(defaults["filler_removal_aggressive"])
         self.custom_dictionary = []
         self._refresh_dict_listbox()
+        self.custom_commands = []
+        self._refresh_cmd_listbox()
+        # Reset preview settings
+        self.preview_enabled_var.set(defaults["preview_enabled"])
+        self.preview_position_var.set(defaults["preview_position"])
+        self.preview_delay_var.set(str(defaults["preview_auto_hide_delay"]))
         # Reset device to System Default
         self.refresh_devices()
         # Update UI
@@ -698,6 +794,75 @@ class SettingsWindow:
             idx = selection[0]
             self.custom_dictionary.pop(idx)
             self._refresh_dict_listbox()
+
+    def _refresh_cmd_listbox(self):
+        """Refresh the custom commands listbox display."""
+        self.cmd_listbox.delete(0, tk.END)
+        for entry in self.custom_commands:
+            trigger = entry.get("trigger", "")
+            replacement = entry.get("replacement", "")
+            # Truncate long replacement for display
+            display_repl = replacement[:30] + "..." if len(replacement) > 30 else replacement
+            display_repl = display_repl.replace("\n", " ")
+            self.cmd_listbox.insert(tk.END, f'"{trigger}" -> "{display_repl}"')
+
+    def add_cmd_entry(self):
+        """Show dialog to add a custom command entry."""
+        dialog = tk.Toplevel(self.window)
+        dialog.title("Add Custom Command")
+        dialog.geometry("400x250")
+        dialog.resizable(False, False)
+        dialog.transient(self.window)
+        dialog.grab_set()
+
+        # Center on parent
+        dialog.update_idletasks()
+        x = self.window.winfo_x() + (self.window.winfo_width() - 400) // 2
+        y = self.window.winfo_y() + (self.window.winfo_height() - 250) // 2
+        dialog.geometry(f"+{x}+{y}")
+
+        frame = ttk.Frame(dialog, padding=15)
+        frame.pack(fill=tk.BOTH, expand=True)
+
+        ttk.Label(frame, text="Trigger phrase:").grid(row=0, column=0, sticky=tk.W, pady=5)
+        trigger_var = tk.StringVar()
+        trigger_entry = ttk.Entry(frame, textvariable=trigger_var, width=40)
+        trigger_entry.grid(row=0, column=1, sticky=tk.W, pady=5)
+
+        ttk.Label(frame, text="Expands to:").grid(row=1, column=0, sticky=tk.NW, pady=5)
+        replacement_text = tk.Text(frame, width=40, height=5, wrap=tk.WORD)
+        replacement_text.grid(row=1, column=1, sticky=tk.W, pady=5)
+
+        hint = ttk.Label(frame, text="Tip: Use multiple lines for templates",
+                        font=("", 8), foreground="gray")
+        hint.grid(row=2, column=1, sticky=tk.W)
+
+        def do_add():
+            trigger = trigger_var.get().strip()
+            replacement = replacement_text.get("1.0", tk.END).strip()
+            if trigger and replacement:
+                self.custom_commands.append({
+                    "trigger": trigger,
+                    "replacement": replacement,
+                    "enabled": True
+                })
+                self._refresh_cmd_listbox()
+                dialog.destroy()
+
+        btn_frame = ttk.Frame(frame)
+        btn_frame.grid(row=3, column=0, columnspan=2, pady=15)
+        ttk.Button(btn_frame, text="Add", command=do_add).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Cancel", command=dialog.destroy).pack(side=tk.LEFT, padx=5)
+
+        trigger_entry.focus_set()
+
+    def remove_cmd_entry(self):
+        """Remove selected custom command entry."""
+        selection = self.cmd_listbox.curselection()
+        if selection:
+            idx = selection[0]
+            self.custom_commands.pop(idx)
+            self._refresh_cmd_listbox()
 
     def close(self):
         """Close the window."""
