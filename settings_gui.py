@@ -514,6 +514,23 @@ class SettingsWindow:
                                "When disabled, text is only copied to clipboard -\n"
                                "you must manually paste.")
 
+        # Paste mode selector
+        row += 1
+        paste_mode_frame = ttk.Frame(main_frame)
+        paste_mode_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=5)
+        ttk.Label(paste_mode_frame, text="Paste mode:").pack(side=tk.LEFT)
+        self.paste_mode_var = tk.StringVar(value=self.config.get("paste_mode", "clipboard"))
+        paste_mode_combo = ttk.Combobox(paste_mode_frame, textvariable=self.paste_mode_var,
+                                        values=["clipboard", "direct"], width=12, state="readonly")
+        paste_mode_combo.pack(side=tk.LEFT, padx=(10, 5))
+        paste_mode_help = ttk.Label(paste_mode_frame, text="?", font=("", 9, "bold"),
+                                    foreground="#888888", cursor="question_arrow")
+        paste_mode_help.pack(side=tk.LEFT, padx=5)
+        Tooltip(paste_mode_help, "Clipboard: Uses Ctrl+V to paste. Faster for long text.\n"
+                                 "Preserves your clipboard contents (e.g. screenshots).\n\n"
+                                 "Direct: Types text character-by-character.\n"
+                                 "Never touches clipboard. Slightly slower.")
+
         # Start with Windows checkbox
         row += 1
         self.startup_var = tk.BooleanVar(value=config.get_startup_enabled())
@@ -1215,6 +1232,7 @@ class SettingsWindow:
             "audio_feedback": self.feedback_var.get(),
             "input_device": device_info,
             "auto_paste": self.autopaste_var.get(),
+            "paste_mode": self.paste_mode_var.get(),
             "start_with_windows": self.startup_var.get(),
             # GPU/CUDA settings
             "processing_mode": self.get_processing_mode(),
@@ -1267,6 +1285,7 @@ class SettingsWindow:
         self.silence_var.set(str(defaults["silence_duration_sec"]))
         self.feedback_var.set(defaults["audio_feedback"])
         self.autopaste_var.set(defaults["auto_paste"])
+        self.paste_mode_var.set(defaults["paste_mode"])
         # Reset GPU settings
         default_mode = defaults["processing_mode"]
         self.processing_combo.set(config.PROCESSING_MODE_LABELS.get(default_mode, "Auto"))

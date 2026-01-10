@@ -26,6 +26,8 @@ DEFAULTS = {
     "audio_feedback": True,
     "input_device": None,  # None = system default, or device name string
     "auto_paste": True,  # Automatically paste after transcription
+    "paste_mode": "clipboard",  # "clipboard" (uses Ctrl+V) or "direct" (types directly)
+    "direct_typing_delay_ms": 5,  # Delay between characters in direct typing mode (ms)
     "start_with_windows": False,  # Launch on Windows startup
     # Text processing features
     "voice_commands_enabled": True,  # Process voice commands (period, new line, etc.)

@@ -21,6 +21,7 @@ import config
 import text_processor
 import stats
 import preview_window
+import clipboard_utils
 from logger import log
 
 
@@ -646,20 +647,37 @@ def stop_recording():
         if app_config.get("preview_enabled", True):
             preview_window.show_text(text, auto_hide=True)
 
-        # Copy to clipboard using tkinter (more reliable than ctypes)
-        try:
-            import tkinter as tk
-            root = tk.Tk()
-            root.withdraw()
-            root.clipboard_clear()
-            root.clipboard_append(text_with_space)
-            root.update()
-            root.destroy()
-        except Exception as e:
-            log.error(f"Clipboard error: {e}")
+        # Output text using configured paste mode
+        paste_mode = app_config.get("paste_mode", "clipboard")
 
-        # Auto-paste if enabled
-        if app_config.get("auto_paste", True):
+        if paste_mode == "direct":
+            # Direct typing mode - never touches clipboard
+            # Types character-by-character with delay for visual typewriter effect
+            log.info(f"Typing directly: {text}")
+            time.sleep(0.2)  # Brief pause before typing
+            typing_delay = app_config.get("direct_typing_delay_ms", 5) / 1000.0
+            for char in text_with_space:
+                keyboard_controller.type(char)
+                if typing_delay > 0:
+                    time.sleep(typing_delay)
+        elif app_config.get("auto_paste", True):
+            # Clipboard mode with auto-paste
+            # Save current clipboard contents first
+            saved_clipboard = clipboard_utils.save_clipboard()
+
+            # Copy to clipboard using tkinter (more reliable than ctypes)
+            try:
+                import tkinter as tk
+                root = tk.Tk()
+                root.withdraw()
+                root.clipboard_clear()
+                root.clipboard_append(text_with_space)
+                root.update()
+                root.destroy()
+            except Exception as e:
+                log.error(f"Clipboard error: {e}")
+
+            # Paste
             log.info(f"Pasting: {text}")
             time.sleep(0.3)  # Wait for focus to return after clipboard
             keyboard_controller.press(Key.ctrl_l)
@@ -668,8 +686,23 @@ def stop_recording():
             keyboard_controller.release('v')
             time.sleep(0.05)
             keyboard_controller.release(Key.ctrl_l)
+
+            # Restore clipboard contents asynchronously
+            if saved_clipboard:
+                clipboard_utils.restore_clipboard_async(saved_clipboard, delay_ms=400)
         else:
-            log.info(f"Copied to clipboard: {text}")
+            # Clipboard mode without auto-paste (manual paste by user)
+            try:
+                import tkinter as tk
+                root = tk.Tk()
+                root.withdraw()
+                root.clipboard_clear()
+                root.clipboard_append(text_with_space)
+                root.update()
+                root.destroy()
+                log.info(f"Copied to clipboard: {text}")
+            except Exception as e:
+                log.error(f"Clipboard error: {e}")
         # Success sound after text output
         play_sound(success_sound, sound_type="success")
     elif actions_executed:
