@@ -601,7 +601,15 @@ def stop_recording():
     if language == "auto":
         language = None
 
-    segments, _ = model.transcribe(audio, language=language)
+    # Get initial_prompt for punctuation optimization
+    initial_prompt = app_config.get("initial_prompt", "")
+
+    # Transcribe with optional initial_prompt
+    transcribe_params = {"language": language}
+    if initial_prompt:
+        transcribe_params["initial_prompt"] = initial_prompt
+
+    segments, _ = model.transcribe(audio, **transcribe_params)
     raw_text = "".join(segment.text for segment in segments).strip()
 
     # Process text through the pipeline (dictionary, fillers, commands)

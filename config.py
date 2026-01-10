@@ -54,6 +54,8 @@ DEFAULTS = {
     "sound_success": True,
     "sound_error": True,
     "sound_command": True,
+    # Whisper transcription optimization
+    "initial_prompt": "Use proper punctuation including periods, commas, and question marks.",  # Context hint for Whisper
 }
 
 # GitHub repo for updates (TODO: update with real URLs)

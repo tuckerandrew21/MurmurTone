@@ -299,6 +299,22 @@ class TestLanguageConfig:
         assert default_lang in config.LANGUAGE_LABELS
 
 
+class TestWhisperOptimizationConfig:
+    """Tests for Whisper transcription optimization configuration."""
+
+    def test_initial_prompt_default_exists(self):
+        """initial_prompt should have a default value."""
+        assert "initial_prompt" in config.DEFAULTS
+
+    def test_initial_prompt_is_string(self):
+        """initial_prompt should be a string."""
+        assert isinstance(config.DEFAULTS["initial_prompt"], str)
+
+    def test_initial_prompt_not_empty(self):
+        """Default initial_prompt should not be empty (optimization hint)."""
+        assert len(config.DEFAULTS["initial_prompt"]) > 0
+
+
 class TestPasteModeConfig:
     """Tests for paste mode configuration."""
 
