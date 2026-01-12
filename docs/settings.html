@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings Guide - MurmurTone Documentation</title>
+    <meta name="description" content="Configure MurmurTone: models, hotkeys, audio settings, custom vocabulary, and more.">
+    <link rel="icon" type="image/png" href="/icon.png">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; }
+        .nav-bar { background: white; padding: 15px 0; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 100; }
+        .nav-container { max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; }
+        .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #222; font-weight: 700; font-size: 1.2em; }
+        .nav-logo img { height: 32px; width: 32px; }
+        .nav-links { display: flex; gap: 30px; align-items: center; }
+        .nav-links a { text-decoration: none; color: #666; font-weight: 500; transition: color 0.2s; }
+        .nav-links a:hover { color: #667eea; }
+        .nav-cta { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white !important; padding: 8px 20px; border-radius: 6px; font-weight: 600; }
+        .docs-layout { display: grid; grid-template-columns: 250px 1fr; max-width: 1200px; margin: 0 auto; min-height: calc(100vh - 70px); }
+        .sidebar { background: #f9f9f9; padding: 30px 20px; border-right: 1px solid #eee; }
+        .sidebar h3 { font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.5px; color: #999; margin-bottom: 15px; margin-top: 25px; }
+        .sidebar h3:first-child { margin-top: 0; }
+        .sidebar a { display: block; padding: 8px 12px; color: #666; text-decoration: none; border-radius: 6px; margin-bottom: 4px; transition: all 0.2s; }
+        .sidebar a:hover { background: #eee; color: #333; }
+        .sidebar a.active { background: #667eea; color: white; }
+        .docs-content { padding: 40px; max-width: 800px; }
+        .docs-content h1 { font-size: 2.5em; margin-bottom: 10px; color: #222; }
+        .docs-content .subtitle { font-size: 1.2em; color: #666; margin-bottom: 40px; }
+        .docs-content h2 { font-size: 1.5em; margin: 40px 0 20px; color: #222; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+        .docs-content h3 { font-size: 1.2em; margin: 30px 0 15px; color: #333; }
+        .docs-content p { margin-bottom: 15px; color: #444; }
+        .docs-content ul, .docs-content ol { margin: 15px 0; padding-left: 25px; }
+        .docs-content li { margin-bottom: 8px; }
+        .docs-content code { background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-family: 'Consolas', 'Monaco', monospace; font-size: 0.9em; }
+        .callout { padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .callout-info { background: #e8f4fd; border-left: 4px solid #667eea; }
+        .callout-warning { background: #fff8e6; border-left: 4px solid #f59e0b; }
+        .callout strong { display: block; margin-bottom: 5px; }
+        .settings-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .settings-table th { background: #f5f5f5; padding: 12px 15px; text-align: left; border-bottom: 2px solid #ddd; }
+        .settings-table td { padding: 12px 15px; border-bottom: 1px solid #eee; vertical-align: top; }
+        .settings-table tr:nth-child(even) { background: #fafafa; }
+        .docs-footer { padding: 30px 40px; border-top: 1px solid #eee; margin-top: 60px; display: flex; justify-content: space-between; }
+        .docs-footer a { color: #667eea; text-decoration: none; }
+        .docs-footer a:hover { text-decoration: underline; }
+        @media (max-width: 768px) { .nav-links { display: none; } .docs-layout { grid-template-columns: 1fr; } .sidebar { display: none; } .docs-content { padding: 20px; } .docs-content h1 { font-size: 2em; } }
+    </style>
+</head>
+<body>
+    <nav class="nav-bar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo"><img src="/icon.png" alt="MurmurTone">MurmurTone</a>
+            <div class="nav-links">
+                <a href="/#features">Features</a>
+                <a href="/pricing.html">Pricing</a>
+                <a href="/docs/">Docs</a>
+                <a href="/#faq">FAQ</a>
+                <a href="/install.html" class="nav-cta">Download</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="docs-layout">
+        <aside class="sidebar">
+            <h3>Getting Started</h3>
+            <a href="/docs/">Introduction</a>
+            <h3>Usage</h3>
+            <a href="/docs/voice-commands.html">Voice Commands</a>
+            <a href="/docs/settings.html" class="active">Settings Guide</a>
+            <h3>Help</h3>
+            <a href="/docs/troubleshooting.html">Troubleshooting</a>
+            <a href="/#faq">FAQ</a>
+            <a href="mailto:support@murmurtone.com">Contact Support</a>
+        </aside>
+
+        <main class="docs-content">
+            <h1>Settings Guide</h1>
+            <p class="subtitle">Configure MurmurTone to work exactly how you want.</p>
+
+            <p>Access settings by right-clicking the MurmurTone icon in your system tray and selecting "Settings".</p>
+
+            <h2>General Settings</h2>
+
+            <h3>Speech Model</h3>
+            <p>Choose the model that best fits your needs:</p>
+
+            <table class="settings-table">
+                <thead>
+                    <tr><th>Model</th><th>Speed</th><th>Accuracy</th><th>RAM Usage</th><th>Best For</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>tiny.en</code></td><td>Fastest</td><td>Good</td><td>~1 GB</td><td>Quick notes, chat</td></tr>
+                    <tr><td><code>base.en</code></td><td>Fast</td><td>Better</td><td>~1.5 GB</td><td>General use (recommended)</td></tr>
+                    <tr><td><code>small.en</code></td><td>Medium</td><td>Great</td><td>~2.5 GB</td><td>Documentation, emails</td></tr>
+                    <tr><td><code>medium.en</code></td><td>Slower</td><td>Best</td><td>~5 GB</td><td>Professional transcription</td></tr>
+                </tbody>
+            </table>
+
+            <div class="callout callout-info">
+                <strong>Recommendation</strong>
+                Start with <code>base.en</code> for the best balance of speed and accuracy. Upgrade to <code>small.en</code> or <code>medium.en</code> if you need higher accuracy and have the RAM.
+            </div>
+
+            <h3>Processing Mode</h3>
+            <p>Select how MurmurTone uses your hardware:</p>
+
+            <table class="settings-table">
+                <thead>
+                    <tr><th>Mode</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><strong>Auto</strong></td><td>Automatically selects best option based on your hardware</td></tr>
+                    <tr><td><strong>CPU</strong></td><td>Uses only CPU (works on any machine)</td></tr>
+                    <tr><td><strong>GPU-Balanced</strong></td><td>Uses GPU with balanced settings (faster, requires NVIDIA GPU)</td></tr>
+                    <tr><td><strong>GPU-Quality</strong></td><td>Uses GPU with quality settings (fastest, requires NVIDIA GPU)</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Language</h3>
+            <p>Choose your transcription language:</p>
+            <ul>
+                <li><strong>English (en)</strong> - Optimized for English only (faster, more accurate)</li>
+                <li><strong>Auto-detect</strong> - Automatically detects language from 18+ supported languages</li>
+                <li><strong>Specific language</strong> - Choose a specific language (Spanish, French, German, etc.)</li>
+            </ul>
+
+            <h3>Hotkey</h3>
+            <p>Set your push-to-talk hotkey:</p>
+            <ol>
+                <li>Click the "Set Hotkey" button</li>
+                <li>Press your desired key combination (e.g., <code>Ctrl+Shift+Space</code>)</li>
+                <li>The new hotkey is saved automatically</li>
+            </ol>
+
+            <div class="callout callout-warning">
+                <strong>Avoid conflicts</strong>
+                Choose a hotkey that isn't used by other applications. Avoid common shortcuts like <code>Ctrl+C</code> or <code>Alt+Tab</code>.
+            </div>
+
+            <h2>Audio Settings</h2>
+
+            <h3>Input Device</h3>
+            <p>Select which microphone to use for recording. Options include:</p>
+            <ul>
+                <li><strong>System Default</strong> - Uses your Windows default recording device</li>
+                <li><strong>Specific device</strong> - Choose a specific microphone from the dropdown</li>
+            </ul>
+
+            <h3>Noise Gate</h3>
+            <p>Filter out background noise:</p>
+            <ul>
+                <li><strong>Enable/Disable</strong> - Toggle noise gate on or off</li>
+                <li><strong>Threshold</strong> - Set the dB level below which audio is ignored (-60 to -20 dB)</li>
+            </ul>
+            <p>Lower values (e.g., -50 dB) are more sensitive and let more sound through. Higher values (e.g., -30 dB) filter out more background noise but may cut off quiet speech.</p>
+
+            <h3>Audio Feedback</h3>
+            <p>Toggle individual sound effects:</p>
+            <ul>
+                <li><strong>Recording start</strong> - Beep when recording begins</li>
+                <li><strong>Processing</strong> - Sound while transcribing</li>
+                <li><strong>Success</strong> - Chime when transcription completes</li>
+                <li><strong>Error</strong> - Alert when something goes wrong</li>
+                <li><strong>Command</strong> - Sound when voice command is recognized</li>
+            </ul>
+
+            <h2>Advanced Features</h2>
+
+            <h3>Custom Vocabulary</h3>
+            <p>Add technical terms, names, and jargon to improve recognition:</p>
+            <ol>
+                <li>Go to the "Custom Vocabulary" tab</li>
+                <li>Enter words or phrases, one per line</li>
+                <li>Click "Save"</li>
+            </ol>
+            <p><strong>Examples:</strong> Company names, product names, technical acronyms, people's names.</p>
+
+            <h3>Custom Dictionary</h3>
+            <p>Create text replacement shortcuts:</p>
+            <ol>
+                <li>Go to the "Custom Dictionary" tab</li>
+                <li>Add trigger phrases and their replacements</li>
+                <li>Click "Save"</li>
+            </ol>
+            <p><strong>Example:</strong> "my email" → "yourname@company.com"</p>
+
+            <h3>Translation Mode</h3>
+            <p>Speak in one language, output in English:</p>
+            <ol>
+                <li>Enable "Translation Mode" in settings</li>
+                <li>Select your source language (or auto-detect)</li>
+                <li>Speak in your selected language</li>
+                <li>Transcription appears in English</li>
+            </ol>
+
+            <h3>AI Text Cleanup</h3>
+            <p>Automatically clean up transcriptions using local AI. Requires <a href="https://ollama.ai" target="_blank" rel="noopener">Ollama</a> installed separately. Enable in Settings → Advanced → AI Cleanup.</p>
+
+            <h2>Preview Window</h2>
+            <p>Show a floating preview of your transcription:</p>
+            <ul>
+                <li><strong>Enable/Disable</strong> - Toggle preview window</li>
+                <li><strong>Theme</strong> - Choose light or dark mode</li>
+                <li><strong>Position</strong> - Set where the preview appears on screen</li>
+            </ul>
+
+            <h2>Settings File Location</h2>
+            <p>Settings are stored at:</p>
+            <pre><code>%APPDATA%\MurmurTone\config.json</code></pre>
+            <p>You can back up or transfer this file to preserve your settings across installations.</p>
+
+            <div class="docs-footer">
+                <a href="/docs/voice-commands.html">← Voice Commands</a>
+                <a href="/docs/troubleshooting.html">Next: Troubleshooting →</a>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

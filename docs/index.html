@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation - MurmurTone</title>
+    <meta name="description" content="MurmurTone documentation: Getting started, voice commands, settings, and troubleshooting guides.">
+    <link rel="icon" type="image/png" href="/icon.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        /* Navigation */
+        .nav-bar {
+            background: white;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #222;
+            font-weight: 700;
+            font-size: 1.2em;
+        }
+
+        .nav-logo img {
+            height: 32px;
+            width: 32px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #666;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: #667eea;
+        }
+
+        .nav-cta {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white !important;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        /* Layout */
+        .docs-layout {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            max-width: 1200px;
+            margin: 0 auto;
+            min-height: calc(100vh - 70px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: #f9f9f9;
+            padding: 30px 20px;
+            border-right: 1px solid #eee;
+        }
+
+        .sidebar h3 {
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #999;
+            margin-bottom: 15px;
+            margin-top: 25px;
+        }
+
+        .sidebar h3:first-child {
+            margin-top: 0;
+        }
+
+        .sidebar a {
+            display: block;
+            padding: 8px 12px;
+            color: #666;
+            text-decoration: none;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            transition: all 0.2s;
+        }
+
+        .sidebar a:hover {
+            background: #eee;
+            color: #333;
+        }
+
+        .sidebar a.active {
+            background: #667eea;
+            color: white;
+        }
+
+        /* Main Content */
+        .docs-content {
+            padding: 40px;
+            max-width: 800px;
+        }
+
+        .docs-content h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #222;
+        }
+
+        .docs-content .subtitle {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 40px;
+        }
+
+        .docs-content h2 {
+            font-size: 1.5em;
+            margin: 40px 0 20px;
+            color: #222;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .docs-content h3 {
+            font-size: 1.2em;
+            margin: 30px 0 15px;
+            color: #333;
+        }
+
+        .docs-content p {
+            margin-bottom: 15px;
+            color: #444;
+        }
+
+        .docs-content ul, .docs-content ol {
+            margin: 15px 0;
+            padding-left: 25px;
+        }
+
+        .docs-content li {
+            margin-bottom: 8px;
+        }
+
+        .docs-content code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+        }
+
+        .docs-content pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        .docs-content pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+
+        /* Callout Boxes */
+        .callout {
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .callout-info {
+            background: #e8f4fd;
+            border-left: 4px solid #667eea;
+        }
+
+        .callout-warning {
+            background: #fff8e6;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .callout-success {
+            background: #e8f9ee;
+            border-left: 4px solid #22c55e;
+        }
+
+        .callout strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        /* Steps */
+        .steps {
+            counter-reset: step;
+            list-style: none;
+            padding: 0;
+        }
+
+        .steps li {
+            position: relative;
+            padding-left: 50px;
+            margin-bottom: 25px;
+        }
+
+        .steps li::before {
+            counter-increment: step;
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 32px;
+            height: 32px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        /* Quick Links */
+        .quick-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .quick-link {
+            background: white;
+            border: 1px solid #eee;
+            border-radius: 12px;
+            padding: 25px;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.2s;
+        }
+
+        .quick-link:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .quick-link h4 {
+            margin-bottom: 8px;
+            color: #222;
+        }
+
+        .quick-link p {
+            font-size: 0.9em;
+            color: #666;
+            margin: 0;
+        }
+
+        /* Footer */
+        .docs-footer {
+            padding: 30px 40px;
+            border-top: 1px solid #eee;
+            margin-top: 60px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .docs-footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .docs-footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .docs-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .docs-content {
+                padding: 20px;
+            }
+
+            .docs-content h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav-bar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <img src="/icon.png" alt="MurmurTone">
+                MurmurTone
+            </a>
+            <div class="nav-links">
+                <a href="/#features">Features</a>
+                <a href="/pricing.html">Pricing</a>
+                <a href="/docs/">Docs</a>
+                <a href="/#faq">FAQ</a>
+                <a href="/install.html" class="nav-cta">Download</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="docs-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h3>Getting Started</h3>
+            <a href="/docs/" class="active">Introduction</a>
+
+            <h3>Usage</h3>
+            <a href="/docs/voice-commands.html">Voice Commands</a>
+            <a href="/docs/settings.html">Settings Guide</a>
+
+            <h3>Help</h3>
+            <a href="/docs/troubleshooting.html">Troubleshooting</a>
+            <a href="/#faq">FAQ</a>
+            <a href="mailto:support@murmurtone.com">Contact Support</a>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="docs-content">
+            <h1>Getting Started with MurmurTone</h1>
+            <p class="subtitle">Learn how to set up and use MurmurTone for fast, private voice-to-text transcription.</p>
+
+            <div class="quick-links">
+                <a href="/docs/voice-commands.html" class="quick-link">
+                    <h4>🎤 Voice Commands</h4>
+                    <p>Learn punctuation, editing, and navigation commands.</p>
+                </a>
+                <a href="/docs/settings.html" class="quick-link">
+                    <h4>⚙️ Settings Guide</h4>
+                    <p>Configure models, hotkeys, and audio options.</p>
+                </a>
+                <a href="/docs/troubleshooting.html" class="quick-link">
+                    <h4>🔧 Troubleshooting</h4>
+                    <p>Solutions for common issues.</p>
+                </a>
+            </div>
+
+            <h2>Quick Start</h2>
+
+            <p>Get started with MurmurTone in under 5 minutes:</p>
+
+            <ol class="steps">
+                <li>
+                    <strong>Download and Install</strong>
+                    <p>Download the installer from <a href="/install.html">murmurtone.com/install</a> and run it. Follow the on-screen instructions.</p>
+                </li>
+                <li>
+                    <strong>Launch MurmurTone</strong>
+                    <p>Find MurmurTone in your system tray (bottom-right of your taskbar). The icon looks like a shield with a waveform.</p>
+                </li>
+                <li>
+                    <strong>Configure Your Hotkey</strong>
+                    <p>Right-click the tray icon → Settings → Click "Set Hotkey" and press your preferred key combination. Default: <code>Ctrl+Shift+Space</code></p>
+                </li>
+                <li>
+                    <strong>Start Transcribing</strong>
+                    <p>Press and hold your hotkey, speak clearly, then release. Your transcribed text will appear in the active window.</p>
+                </li>
+            </ol>
+
+            <div class="callout callout-info">
+                <strong>First-time setup</strong>
+                The first transcription may take 30-60 seconds while the speech model loads into memory. Subsequent transcriptions will be instant.
+            </div>
+
+            <h2>Basic Usage</h2>
+
+            <h3>Recording and Transcribing</h3>
+
+            <p>MurmurTone uses a "push-to-talk" system:</p>
+
+            <ol>
+                <li><strong>Press</strong> your hotkey to start recording</li>
+                <li><strong>Speak</strong> clearly into your microphone</li>
+                <li><strong>Release</strong> the hotkey to stop recording and transcribe</li>
+                <li>Your text appears in the active application</li>
+            </ol>
+
+            <p>Audio feedback sounds indicate the current state:</p>
+            <ul>
+                <li><strong>Beep (start):</strong> Recording has begun</li>
+                <li><strong>Processing sound:</strong> Transcription in progress</li>
+                <li><strong>Success chime:</strong> Transcription complete</li>
+                <li><strong>Error sound:</strong> Something went wrong</li>
+            </ul>
+
+            <h3>Voice Commands</h3>
+
+            <p>Say these commands while recording to insert punctuation or control text:</p>
+
+            <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                <thead>
+                    <tr style="background: #f5f5f5;">
+                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">Say</th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">Result</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td style="padding: 10px; border-bottom: 1px solid #eee;">"period"</td><td style="padding: 10px; border-bottom: 1px solid #eee;">.</td></tr>
+                    <tr><td style="padding: 10px; border-bottom: 1px solid #eee;">"comma"</td><td style="padding: 10px; border-bottom: 1px solid #eee;">,</td></tr>
+                    <tr><td style="padding: 10px; border-bottom: 1px solid #eee;">"question mark"</td><td style="padding: 10px; border-bottom: 1px solid #eee;">?</td></tr>
+                    <tr><td style="padding: 10px; border-bottom: 1px solid #eee;">"new line"</td><td style="padding: 10px; border-bottom: 1px solid #eee;">Line break</td></tr>
+                    <tr><td style="padding: 10px; border-bottom: 1px solid #eee;">"scratch that"</td><td style="padding: 10px; border-bottom: 1px solid #eee;">Delete last transcription</td></tr>
+                </tbody>
+            </table>
+
+            <p>See the full list in <a href="/docs/voice-commands.html">Voice Commands</a>.</p>
+
+            <h2>System Requirements</h2>
+
+            <ul>
+                <li><strong>OS:</strong> Windows 10 (build 19041+) or Windows 11</li>
+                <li><strong>RAM:</strong> 4 GB minimum (8 GB recommended)</li>
+                <li><strong>Disk:</strong> 500 MB free space</li>
+                <li><strong>Microphone:</strong> Any USB or built-in microphone</li>
+                <li><strong>Optional:</strong> NVIDIA GPU with CUDA for faster transcription</li>
+            </ul>
+
+            <h2>Next Steps</h2>
+
+            <ul>
+                <li><a href="/docs/voice-commands.html">Learn all voice commands</a></li>
+                <li><a href="/docs/settings.html">Customize your settings</a></li>
+                <li><a href="/docs/troubleshooting.html">Troubleshoot issues</a></li>
+            </ul>
+
+            <div class="callout callout-success">
+                <strong>Need help?</strong>
+                Check the <a href="/#faq">FAQ</a> or email us at <a href="mailto:support@murmurtone.com">support@murmurtone.com</a>.
+            </div>
+
+            <div class="docs-footer">
+                <span></span>
+                <a href="/docs/voice-commands.html">Next: Voice Commands →</a>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

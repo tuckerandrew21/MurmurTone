@@ -1,0 +1,50 @@
+Subject: Your MurmurTone Pro License is Active
+
+Hi [NAME],
+
+Thank you for supporting MurmurTone! Your Pro license is now active.
+
+YOUR LICENSE KEY
+----------------
+[LICENSE_KEY]
+
+Keep this email - you'll need this key if you reinstall or switch computers.
+
+HOW TO ACTIVATE
+---------------
+1. Open MurmurTone (system tray icon)
+2. Right-click → Settings → License
+3. Enter your license key
+4. Click "Activate"
+
+Done! Your Pro license is now active on this machine.
+
+WHAT'S INCLUDED
+---------------
+✓ All features unlocked permanently
+✓ Unlimited transcription
+✓ AI text cleanup
+✓ Translation mode
+✓ Audio/video file transcription
+✓ Priority support
+✓ All future updates during subscription
+
+EARLY ACCESS PRICING LOCKED
+---------------------------
+You've locked in $49/year pricing forever. Future customers may pay more, but your rate is guaranteed as long as you maintain your subscription.
+
+NEED HELP?
+----------
+• Documentation: https://murmurtone.com/docs
+• FAQ: https://murmurtone.com/support/faq.html
+• Support: support@murmurtone.com (priority response)
+
+Happy transcribing!
+
+Your voice, locally.
+
+- The MurmurTone Team
+
+---
+You're receiving this because you purchased a MurmurTone Pro license.
+Privacy Policy: https://murmurtone.com/legal/privacy.html

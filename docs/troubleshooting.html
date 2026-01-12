@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Troubleshooting - MurmurTone Documentation</title>
+    <meta name="description" content="Solutions for common MurmurTone issues: startup problems, transcription errors, GPU detection, and more.">
+    <link rel="icon" type="image/png" href="/icon.png">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; }
+        .nav-bar { background: white; padding: 15px 0; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 100; }
+        .nav-container { max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; }
+        .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #222; font-weight: 700; font-size: 1.2em; }
+        .nav-logo img { height: 32px; width: 32px; }
+        .nav-links { display: flex; gap: 30px; align-items: center; }
+        .nav-links a { text-decoration: none; color: #666; font-weight: 500; transition: color 0.2s; }
+        .nav-links a:hover { color: #667eea; }
+        .nav-cta { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white !important; padding: 8px 20px; border-radius: 6px; font-weight: 600; }
+        .docs-layout { display: grid; grid-template-columns: 250px 1fr; max-width: 1200px; margin: 0 auto; min-height: calc(100vh - 70px); }
+        .sidebar { background: #f9f9f9; padding: 30px 20px; border-right: 1px solid #eee; }
+        .sidebar h3 { font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.5px; color: #999; margin-bottom: 15px; margin-top: 25px; }
+        .sidebar h3:first-child { margin-top: 0; }
+        .sidebar a { display: block; padding: 8px 12px; color: #666; text-decoration: none; border-radius: 6px; margin-bottom: 4px; transition: all 0.2s; }
+        .sidebar a:hover { background: #eee; color: #333; }
+        .sidebar a.active { background: #667eea; color: white; }
+        .docs-content { padding: 40px; max-width: 800px; }
+        .docs-content h1 { font-size: 2.5em; margin-bottom: 10px; color: #222; }
+        .docs-content .subtitle { font-size: 1.2em; color: #666; margin-bottom: 40px; }
+        .docs-content h2 { font-size: 1.5em; margin: 40px 0 20px; color: #222; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+        .docs-content h3 { font-size: 1.2em; margin: 30px 0 15px; color: #333; }
+        .docs-content p { margin-bottom: 15px; color: #444; }
+        .docs-content ul, .docs-content ol { margin: 15px 0; padding-left: 25px; }
+        .docs-content li { margin-bottom: 8px; }
+        .docs-content code { background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-family: 'Consolas', 'Monaco', monospace; font-size: 0.9em; }
+        .docs-content pre { background: #2d2d2d; color: #f8f8f2; padding: 15px 20px; border-radius: 8px; overflow-x: auto; margin: 15px 0; }
+        .docs-content pre code { background: none; padding: 0; color: inherit; }
+        .callout { padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .callout-info { background: #e8f4fd; border-left: 4px solid #667eea; }
+        .callout-warning { background: #fff8e6; border-left: 4px solid #f59e0b; }
+        .callout-success { background: #e8f9ee; border-left: 4px solid #22c55e; }
+        .callout-error { background: #fef2f2; border-left: 4px solid #ef4444; }
+        .callout strong { display: block; margin-bottom: 5px; }
+        .issue-card { background: white; border: 1px solid #eee; border-radius: 12px; padding: 25px; margin: 20px 0; }
+        .issue-card h3 { color: #ef4444; margin-top: 0; margin-bottom: 15px; }
+        .issue-card .solution { margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; }
+        .issue-card .solution h4 { color: #22c55e; margin-bottom: 10px; }
+        .docs-footer { padding: 30px 40px; border-top: 1px solid #eee; margin-top: 60px; display: flex; justify-content: space-between; }
+        .docs-footer a { color: #667eea; text-decoration: none; }
+        .docs-footer a:hover { text-decoration: underline; }
+        @media (max-width: 768px) { .nav-links { display: none; } .docs-layout { grid-template-columns: 1fr; } .sidebar { display: none; } .docs-content { padding: 20px; } .docs-content h1 { font-size: 2em; } }
+    </style>
+</head>
+<body>
+    <nav class="nav-bar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo"><img src="/icon.png" alt="MurmurTone">MurmurTone</a>
+            <div class="nav-links">
+                <a href="/#features">Features</a>
+                <a href="/pricing.html">Pricing</a>
+                <a href="/docs/">Docs</a>
+                <a href="/#faq">FAQ</a>
+                <a href="/install.html" class="nav-cta">Download</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="docs-layout">
+        <aside class="sidebar">
+            <h3>Getting Started</h3>
+            <a href="/docs/">Introduction</a>
+            <h3>Usage</h3>
+            <a href="/docs/voice-commands.html">Voice Commands</a>
+            <a href="/docs/settings.html">Settings Guide</a>
+            <h3>Help</h3>
+            <a href="/docs/troubleshooting.html" class="active">Troubleshooting</a>
+            <a href="/#faq">FAQ</a>
+            <a href="mailto:support@murmurtone.com">Contact Support</a>
+        </aside>
+
+        <main class="docs-content">
+            <h1>Troubleshooting</h1>
+            <p class="subtitle">Solutions to common issues with MurmurTone.</p>
+
+            <h2>Startup Issues</h2>
+
+            <div class="issue-card">
+                <h3>App doesn't start / No tray icon</h3>
+                <p>MurmurTone may be running but the icon could be hidden in the system tray overflow.</p>
+                <div class="solution">
+                    <h4>Solution</h4>
+                    <ol>
+                        <li>Click the <strong>^</strong> arrow in your system tray to see hidden icons</li>
+                        <li>Look for the MurmurTone icon (shield with waveform)</li>
+                        <li>If not found, try running MurmurTone from the Start Menu</li>
+                        <li>Check Task Manager for "murmurtone.exe" - if running, end the task and restart</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="issue-card">
+                <h3>SmartScreen warning during installation</h3>
+                <p>"Windows protected your PC" message appears when running the installer.</p>
+                <div class="solution">
+                    <h4>Solution</h4>
+                    <p>This is normal for new applications that haven't been widely distributed yet:</p>
+                    <ol>
+                        <li>Click "More info"</li>
+                        <li>Click "Run anyway"</li>
+                        <li>The installer will proceed normally</li>
+                    </ol>
+                    <p>We're working on code signing to eliminate this warning in future releases.</p>
+                </div>
+            </div>
+
+            <div class="issue-card">
+                <h3>Error: "Model not found"</h3>
+                <p>The speech recognition model hasn't been downloaded yet.</p>
+                <div class="solution">
+                    <h4>Solution</h4>
+                    <ol>
+                        <li>Ensure you have an internet connection (for first-time download only)</li>
+                        <li>Try a smaller model first (<code>tiny.en</code>) which downloads faster</li>
+                        <li>Check your firewall isn't blocking the download</li>
+                        <li>The model is stored in <code>%APPDATA%\MurmurTone\models</code></li>
+                    </ol>
+                </div>
+            </div>
+
+            <h2>Transcription Issues</h2>
+
+            <div class="issue-card">
+                <h3>Transcription not working / No text appears</h3>
+                <p>You press the hotkey, speak, release, but nothing happens.</p>
+                <div class="solution">
+                    <h4>Solution</h4>
+                    <ol>
+                        <li><strong>Check microphone:</strong> Ensure your microphone is connected and set as default in Windows Sound Settings</li>
+                        <li><strong>Test audio:</strong> Right-click tray icon → Settings → Test Microphone</li>
+                        <li><strong>Disable noise gate:</strong> Temporarily disable the noise gate to see if it's filtering your voice</li>
+                        <li><strong>Check hotkey:</strong> Make sure no other application is using the same hotkey</li>
+                        <li><strong>Restart app:</strong> Right-click tray icon → Quit, then relaunch</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="issue-card">
+                <h3>First transcription is slow</h3>
+                <p>The first transcription takes 30-60 seconds.</p>
+                <div class="solution">
+                    <h4>Solution</h4>
+                    <p>This is <strong>normal behavior</strong>. The speech model needs to load into memory on first use. Subsequent transcriptions will be much faster (typically under 2 seconds).</p>
+                    <p>To speed up model loading:</p>
+                    <ul>
+                        <li>Use a smaller model (<code>tiny.en</code> or <code>base.en</code>)</li>
+                        <li>Enable GPU acceleration if you have an NVIDIA card</li>
+                        <li>Ensure MurmurTone starts with Windows so the model is preloaded</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="issue-card">
+                <h3>Poor transcription accuracy</h3>
+                <p>Words are frequently misheard or garbled.</p>
+                <div class="solution">
+                    <h4>Solution</h4>
+                    <ol>
+                        <li><strong>Upgrade model:</strong> Try <code>small.en</code> or <code>medium.en</code> for better accuracy</li>
+                        <li><strong>Check microphone:</strong> Use a quality microphone, avoid laptop built-in mics</li>
+                        <li><strong>Reduce noise:</strong> Record in a quiet environment or enable noise gate</li>
+                        <li><strong>Speak clearly:</strong> Enunciate words and speak at a moderate pace</li>
+                        <li><strong>Add vocabulary:</strong> Add frequently used technical terms to Custom Vocabulary</li>
+                        <li><strong>Check language:</strong> Ensure the correct language is selected in settings</li>
+                    </ol>
+                </div>
+            </div>
+
+            <h2>GPU Issues</h2>
+
+            <div class="issue-card">
+                <h3>GPU not detected / GPU options disabled</h3>
+                <p>GPU acceleration options are grayed out in settings.</p>
+                <div class="solution">
+                    <h4>Solution</h4>
+                    <ol>
+                        <li><strong>Check GPU:</strong> MurmurTone requires an NVIDIA GPU with CUDA support</li>
+                        <li><strong>Update drivers:</strong> Install the latest NVIDIA drivers from <a href="https://www.nvidia.com/drivers" target="_blank">nvidia.com/drivers</a></li>
+                        <li><strong>CUDA version:</strong> Ensure CUDA 12.x compatible drivers are installed</li>
+                        <li><strong>Restart:</strong> Restart MurmurTone after installing drivers</li>
+                    </ol>
+                    <div class="callout callout-info">
+                        <strong>Note</strong>
+                        AMD GPUs are not currently supported. CPU mode works on any machine and is still fast for most use cases.
+                    </div>
+                </div>
+            </div>
+
+            <h2>Audio Issues</h2>
+
+            <div class="issue-card">
+                <h3>Wrong microphone being used</h3>
+                <p>MurmurTone is recording from the wrong device.</p>
+                <div class="solution">
+                    <h4>Solution</h4>
+                    <ol>
+                        <li>Right-click tray icon → Settings</li>
+                        <li>Go to Audio Settings</li>
+                        <li>Select your preferred microphone from the "Input Device" dropdown</li>
+                        <li>Click "Test Microphone" to verify</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="issue-card">
+                <h3>Audio feedback sounds not playing</h3>
+                <p>You don't hear beeps or chimes during transcription.</p>
+                <div class="solution">
+                    <h4>Solution</h4>
+                    <ol>
+                        <li>Check that audio feedback is enabled in Settings → Audio</li>
+                        <li>Ensure your system volume is not muted</li>
+                        <li>Check that the correct audio output device is selected in Windows</li>
+                    </ol>
+                </div>
+            </div>
+
+            <h2>License Issues</h2>
+
+            <div class="issue-card">
+                <h3>License activation failed</h3>
+                <p>Unable to activate your license key.</p>
+                <div class="solution">
+                    <h4>Solution</h4>
+                    <ol>
+                        <li><strong>Check internet:</strong> License activation requires a one-time internet connection</li>
+                        <li><strong>Verify key:</strong> Ensure you've entered the license key correctly (no extra spaces)</li>
+                        <li><strong>Check email:</strong> The key was sent to your purchase email address</li>
+                        <li><strong>Contact support:</strong> Email <a href="mailto:support@murmurtone.com">support@murmurtone.com</a> with your order details</li>
+                    </ol>
+                </div>
+            </div>
+
+            <h2>Log Files</h2>
+            <p>If you need to report an issue, please include the log file:</p>
+            <pre><code>%APPDATA%\MurmurTone\murmurtone.log</code></pre>
+            <p>To open this location:</p>
+            <ol>
+                <li>Press <code>Win + R</code> to open Run dialog</li>
+                <li>Type <code>%APPDATA%\MurmurTone</code> and press Enter</li>
+                <li>Find <code>murmurtone.log</code></li>
+            </ol>
+
+            <h2>Still Need Help?</h2>
+
+            <div class="callout callout-info">
+                <strong>Contact Support</strong>
+                <p>If your issue isn't listed here, please contact us:</p>
+                <ul>
+                    <li>Email: <a href="mailto:support@murmurtone.com">support@murmurtone.com</a></li>
+                    <li>GitHub: <a href="https://github.com/tuckerandrew21/murmurtone/issues">Open an issue</a></li>
+                </ul>
+                <p>Please include: your Windows version, MurmurTone version, and the log file.</p>
+            </div>
+
+            <div class="docs-footer">
+                <a href="/docs/settings.html">← Settings Guide</a>
+                <a href="/#faq">FAQ →</a>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

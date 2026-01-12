@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MurmurTone - Private, Local Voice-to-Text for Windows</title>
+    <meta name="description" content="Fast, accurate voice-to-text that runs 100% offline. No cloud, no tracking. Your voice stays on your machine.">
+    <meta property="og:title" content="MurmurTone - Private, Local Voice-to-Text">
+    <meta property="og:description" content="100% offline voice-to-text for Windows. No cloud, no tracking. $49/year.">
+    <meta property="og:image" content="/assets/logo/murmurtone-logo-icon.png">
+    <meta property="og:type" content="website">
+    <link rel="icon" type="image/png" href="/icon.png">
     <style>
         * {
             margin: 0;
@@ -23,11 +29,81 @@
             padding: 0 20px;
         }
 
+        /* Navigation */
+        .nav-bar {
+            background: white;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #222;
+            font-weight: 700;
+            font-size: 1.2em;
+        }
+
+        .nav-logo img {
+            height: 32px;
+            width: 32px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #666;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: #667eea;
+        }
+
+        .nav-cta {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white !important;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .nav-cta:hover {
+            opacity: 0.9;
+        }
+
         header {
-            padding: 40px 0;
+            padding: 60px 0;
             text-align: center;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+        }
+
+        .header-logo {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            filter: brightness(0) invert(1);
         }
 
         header h1 {
@@ -168,25 +244,124 @@
             opacity: 0.95;
         }
 
-        footer {
-            background: #f5f5f5;
-            padding: 40px 0;
-            text-align: center;
-            color: #666;
-            margin-top: 60px;
+        /* FAQ Section */
+        .faq {
+            padding: 60px 0;
+            background: #f9f9f9;
         }
 
-        footer a {
+        .faq h2 {
+            font-size: 2em;
+            text-align: center;
+            margin-bottom: 40px;
+            color: #222;
+        }
+
+        .faq-list {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .faq-item {
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        .faq-question {
+            padding: 20px 25px;
+            font-weight: 600;
+            color: #222;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .faq-question:hover {
+            background: #f5f5f5;
+        }
+
+        .faq-question::after {
+            content: '+';
+            font-size: 1.5em;
+            color: #667eea;
+            font-weight: 300;
+        }
+
+        .faq-item.active .faq-question::after {
+            content: '−';
+        }
+
+        .faq-answer {
+            padding: 0 25px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+            color: #666;
+            line-height: 1.8;
+        }
+
+        .faq-item.active .faq-answer {
+            padding: 0 25px 20px;
+            max-height: 300px;
+        }
+
+        /* Footer */
+        footer {
+            background: #222;
+            color: #999;
+            padding: 60px 0 30px;
+            margin-top: 0;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .footer-column h4 {
+            color: white;
+            font-size: 1em;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .footer-column a {
+            display: block;
+            color: #999;
+            text-decoration: none;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+            transition: color 0.2s;
+        }
+
+        .footer-column a:hover {
+            color: #667eea;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid #333;
+            padding-top: 30px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .footer-bottom a {
             color: #667eea;
             text-decoration: none;
-            margin: 0 15px;
-        }
-
-        footer a:hover {
-            text-decoration: underline;
         }
 
         @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
             header h1 {
                 font-size: 2em;
             }
@@ -198,15 +373,37 @@
             header p {
                 font-size: 1.1em;
             }
+
+            .footer-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
     </style>
 </head>
 <body>
+    <!-- Navigation -->
+    <nav class="nav-bar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <img src="/icon.png" alt="MurmurTone">
+                MurmurTone
+            </a>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="/pricing.html">Pricing</a>
+                <a href="/docs/">Docs</a>
+                <a href="#faq">FAQ</a>
+                <a href="/install.html" class="nav-cta">Download</a>
+            </div>
+        </div>
+    </nav>
+
     <header>
         <div class="container">
+            <img src="/icon.png" alt="MurmurTone Logo" class="header-logo">
             <h1>MurmurTone</h1>
             <p>Your voice, locally.</p>
-            <a href="#download" class="cta-button">Download Now</a>
+            <a href="#download" class="cta-button">Start Free 14-Day Trial</a>
         </div>
     </header>
 
@@ -214,10 +411,16 @@
         <div class="container">
             <h2>Speech-to-Text That Respects Your Privacy</h2>
             <p>Fast, accurate transcription. No cloud. No tracking. No delays. MurmurTone runs entirely offline on your Windows machine, giving you complete control over your voice data.</p>
+            <p style="font-size: 1em; margin-top: 20px; color: #667eea; font-weight: 600;">
+                🎉 Early Access: $49/year — Lock in this rate forever
+            </p>
+            <p style="font-size: 0.9em; color: #999; margin-top: 5px;">
+                Most competitors: $96-180/year. Save 52% or more.
+            </p>
         </div>
     </section>
 
-    <section class="features">
+    <section class="features" id="features">
         <div class="container" style="display: contents;">
             <div class="feature">
                 <div class="feature-icon">🔒</div>
@@ -268,10 +471,22 @@
                         <td><span class="checkmark">✓</span></td>
                     </tr>
                     <tr>
-                        <td><strong>No Subscription</strong></td>
+                        <td><strong>AI Text Cleanup (Local)</strong></td>
                         <td><span class="checkmark">✓</span></td>
                         <td><span class="xmark">✗</span></td>
+                        <td><span class="xmark">✗</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Translation Mode</strong></td>
                         <td><span class="checkmark">✓</span></td>
+                        <td><span class="checkmark">✓</span></td>
+                        <td><span class="xmark">✗</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Audio File Transcription</strong></td>
+                        <td><span class="checkmark">✓</span></td>
+                        <td><span class="checkmark">✓</span></td>
+                        <td><span class="xmark">✗</span></td>
                     </tr>
                     <tr>
                         <td><strong>Configurable Models</strong></td>
@@ -296,21 +511,120 @@
         </div>
     </section>
 
+    <!-- FAQ Section -->
+    <section class="faq" id="faq">
+        <div class="container">
+            <h2>Frequently Asked Questions</h2>
+            <div class="faq-list">
+                <div class="faq-item">
+                    <div class="faq-question">Is my voice data stored anywhere?</div>
+                    <div class="faq-answer">
+                        <strong>No.</strong> MurmurTone processes everything locally on your machine. Your voice audio is never uploaded to any server, never stored in any cloud, and never leaves your computer. Once transcription is complete, the audio is discarded.
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">Do I need internet to use MurmurTone?</div>
+                    <div class="faq-answer">
+                        <strong>No.</strong> MurmurTone works completely offline. The only time you need internet is for the initial license activation (one-time) and to download larger speech models if you choose them. After that, everything runs locally.
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">What happens after the 14-day trial?</div>
+                    <div class="faq-answer">
+                        After your trial ends, you'll be prompted to purchase a Pro license ($49/year). If you don't purchase, the app will stop working until you activate a license. Your settings and preferences are preserved.
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">What's included in the $49/year license?</div>
+                    <div class="faq-answer">
+                        Everything! Unlimited transcription, all speech models, AI text cleanup (with Ollama), translation mode, audio file transcription, custom vocabulary, voice commands, and priority support. No hidden fees or per-minute charges.
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">How does AI text cleanup work without cloud?</div>
+                    <div class="faq-answer">
+                        MurmurTone integrates with Ollama, which runs AI models locally on your machine. When enabled, your transcription is cleaned up by a local LLM—grammar fixes, formality adjustments—all without sending any data to external servers.
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">Will my price increase after Early Access?</div>
+                    <div class="faq-answer">
+                        <strong>No.</strong> When you purchase during Early Access at $49/year, that rate is locked in forever. Future users may pay more, but your renewal rate stays the same as long as you maintain your subscription.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <section class="cta-section">
         <div class="container">
             <h2 id="download">Ready to Take Back Your Privacy?</h2>
-            <p>Stop sending your voice to the cloud. Download MurmurTone today and experience local, private speech-to-text.</p>
-            <a href="https://github.com/tuckerandrew21/murmurtone" class="cta-button" style="background: white; color: #667eea;">Download for Windows</a>
+            <p>Try MurmurTone free for 14 days. No credit card required.</p>
+            <p style="font-size: 1.3em; margin: 20px 0; font-weight: 600;">
+                $49/year — Early Access Pricing
+            </p>
+            <p style="font-size: 0.95em; opacity: 0.9; margin-bottom: 30px;">
+                ✓ Unlimited transcription &nbsp;|&nbsp; ✓ AI text cleanup &nbsp;|&nbsp; ✓ 100% offline &nbsp;|&nbsp; ✓ Lock in this rate forever
+            </p>
+            <a href="/install" class="cta-button" style="background: white; color: #667eea;">Download Free Trial</a>
         </div>
     </section>
 
     <footer>
         <div class="container">
-            <p>&copy; 2026 MurmurTone. Privacy-focused speech recognition.</p>
-            <a href="https://github.com/tuckerandrew21/murmurtone">GitHub</a>
-            <a href="mailto:hello@murmurtone.com">Contact</a>
-            <a href="/license">License (MIT)</a>
+            <div class="footer-grid">
+                <div class="footer-column">
+                    <h4>Product</h4>
+                    <a href="#features">Features</a>
+                    <a href="/pricing.html">Pricing</a>
+                    <a href="/install.html">Download</a>
+                    <a href="https://github.com/tuckerandrew21/murmurtone/releases">Changelog</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Resources</h4>
+                    <a href="/docs/">Documentation</a>
+                    <a href="/docs/voice-commands.html">Voice Commands</a>
+                    <a href="/docs/troubleshooting.html">Troubleshooting</a>
+                    <a href="#faq">FAQ</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Company</h4>
+                    <a href="https://github.com/tuckerandrew21/murmurtone">GitHub</a>
+                    <a href="mailto:hello@murmurtone.com">Contact</a>
+                    <a href="mailto:support@murmurtone.com">Support</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Legal</h4>
+                    <a href="/legal/privacy.html">Privacy Policy</a>
+                    <a href="/legal/terms.html">Terms of Service</a>
+                    <a href="https://github.com/tuckerandrew21/murmurtone/blob/main/LICENSE">License (MIT)</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 MurmurTone. Privacy-focused speech recognition.</p>
+                <p style="margin-top: 10px;">Your voice, locally.</p>
+            </div>
         </div>
     </footer>
+
+    <script>
+        // FAQ Accordion
+        document.querySelectorAll('.faq-question').forEach(question => {
+            question.addEventListener('click', () => {
+                const item = question.parentElement;
+                const isActive = item.classList.contains('active');
+
+                // Close all other items
+                document.querySelectorAll('.faq-item').forEach(i => {
+                    i.classList.remove('active');
+                });
+
+                // Toggle current item
+                if (!isActive) {
+                    item.classList.add('active');
+                }
+            });
+        });
+    </script>
 </body>
 </html>

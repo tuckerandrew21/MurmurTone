@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Commands - MurmurTone Documentation</title>
+    <meta name="description" content="Complete guide to MurmurTone voice commands: punctuation, navigation, editing, and case manipulation.">
+    <link rel="icon" type="image/png" href="/icon.png">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; }
+        .nav-bar { background: white; padding: 15px 0; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 100; }
+        .nav-container { max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; }
+        .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #222; font-weight: 700; font-size: 1.2em; }
+        .nav-logo img { height: 32px; width: 32px; }
+        .nav-links { display: flex; gap: 30px; align-items: center; }
+        .nav-links a { text-decoration: none; color: #666; font-weight: 500; transition: color 0.2s; }
+        .nav-links a:hover { color: #667eea; }
+        .nav-cta { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white !important; padding: 8px 20px; border-radius: 6px; font-weight: 600; }
+        .docs-layout { display: grid; grid-template-columns: 250px 1fr; max-width: 1200px; margin: 0 auto; min-height: calc(100vh - 70px); }
+        .sidebar { background: #f9f9f9; padding: 30px 20px; border-right: 1px solid #eee; }
+        .sidebar h3 { font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.5px; color: #999; margin-bottom: 15px; margin-top: 25px; }
+        .sidebar h3:first-child { margin-top: 0; }
+        .sidebar a { display: block; padding: 8px 12px; color: #666; text-decoration: none; border-radius: 6px; margin-bottom: 4px; transition: all 0.2s; }
+        .sidebar a:hover { background: #eee; color: #333; }
+        .sidebar a.active { background: #667eea; color: white; }
+        .docs-content { padding: 40px; max-width: 800px; }
+        .docs-content h1 { font-size: 2.5em; margin-bottom: 10px; color: #222; }
+        .docs-content .subtitle { font-size: 1.2em; color: #666; margin-bottom: 40px; }
+        .docs-content h2 { font-size: 1.5em; margin: 40px 0 20px; color: #222; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+        .docs-content h3 { font-size: 1.2em; margin: 30px 0 15px; color: #333; }
+        .docs-content p { margin-bottom: 15px; color: #444; }
+        .docs-content code { background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-family: 'Consolas', 'Monaco', monospace; font-size: 0.9em; }
+        .callout { padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .callout-info { background: #e8f4fd; border-left: 4px solid #667eea; }
+        .callout-warning { background: #fff8e6; border-left: 4px solid #f59e0b; }
+        .callout strong { display: block; margin-bottom: 5px; }
+        .command-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .command-table th { background: #667eea; color: white; padding: 12px 15px; text-align: left; }
+        .command-table td { padding: 12px 15px; border-bottom: 1px solid #eee; }
+        .command-table tr:nth-child(even) { background: #fafafa; }
+        .command-table code { background: #e8f4fd; color: #667eea; }
+        .docs-footer { padding: 30px 40px; border-top: 1px solid #eee; margin-top: 60px; display: flex; justify-content: space-between; }
+        .docs-footer a { color: #667eea; text-decoration: none; }
+        .docs-footer a:hover { text-decoration: underline; }
+        @media (max-width: 768px) { .nav-links { display: none; } .docs-layout { grid-template-columns: 1fr; } .sidebar { display: none; } .docs-content { padding: 20px; } .docs-content h1 { font-size: 2em; } }
+    </style>
+</head>
+<body>
+    <nav class="nav-bar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo"><img src="/icon.png" alt="MurmurTone">MurmurTone</a>
+            <div class="nav-links">
+                <a href="/#features">Features</a>
+                <a href="/pricing.html">Pricing</a>
+                <a href="/docs/">Docs</a>
+                <a href="/#faq">FAQ</a>
+                <a href="/install.html" class="nav-cta">Download</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="docs-layout">
+        <aside class="sidebar">
+            <h3>Getting Started</h3>
+            <a href="/docs/">Introduction</a>
+            <h3>Usage</h3>
+            <a href="/docs/voice-commands.html" class="active">Voice Commands</a>
+            <a href="/docs/settings.html">Settings Guide</a>
+            <h3>Help</h3>
+            <a href="/docs/troubleshooting.html">Troubleshooting</a>
+            <a href="/#faq">FAQ</a>
+            <a href="mailto:support@murmurtone.com">Contact Support</a>
+        </aside>
+
+        <main class="docs-content">
+            <h1>Voice Commands</h1>
+            <p class="subtitle">Control punctuation, formatting, and text manipulation with your voice.</p>
+
+            <div class="callout callout-info">
+                <strong>How it works</strong>
+                Say these commands naturally while recording. MurmurTone will recognize them and insert the appropriate text or action.
+            </div>
+
+            <h2>Punctuation Commands</h2>
+            <p>Insert punctuation marks by saying the command name:</p>
+
+            <table class="command-table">
+                <thead>
+                    <tr><th>Say</th><th>Result</th><th>Example</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>"period"</code></td><td>.</td><td>"Hello period" → "Hello."</td></tr>
+                    <tr><td><code>"comma"</code></td><td>,</td><td>"Hi comma how are you" → "Hi, how are you"</td></tr>
+                    <tr><td><code>"question mark"</code></td><td>?</td><td>"How are you question mark" → "How are you?"</td></tr>
+                    <tr><td><code>"exclamation mark"</code></td><td>!</td><td>"Wow exclamation mark" → "Wow!"</td></tr>
+                    <tr><td><code>"colon"</code></td><td>:</td><td>"Note colon" → "Note:"</td></tr>
+                    <tr><td><code>"semicolon"</code></td><td>;</td><td>"First semicolon second" → "First; second"</td></tr>
+                    <tr><td><code>"hyphen"</code> or <code>"dash"</code></td><td>-</td><td>"Self hyphen aware" → "Self-aware"</td></tr>
+                    <tr><td><code>"open quote"</code></td><td>"</td><td>"He said open quote hello" → "He said "hello"</td></tr>
+                    <tr><td><code>"close quote"</code></td><td>"</td><td>"hello close quote" → "hello""</td></tr>
+                    <tr><td><code>"open paren"</code></td><td>(</td><td>"Note open paren" → "Note ("</td></tr>
+                    <tr><td><code>"close paren"</code></td><td>)</td><td>"details close paren" → "details)"</td></tr>
+                </tbody>
+            </table>
+
+            <h2>Navigation Commands</h2>
+            <p>Control text flow and cursor position:</p>
+
+            <table class="command-table">
+                <thead>
+                    <tr><th>Say</th><th>Result</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>"new line"</code></td><td>↵</td><td>Insert a single line break</td></tr>
+                    <tr><td><code>"new paragraph"</code></td><td>↵↵</td><td>Insert two line breaks (paragraph)</td></tr>
+                    <tr><td><code>"tab"</code></td><td>→</td><td>Insert a tab character</td></tr>
+                </tbody>
+            </table>
+
+            <h2>Editing Commands</h2>
+            <p>Correct mistakes and modify your transcription:</p>
+
+            <table class="command-table">
+                <thead>
+                    <tr><th>Say</th><th>Action</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>"scratch that"</code></td><td>Delete all</td><td>Delete the entire last transcription</td></tr>
+                    <tr><td><code>"delete last word"</code></td><td>Delete word</td><td>Delete only the last word</td></tr>
+                </tbody>
+            </table>
+
+            <div class="callout callout-warning">
+                <strong>Timing matters</strong>
+                "Scratch that" works best immediately after a transcription. If you've typed manually since the last transcription, it will still attempt to delete the previous voice input.
+            </div>
+
+            <h2>Case Manipulation</h2>
+            <p>Change the capitalization of the previous word:</p>
+
+            <table class="command-table">
+                <thead>
+                    <tr><th>Say</th><th>Action</th><th>Example</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>"capitalize that"</code></td><td>First letter uppercase</td><td>"hello" → "Hello"</td></tr>
+                    <tr><td><code>"uppercase that"</code></td><td>All uppercase</td><td>"hello" → "HELLO"</td></tr>
+                    <tr><td><code>"lowercase that"</code></td><td>All lowercase</td><td>"HELLO" → "hello"</td></tr>
+                </tbody>
+            </table>
+
+            <h2>Formatting Commands</h2>
+            <p>Apply text formatting (works in applications that support rich text):</p>
+
+            <table class="command-table">
+                <thead>
+                    <tr><th>Say</th><th>Action</th><th>Keyboard Shortcut Sent</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>"bold that"</code></td><td>Bold last word</td><td>Select + Ctrl+B</td></tr>
+                    <tr><td><code>"italic that"</code></td><td>Italicize last word</td><td>Select + Ctrl+I</td></tr>
+                    <tr><td><code>"underline that"</code></td><td>Underline last word</td><td>Select + Ctrl+U</td></tr>
+                </tbody>
+            </table>
+
+            <div class="callout callout-info">
+                <strong>Application support</strong>
+                Formatting commands work in Word, Google Docs, email clients, and most text editors. They won't work in plain text applications like Notepad.
+            </div>
+
+            <h2>Custom Commands</h2>
+            <p>You can create your own voice commands using the Custom Dictionary feature in Settings:</p>
+
+            <ol>
+                <li>Open Settings (right-click tray icon → Settings)</li>
+                <li>Go to the "Custom Dictionary" tab</li>
+                <li>Add a trigger phrase and its replacement text</li>
+                <li>Save and test your command</li>
+            </ol>
+
+            <p><strong>Examples:</strong></p>
+            <ul>
+                <li><code>"my email"</code> → yourname@example.com</li>
+                <li><code>"my address"</code> → 123 Main Street, City, State 12345</li>
+                <li><code>"signature"</code> → Best regards, Your Name</li>
+            </ul>
+
+            <h2>Tips for Better Recognition</h2>
+
+            <ul>
+                <li><strong>Speak clearly:</strong> Enunciate command words distinctly</li>
+                <li><strong>Brief pause:</strong> A slight pause before/after commands helps recognition</li>
+                <li><strong>Natural speech:</strong> Commands work best embedded in natural sentences</li>
+                <li><strong>Consistent pronunciation:</strong> Say commands the same way each time</li>
+            </ul>
+
+            <div class="docs-footer">
+                <a href="/docs/">← Back to Getting Started</a>
+                <a href="/docs/settings.html">Next: Settings Guide →</a>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

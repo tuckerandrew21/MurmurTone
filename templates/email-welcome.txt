@@ -1,0 +1,43 @@
+Subject: Welcome to MurmurTone - Your 14-Day Trial Has Started
+
+Hi [NAME],
+
+Welcome to MurmurTone! Your 14-day free trial is now active.
+
+GETTING STARTED
+---------------
+1. Launch MurmurTone (check your system tray for the icon)
+2. Right-click the icon → Settings to configure your hotkey
+3. Hold hotkey, speak, release - your words appear instantly
+
+That's it. No account setup, no cloud connection needed.
+
+YOUR TRIAL INCLUDES
+-------------------
+✓ All Pro features unlocked
+✓ Unlimited transcription
+✓ AI text cleanup (with Ollama)
+✓ Translation mode (18+ languages)
+✓ Audio/video file transcription
+✓ 100% offline processing
+
+QUICK TIPS
+----------
+• First transcription takes ~30-60 seconds (model loading)
+• Subsequent transcriptions are fast (1-3 seconds)
+• Use "tiny.en" or "base.en" models for fastest results
+• Say "period", "comma", "new line" for punctuation
+
+NEED HELP?
+----------
+• Documentation: https://murmurtone.com/docs
+• FAQ: https://murmurtone.com/support/faq.html
+• Support: support@murmurtone.com
+
+Your voice, locally.
+
+- The MurmurTone Team
+
+---
+You're receiving this because you started a MurmurTone trial.
+Privacy Policy: https://murmurtone.com/legal/privacy.html

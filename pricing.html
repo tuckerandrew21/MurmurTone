@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing - MurmurTone</title>
+    <meta name="description" content="MurmurTone pricing: $49/year for unlimited offline voice-to-text. 14-day free trial, no credit card required.">
+    <link rel="icon" type="image/png" href="/icon.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Navigation */
+        .nav-bar {
+            background: white;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #222;
+            font-weight: 700;
+            font-size: 1.2em;
+        }
+
+        .nav-logo img {
+            height: 32px;
+            width: 32px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #666;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: #667eea;
+        }
+
+        .nav-cta {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white !important;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        /* Hero */
+        .hero {
+            padding: 80px 0;
+            text-align: center;
+            background: #f9f9f9;
+        }
+
+        .hero h1 {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+            color: #222;
+        }
+
+        .hero p {
+            font-size: 1.2em;
+            color: #666;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Pricing Card */
+        .pricing-section {
+            padding: 60px 0;
+        }
+
+        .pricing-card {
+            max-width: 450px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.15);
+            overflow: hidden;
+            border: 2px solid #667eea;
+        }
+
+        .pricing-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .pricing-header .badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin-bottom: 15px;
+        }
+
+        .pricing-header h2 {
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .pricing-header .price {
+            font-size: 3.5em;
+            font-weight: 700;
+            line-height: 1.1;
+        }
+
+        .pricing-header .price span {
+            font-size: 0.35em;
+            font-weight: 400;
+            opacity: 0.9;
+        }
+
+        .pricing-header .trial {
+            margin-top: 15px;
+            font-size: 1em;
+            opacity: 0.95;
+        }
+
+        .pricing-body {
+            padding: 30px;
+        }
+
+        .pricing-features {
+            list-style: none;
+            margin-bottom: 30px;
+        }
+
+        .pricing-features li {
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .pricing-features li:last-child {
+            border-bottom: none;
+        }
+
+        .pricing-features .check {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .cta-button {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1.1em;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .pricing-note {
+            text-align: center;
+            margin-top: 15px;
+            color: #999;
+            font-size: 0.9em;
+        }
+
+        /* Comparison */
+        .comparison {
+            padding: 60px 0;
+            background: #f9f9f9;
+        }
+
+        .comparison h2 {
+            font-size: 2em;
+            text-align: center;
+            margin-bottom: 15px;
+            color: #222;
+        }
+
+        .comparison > .container > p {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .comparison-table th {
+            background: #667eea;
+            color: white;
+            padding: 18px 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .comparison-table th:first-child {
+            border-radius: 12px 0 0 0;
+        }
+
+        .comparison-table th:last-child {
+            border-radius: 0 12px 0 0;
+        }
+
+        .comparison-table td {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .comparison-table tr:nth-child(even) {
+            background: #fafafa;
+        }
+
+        .comparison-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .highlight {
+            background: rgba(102, 126, 234, 0.05) !important;
+        }
+
+        .highlight td:first-child {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        /* What's Included */
+        .included {
+            padding: 60px 0;
+        }
+
+        .included h2 {
+            font-size: 2em;
+            text-align: center;
+            margin-bottom: 40px;
+            color: #222;
+        }
+
+        .included-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        .included-item {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+        }
+
+        .included-icon {
+            font-size: 1.8em;
+            line-height: 1;
+        }
+
+        .included-item h3 {
+            font-size: 1.1em;
+            margin-bottom: 5px;
+            color: #222;
+        }
+
+        .included-item p {
+            color: #666;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+
+        /* FAQ */
+        .faq {
+            padding: 60px 0;
+            background: #f9f9f9;
+        }
+
+        .faq h2 {
+            font-size: 2em;
+            text-align: center;
+            margin-bottom: 40px;
+            color: #222;
+        }
+
+        .faq-list {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .faq-item {
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        .faq-question {
+            padding: 20px 25px;
+            font-weight: 600;
+            color: #222;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .faq-question:hover {
+            background: #f5f5f5;
+        }
+
+        .faq-question::after {
+            content: '+';
+            font-size: 1.5em;
+            color: #667eea;
+            font-weight: 300;
+        }
+
+        .faq-item.active .faq-question::after {
+            content: '−';
+        }
+
+        .faq-answer {
+            padding: 0 25px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+            color: #666;
+            line-height: 1.8;
+        }
+
+        .faq-item.active .faq-answer {
+            padding: 0 25px 20px;
+            max-height: 300px;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px 0;
+            text-align: center;
+        }
+
+        .cta-section h2 {
+            font-size: 2em;
+            margin-bottom: 15px;
+        }
+
+        .cta-section p {
+            font-size: 1.1em;
+            margin-bottom: 30px;
+            opacity: 0.95;
+        }
+
+        .cta-section .cta-button {
+            display: inline-block;
+            width: auto;
+            padding: 14px 40px;
+            background: white;
+            color: #667eea;
+        }
+
+        /* Footer */
+        footer {
+            background: #222;
+            color: #999;
+            padding: 60px 0 30px;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .footer-column h4 {
+            color: white;
+            font-size: 1em;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .footer-column a {
+            display: block;
+            color: #999;
+            text-decoration: none;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+            transition: color 0.2s;
+        }
+
+        .footer-column a:hover {
+            color: #667eea;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid #333;
+            padding-top: 30px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .hero h1 {
+                font-size: 2em;
+            }
+
+            .pricing-header .price {
+                font-size: 2.5em;
+            }
+
+            .comparison-table {
+                font-size: 0.9em;
+            }
+
+            .footer-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav-bar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <img src="/icon.png" alt="MurmurTone">
+                MurmurTone
+            </a>
+            <div class="nav-links">
+                <a href="/#features">Features</a>
+                <a href="/pricing.html">Pricing</a>
+                <a href="/docs/">Docs</a>
+                <a href="/#faq">FAQ</a>
+                <a href="/install.html" class="nav-cta">Download</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="container">
+            <h1>Simple, Transparent Pricing</h1>
+            <p>No hidden fees. No per-minute charges. No cloud subscriptions. Just $49/year for unlimited offline transcription.</p>
+        </div>
+    </section>
+
+    <!-- Pricing Card -->
+    <section class="pricing-section">
+        <div class="container">
+            <div class="pricing-card">
+                <div class="pricing-header">
+                    <div class="badge">Early Access Pricing</div>
+                    <h2>MurmurTone Pro</h2>
+                    <div class="price">$49<span>/year</span></div>
+                    <div class="trial">14-day free trial included</div>
+                </div>
+                <div class="pricing-body">
+                    <ul class="pricing-features">
+                        <li><span class="check">✓</span> Unlimited transcription</li>
+                        <li><span class="check">✓</span> All speech models (tiny to medium)</li>
+                        <li><span class="check">✓</span> AI text cleanup (with Ollama)</li>
+                        <li><span class="check">✓</span> Translation mode (18+ languages)</li>
+                        <li><span class="check">✓</span> Audio file transcription</li>
+                        <li><span class="check">✓</span> Custom vocabulary</li>
+                        <li><span class="check">✓</span> Voice commands</li>
+                        <li><span class="check">✓</span> 100% offline processing</li>
+                        <li><span class="check">✓</span> Priority support</li>
+                    </ul>
+                    <a href="/install.html" class="cta-button">Start Free 14-Day Trial</a>
+                    <p class="pricing-note">No credit card required</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Competitor Comparison -->
+    <section class="comparison">
+        <div class="container">
+            <h2>How We Compare</h2>
+            <p>MurmurTone offers more value at a lower price—without sacrificing your privacy.</p>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Price</th>
+                        <th>Offline</th>
+                        <th>AI Cleanup</th>
+                        <th>Platform</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="highlight">
+                        <td>MurmurTone</td>
+                        <td><strong>$49/year</strong></td>
+                        <td>✓ 100%</td>
+                        <td>✓ Local</td>
+                        <td>Windows</td>
+                    </tr>
+                    <tr>
+                        <td>Wispr Flow</td>
+                        <td>$120/year</td>
+                        <td>✗ Cloud</td>
+                        <td>✓ Cloud</td>
+                        <td>Mac</td>
+                    </tr>
+                    <tr>
+                        <td>SuperWhisper</td>
+                        <td>$96-144/year</td>
+                        <td>Hybrid</td>
+                        <td>✗</td>
+                        <td>Mac/iOS</td>
+                    </tr>
+                    <tr>
+                        <td>Voicy</td>
+                        <td>$180/year</td>
+                        <td>✗ Cloud</td>
+                        <td>✓ Cloud</td>
+                        <td>Mac</td>
+                    </tr>
+                    <tr>
+                        <td>Dragon Professional</td>
+                        <td>$500 one-time</td>
+                        <td>✓ Local</td>
+                        <td>✗</td>
+                        <td>Windows</td>
+                    </tr>
+                    <tr>
+                        <td>Otter.ai</td>
+                        <td>$100-200/year</td>
+                        <td>✗ Cloud</td>
+                        <td>✗</td>
+                        <td>Web/Mobile</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- What's Included -->
+    <section class="included">
+        <div class="container">
+            <h2>Everything You Need</h2>
+            <div class="included-grid">
+                <div class="included-item">
+                    <div class="included-icon">🔒</div>
+                    <div>
+                        <h3>100% Offline</h3>
+                        <p>All processing happens on your machine. No cloud uploads, ever.</p>
+                    </div>
+                </div>
+                <div class="included-item">
+                    <div class="included-icon">🤖</div>
+                    <div>
+                        <h3>AI Text Cleanup</h3>
+                        <p>Grammar fixes and formality adjustment via local Ollama integration.</p>
+                    </div>
+                </div>
+                <div class="included-item">
+                    <div class="included-icon">🌐</div>
+                    <div>
+                        <h3>Translation Mode</h3>
+                        <p>Speak in any of 18+ languages, output in English automatically.</p>
+                    </div>
+                </div>
+                <div class="included-item">
+                    <div class="included-icon">🎵</div>
+                    <div>
+                        <h3>Audio Transcription</h3>
+                        <p>Transcribe MP3, WAV, M4A files directly. Great for podcasts and meetings.</p>
+                    </div>
+                </div>
+                <div class="included-item">
+                    <div class="included-icon">📚</div>
+                    <div>
+                        <h3>Custom Vocabulary</h3>
+                        <p>Add technical terms, names, and jargon for better recognition.</p>
+                    </div>
+                </div>
+                <div class="included-item">
+                    <div class="included-icon">🎤</div>
+                    <div>
+                        <h3>Voice Commands</h3>
+                        <p>Punctuation, navigation, editing, and case manipulation commands.</p>
+                    </div>
+                </div>
+                <div class="included-item">
+                    <div class="included-icon">⚡</div>
+                    <div>
+                        <h3>GPU Acceleration</h3>
+                        <p>Optional NVIDIA CUDA support for faster transcription.</p>
+                    </div>
+                </div>
+                <div class="included-item">
+                    <div class="included-icon">🎛️</div>
+                    <div>
+                        <h3>Multiple Models</h3>
+                        <p>Choose from tiny (fast) to medium (accurate) based on your needs.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="faq">
+        <div class="container">
+            <h2>Pricing Questions</h2>
+            <div class="faq-list">
+                <div class="faq-item">
+                    <div class="faq-question">What payment methods do you accept?</div>
+                    <div class="faq-answer">
+                        We accept all major credit cards (Visa, Mastercard, American Express) and PayPal through our payment partner LemonSqueezy. All transactions are secure and encrypted.
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">Is there a refund policy?</div>
+                    <div class="faq-answer">
+                        Yes! If you're not satisfied within 30 days of purchase, contact us for a full refund. No questions asked. We want you to be completely happy with MurmurTone.
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">What happens when my subscription expires?</div>
+                    <div class="faq-answer">
+                        If you don't renew, the app will stop working after your subscription period ends. Your settings and preferences are preserved, so if you renew later, everything will be exactly as you left it.
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">Can I use MurmurTone on multiple computers?</div>
+                    <div class="faq-answer">
+                        Your license key can be activated on up to 2 computers at a time. If you need more, contact us for volume licensing options.
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">Will the price increase after Early Access?</div>
+                    <div class="faq-answer">
+                        Prices may increase for new customers after Early Access ends, but your rate is locked in forever. If you purchase at $49/year during Early Access, that's your renewal rate for life.
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">Do I need to pay for Ollama separately?</div>
+                    <div class="faq-answer">
+                        No. Ollama is free and open-source software. MurmurTone integrates with it for AI text cleanup, but there's no additional cost. You just need to install Ollama and download a model (also free).
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section">
+        <div class="container">
+            <h2>Ready to Get Started?</h2>
+            <p>Try MurmurTone free for 14 days. No credit card required.</p>
+            <a href="/install.html" class="cta-button">Download Free Trial</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-column">
+                    <h4>Product</h4>
+                    <a href="/#features">Features</a>
+                    <a href="/pricing.html">Pricing</a>
+                    <a href="/install.html">Download</a>
+                    <a href="https://github.com/tuckerandrew21/murmurtone/releases">Changelog</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Resources</h4>
+                    <a href="/docs/">Documentation</a>
+                    <a href="/docs/voice-commands.html">Voice Commands</a>
+                    <a href="/docs/troubleshooting.html">Troubleshooting</a>
+                    <a href="/#faq">FAQ</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Company</h4>
+                    <a href="https://github.com/tuckerandrew21/murmurtone">GitHub</a>
+                    <a href="mailto:hello@murmurtone.com">Contact</a>
+                    <a href="mailto:support@murmurtone.com">Support</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Legal</h4>
+                    <a href="/legal/privacy.html">Privacy Policy</a>
+                    <a href="/legal/terms.html">Terms of Service</a>
+                    <a href="https://github.com/tuckerandrew21/murmurtone/blob/main/LICENSE">License (MIT)</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 MurmurTone. Privacy-focused speech recognition.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // FAQ Accordion
+        document.querySelectorAll('.faq-question').forEach(question => {
+            question.addEventListener('click', () => {
+                const item = question.parentElement;
+                const isActive = item.classList.contains('active');
+
+                document.querySelectorAll('.faq-item').forEach(i => {
+                    i.classList.remove('active');
+                });
+
+                if (!isActive) {
+                    item.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

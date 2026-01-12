@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ - MurmurTone</title>
+    <meta name="description" content="Frequently asked questions about MurmurTone: privacy, pricing, features, technical requirements, and troubleshooting.">
+    <link rel="icon" type="image/png" href="/icon.png">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; }
+        .nav-bar { background: white; padding: 15px 0; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 100; }
+        .nav-container { max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; }
+        .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #222; font-weight: 700; font-size: 1.2em; }
+        .nav-logo img { height: 32px; width: 32px; }
+        .nav-links { display: flex; gap: 30px; align-items: center; }
+        .nav-links a { text-decoration: none; color: #666; font-weight: 500; transition: color 0.2s; }
+        .nav-links a:hover { color: #667eea; }
+        .nav-cta { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white !important; padding: 8px 20px; border-radius: 6px; font-weight: 600; }
+        .hero { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 60px 20px; text-align: center; }
+        .hero h1 { font-size: 2.5em; margin-bottom: 15px; }
+        .hero p { font-size: 1.2em; opacity: 0.95; max-width: 600px; margin: 0 auto; }
+        .faq-container { max-width: 900px; margin: 0 auto; padding: 60px 20px; }
+        .faq-nav { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 40px; justify-content: center; }
+        .faq-nav a { padding: 10px 20px; background: #f5f5f5; border-radius: 6px; text-decoration: none; color: #666; font-weight: 500; transition: all 0.2s; }
+        .faq-nav a:hover { background: #667eea; color: white; }
+        .faq-section { margin-bottom: 50px; }
+        .faq-section h2 { font-size: 1.5em; color: #222; margin-bottom: 25px; padding-bottom: 10px; border-bottom: 2px solid #667eea; display: inline-block; }
+        .faq-item { background: white; border: 1px solid #eee; border-radius: 8px; margin-bottom: 15px; overflow: hidden; }
+        .faq-question { padding: 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: #333; transition: background 0.2s; }
+        .faq-question:hover { background: #f9f9f9; }
+        .faq-question::after { content: '+'; font-size: 1.5em; color: #667eea; font-weight: 300; transition: transform 0.3s; }
+        .faq-item.active .faq-question::after { transform: rotate(45deg); }
+        .faq-answer { padding: 0 20px; max-height: 0; overflow: hidden; transition: all 0.3s ease; }
+        .faq-item.active .faq-answer { padding: 0 20px 20px; max-height: 500px; }
+        .faq-answer p { color: #555; margin-bottom: 10px; }
+        .faq-answer ul { margin: 10px 0; padding-left: 20px; }
+        .faq-answer li { color: #555; margin-bottom: 5px; }
+        .faq-answer code { background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+        .faq-answer a { color: #667eea; }
+        .cta-section { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 60px 20px; text-align: center; margin-top: 40px; }
+        .cta-section h2 { color: white; font-size: 2em; margin-bottom: 15px; }
+        .cta-section p { color: rgba(255,255,255,0.9); font-size: 1.1em; margin-bottom: 25px; }
+        .cta-buttons { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
+        .btn { padding: 14px 30px; border-radius: 6px; font-weight: 600; text-decoration: none; transition: all 0.2s; }
+        .btn-white { background: white; color: #667eea; }
+        .btn-white:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .btn-outline { background: transparent; color: white; border: 2px solid white; }
+        .btn-outline:hover { background: white; color: #667eea; }
+        .footer { background: #f9f9f9; padding: 40px 20px; border-top: 1px solid #eee; }
+        .footer-content { max-width: 900px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+        .footer-links { display: flex; gap: 30px; }
+        .footer-links a { color: #666; text-decoration: none; }
+        .footer-links a:hover { color: #667eea; }
+        @media (max-width: 768px) { .nav-links { display: none; } .hero h1 { font-size: 2em; } .faq-nav { gap: 8px; } .faq-nav a { padding: 8px 15px; font-size: 0.9em; } .footer-content { flex-direction: column; text-align: center; } .footer-links { flex-wrap: wrap; justify-content: center; } }
+    </style>
+</head>
+<body>
+    <nav class="nav-bar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo"><img src="/icon.png" alt="MurmurTone">MurmurTone</a>
+            <div class="nav-links">
+                <a href="/#features">Features</a>
+                <a href="/pricing.html">Pricing</a>
+                <a href="/docs/">Docs</a>
+                <a href="/support/faq.html">FAQ</a>
+                <a href="/install.html" class="nav-cta">Download</a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <h1>Frequently Asked Questions</h1>
+        <p>Find answers to common questions about MurmurTone's features, privacy, pricing, and technical requirements.</p>
+    </section>
+
+    <main class="faq-container">
+        <nav class="faq-nav">
+            <a href="#privacy">Privacy & Security</a>
+            <a href="#getting-started">Getting Started</a>
+            <a href="#features">Features</a>
+            <a href="#pricing">Pricing</a>
+            <a href="#technical">Technical</a>
+        </nav>
+
+        <!-- Privacy & Security -->
+        <section class="faq-section" id="privacy">
+            <h2>Privacy & Security</h2>
+
+            <div class="faq-item">
+                <div class="faq-question">Is my voice data sent to the cloud?</div>
+                <div class="faq-answer">
+                    <p><strong>No, never.</strong> MurmurTone processes all speech recognition 100% locally on your computer. Your voice recordings and transcriptions never leave your machine. This is a core architectural decision, not just a setting you can toggle.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Does MurmurTone collect any data about me?</div>
+                <div class="faq-answer">
+                    <p>MurmurTone does not collect usage data, analytics, or telemetry. The only data we receive is:</p>
+                    <ul>
+                        <li><strong>License activation:</strong> Your license key and a machine identifier (Pro users only)</li>
+                        <li><strong>Purchase:</strong> Your email address (sent through Gumroad)</li>
+                    </ul>
+                    <p>Your voice data, transcriptions, and usage patterns are never collected.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Can MurmurTone work completely offline?</div>
+                <div class="faq-answer">
+                    <p><strong>Yes!</strong> After the initial model download (~75MB-1.5GB depending on model), MurmurTone works completely offline. You only need internet for:</p>
+                    <ul>
+                        <li>First-time model download</li>
+                        <li>One-time license activation (Pro users)</li>
+                    </ul>
+                    <p>After that, you can transcribe without any internet connection.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Is it safe to use for confidential documents?</div>
+                <div class="faq-answer">
+                    <p>Yes. Since all processing happens locally, MurmurTone is ideal for:</p>
+                    <ul>
+                        <li>Legal documents and attorney-client communications</li>
+                        <li>Medical notes (HIPAA considerations)</li>
+                        <li>Business confidential information</li>
+                        <li>Personal journaling and notes</li>
+                    </ul>
+                    <p>Your data security depends on your computer's security, not our servers.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Getting Started -->
+        <section class="faq-section" id="getting-started">
+            <h2>Getting Started</h2>
+
+            <div class="faq-item">
+                <div class="faq-question">How do I install MurmurTone?</div>
+                <div class="faq-answer">
+                    <p>Installation is simple:</p>
+                    <ul>
+                        <li>Download the installer from <a href="/install.html">murmurtone.com/install</a></li>
+                        <li>Run the installer (click "More info" → "Run anyway" if SmartScreen appears)</li>
+                        <li>MurmurTone will appear in your system tray</li>
+                        <li>The first transcription will download the speech model</li>
+                    </ul>
+                    <p>See our <a href="/docs/">Getting Started Guide</a> for detailed steps.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">How do I use MurmurTone?</div>
+                <div class="faq-answer">
+                    <p>It's designed to be simple:</p>
+                    <ul>
+                        <li>Hold <code>Ctrl+Shift+Space</code> (or your custom hotkey)</li>
+                        <li>Speak clearly</li>
+                        <li>Release the key</li>
+                        <li>Your transcribed text is automatically typed</li>
+                    </ul>
+                    <p>Works in any application - email, documents, chat, code editors, anywhere you can type.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Why is the first transcription slow?</div>
+                <div class="faq-answer">
+                    <p>The first transcription takes 30-60 seconds because the speech model needs to load into memory. This is normal. After the initial load, subsequent transcriptions are fast (typically 1-3 seconds).</p>
+                    <p>Tips to speed up model loading:</p>
+                    <ul>
+                        <li>Use a smaller model (<code>tiny.en</code> or <code>base.en</code>)</li>
+                        <li>Enable GPU acceleration if you have an NVIDIA card</li>
+                        <li>Set MurmurTone to start with Windows</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">What's the system tray icon for?</div>
+                <div class="faq-answer">
+                    <p>MurmurTone runs in the background and appears as an icon in your system tray (bottom-right corner of Windows). Right-click it to:</p>
+                    <ul>
+                        <li>Open Settings</li>
+                        <li>View transcription history</li>
+                        <li>Access voice commands reference</li>
+                        <li>Quit the application</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features -->
+        <section class="faq-section" id="features">
+            <h2>Features</h2>
+
+            <div class="faq-item">
+                <div class="faq-question">What is AI text cleanup?</div>
+                <div class="faq-answer">
+                    <p>AI text cleanup uses a local AI model (via Ollama) to polish your transcriptions. It can:</p>
+                    <ul>
+                        <li>Fix grammar and punctuation</li>
+                        <li>Format text professionally</li>
+                        <li>Remove filler words (um, uh, like)</li>
+                        <li>Improve sentence structure</li>
+                    </ul>
+                    <p>This feature requires <a href="https://ollama.ai" target="_blank">Ollama</a> installed separately, but runs 100% locally - no cloud AI involved.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Does MurmurTone support languages other than English?</div>
+                <div class="faq-answer">
+                    <p>Yes! MurmurTone supports 18+ languages including:</p>
+                    <ul>
+                        <li>Spanish, French, German, Italian, Portuguese</li>
+                        <li>Chinese, Japanese, Korean</li>
+                        <li>Russian, Arabic, Hindi</li>
+                        <li>And many more</li>
+                    </ul>
+                    <p>Use multilingual models (<code>tiny</code>, <code>base</code>, <code>small</code>, <code>medium</code> without <code>.en</code>) for non-English languages.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">What is Translation Mode?</div>
+                <div class="faq-answer">
+                    <p>Translation Mode lets you speak in one language and have your text output in English. Speak French, get English text. Speak Spanish, get English text. This is useful for:</p>
+                    <ul>
+                        <li>Non-native English speakers drafting English documents</li>
+                        <li>Multilingual teams communicating in English</li>
+                        <li>Quick translations while working</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Can I transcribe audio/video files?</div>
+                <div class="faq-answer">
+                    <p>Yes! MurmurTone can transcribe audio and video files (MP3, WAV, M4A, MP4, etc.). Right-click the system tray icon → "Transcribe File" and select your media file. Transcription happens locally and is saved to a text file.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">What voice commands are supported?</div>
+                <div class="faq-answer">
+                    <p>MurmurTone supports commands for punctuation, navigation, and editing:</p>
+                    <ul>
+                        <li><strong>Punctuation:</strong> "period", "comma", "question mark", "new line", "new paragraph"</li>
+                        <li><strong>Navigation:</strong> "go to start", "go to end"</li>
+                        <li><strong>Editing:</strong> "delete that", "delete last word", "undo that", "select all"</li>
+                        <li><strong>Case:</strong> "all caps", "all lowercase", "capitalize"</li>
+                    </ul>
+                    <p>See the full list in our <a href="/docs/voice-commands.html">Voice Commands Reference</a>.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing -->
+        <section class="faq-section" id="pricing">
+            <h2>Pricing</h2>
+
+            <div class="faq-item">
+                <div class="faq-question">How much does MurmurTone cost?</div>
+                <div class="faq-answer">
+                    <p><strong>Free 14-day trial</strong> with all features, no credit card required.</p>
+                    <p><strong>Pro license: $49/year</strong> (Early Access pricing, locked in forever as long as you maintain your subscription).</p>
+                    <p>This is significantly less than competitors like Wispr Flow ($120/year), Voicy ($180/year), or Dragon ($500 one-time).</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">What does "Early Access pricing locked forever" mean?</div>
+                <div class="faq-answer">
+                    <p>If you purchase during our Early Access period, your $49/year rate is guaranteed for as long as you maintain a continuous subscription. Future customers may pay more, but your rate stays the same.</p>
+                    <p>If you cancel and later resubscribe, you'll pay the then-current rate.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Do you offer refunds?</div>
+                <div class="faq-answer">
+                    <p><strong>Yes, 30-day money-back guarantee.</strong> If you're not satisfied within 30 days of purchase, contact us for a full refund - no questions asked.</p>
+                    <p>After 30 days, refunds are considered on a case-by-case basis for technical issues we cannot resolve.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Can I use one license on multiple computers?</div>
+                <div class="faq-answer">
+                    <p>Yes, one license covers one user across their personal machines. You can use MurmurTone on your desktop and laptop, for example. However, you cannot share your license with other people.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">What payment methods do you accept?</div>
+                <div class="faq-answer">
+                    <p>We use Gumroad for payments, which accepts:</p>
+                    <ul>
+                        <li>Credit/debit cards (Visa, Mastercard, Amex)</li>
+                        <li>PayPal</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Technical -->
+        <section class="faq-section" id="technical">
+            <h2>Technical</h2>
+
+            <div class="faq-item">
+                <div class="faq-question">What are the system requirements?</div>
+                <div class="faq-answer">
+                    <ul>
+                        <li><strong>OS:</strong> Windows 10 or Windows 11 (64-bit)</li>
+                        <li><strong>RAM:</strong> 8GB minimum, 16GB recommended</li>
+                        <li><strong>Storage:</strong> 500MB for app + 75MB-1.5GB for models</li>
+                        <li><strong>CPU:</strong> Any modern processor (Intel/AMD)</li>
+                        <li><strong>GPU:</strong> NVIDIA GPU with CUDA 12.x (optional, for faster processing)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Does MurmurTone work on Mac or Linux?</div>
+                <div class="faq-answer">
+                    <p>Currently, MurmurTone is <strong>Windows only</strong>. Mac and Linux versions may be considered in the future based on demand.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Do I need a GPU?</div>
+                <div class="faq-answer">
+                    <p><strong>No, a GPU is not required.</strong> MurmurTone works well on CPU. However, if you have an NVIDIA GPU with CUDA support, you can enable GPU acceleration for faster transcription (especially with larger models).</p>
+                    <p>AMD GPUs are not currently supported for acceleration.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Which speech model should I use?</div>
+                <div class="faq-answer">
+                    <p>MurmurTone offers several Whisper models:</p>
+                    <ul>
+                        <li><strong>tiny.en</strong> (~75MB): Fastest, lowest accuracy, good for quick notes</li>
+                        <li><strong>base.en</strong> (~145MB): Good balance for most users (recommended)</li>
+                        <li><strong>small.en</strong> (~485MB): Better accuracy, slower</li>
+                        <li><strong>medium.en</strong> (~1.5GB): Best accuracy, requires more resources</li>
+                    </ul>
+                    <p>Models ending in <code>.en</code> are English-only but more accurate. Use models without <code>.en</code> for other languages.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Where is my data stored?</div>
+                <div class="faq-answer">
+                    <p>All MurmurTone data is stored locally in <code>%APPDATA%\MurmurTone</code>:</p>
+                    <ul>
+                        <li><strong>Settings:</strong> Your preferences and configuration</li>
+                        <li><strong>Models:</strong> Downloaded speech recognition models</li>
+                        <li><strong>Vocabulary:</strong> Custom words you've added</li>
+                        <li><strong>Logs:</strong> Application logs for troubleshooting</li>
+                    </ul>
+                    <p>To delete all data, simply remove this folder or uninstall the application.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Why does SmartScreen warn about the installer?</div>
+                <div class="faq-answer">
+                    <p>Windows SmartScreen may show a warning because MurmurTone is a new application that hasn't been widely distributed yet. This is normal for any new software.</p>
+                    <p>To proceed: Click "More info" → "Run anyway"</p>
+                    <p>We're working on code signing to eliminate this warning in future releases.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <section class="cta-section">
+        <h2>Still Have Questions?</h2>
+        <p>Can't find what you're looking for? We're here to help.</p>
+        <div class="cta-buttons">
+            <a href="/support/contact.html" class="btn btn-white">Contact Support</a>
+            <a href="/docs/" class="btn btn-outline">Browse Documentation</a>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2025 MurmurTone. All rights reserved.</p>
+            <div class="footer-links">
+                <a href="/legal/privacy.html">Privacy Policy</a>
+                <a href="/legal/terms.html">Terms of Service</a>
+                <a href="/docs/">Documentation</a>
+                <a href="mailto:support@murmurtone.com">Contact</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // FAQ Accordion
+        document.querySelectorAll('.faq-question').forEach(question => {
+            question.addEventListener('click', () => {
+                const item = question.parentElement;
+                const isActive = item.classList.contains('active');
+
+                // Close all other items
+                document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('active'));
+
+                // Toggle current item
+                if (!isActive) {
+                    item.classList.add('active');
+                }
+            });
+        });
+
+        // Smooth scroll for nav links
+        document.querySelectorAll('.faq-nav a').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const target = document.querySelector(link.getAttribute('href'));
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Support - MurmurTone</title>
+    <meta name="description" content="Get help with MurmurTone. Contact our support team for technical issues, licensing questions, or general inquiries.">
+    <link rel="icon" type="image/png" href="/icon.png">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; background: #f9f9f9; }
+        .nav-bar { background: white; padding: 15px 0; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 100; }
+        .nav-container { max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; }
+        .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #222; font-weight: 700; font-size: 1.2em; }
+        .nav-logo img { height: 32px; width: 32px; }
+        .nav-links { display: flex; gap: 30px; align-items: center; }
+        .nav-links a { text-decoration: none; color: #666; font-weight: 500; transition: color 0.2s; }
+        .nav-links a:hover { color: #667eea; }
+        .nav-cta { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white !important; padding: 8px 20px; border-radius: 6px; font-weight: 600; }
+        .hero { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 60px 20px; text-align: center; }
+        .hero h1 { font-size: 2.5em; margin-bottom: 15px; }
+        .hero p { font-size: 1.2em; opacity: 0.95; max-width: 600px; margin: 0 auto; }
+        .contact-container { max-width: 1000px; margin: 0 auto; padding: 60px 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+        .contact-info { background: white; border-radius: 12px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .contact-info h2 { font-size: 1.5em; margin-bottom: 25px; color: #222; }
+        .contact-method { display: flex; gap: 15px; margin-bottom: 25px; padding-bottom: 25px; border-bottom: 1px solid #eee; }
+        .contact-method:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .contact-icon { width: 50px; height: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5em; flex-shrink: 0; }
+        .contact-details h3 { font-size: 1.1em; margin-bottom: 5px; color: #333; }
+        .contact-details p { color: #666; font-size: 0.95em; margin-bottom: 5px; }
+        .contact-details a { color: #667eea; text-decoration: none; font-weight: 500; }
+        .contact-details a:hover { text-decoration: underline; }
+        .contact-form-section { background: white; border-radius: 12px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .contact-form-section h2 { font-size: 1.5em; margin-bottom: 25px; color: #222; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; color: #333; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 12px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 1em; font-family: inherit; transition: border-color 0.2s, box-shadow 0.2s; }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+        .form-group textarea { min-height: 150px; resize: vertical; }
+        .form-group small { display: block; margin-top: 5px; color: #999; font-size: 0.85em; }
+        .btn-submit { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 14px 30px; border-radius: 6px; font-size: 1em; font-weight: 600; cursor: pointer; width: 100%; transition: all 0.2s; }
+        .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .response-times { background: #f5f5f5; border-radius: 8px; padding: 20px; margin-top: 25px; }
+        .response-times h4 { font-size: 1em; margin-bottom: 10px; color: #333; }
+        .response-times p { color: #666; font-size: 0.9em; margin-bottom: 5px; }
+        .helpful-links { margin-top: 40px; }
+        .helpful-links h3 { font-size: 1.2em; margin-bottom: 15px; color: #222; }
+        .link-card { display: flex; gap: 15px; padding: 15px; background: #f9f9f9; border-radius: 8px; margin-bottom: 10px; text-decoration: none; color: inherit; transition: all 0.2s; }
+        .link-card:hover { background: #f0f0f0; transform: translateX(5px); }
+        .link-icon { font-size: 1.5em; }
+        .link-text h4 { font-size: 1em; color: #333; margin-bottom: 3px; }
+        .link-text p { font-size: 0.9em; color: #666; }
+        .footer { background: white; padding: 40px 20px; margin-top: 60px; border-top: 1px solid #eee; }
+        .footer-content { max-width: 1000px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+        .footer-links { display: flex; gap: 30px; }
+        .footer-links a { color: #666; text-decoration: none; }
+        .footer-links a:hover { color: #667eea; }
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .hero h1 { font-size: 2em; }
+            .contact-container { grid-template-columns: 1fr; }
+            .footer-content { flex-direction: column; text-align: center; }
+            .footer-links { flex-wrap: wrap; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav-bar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo"><img src="/icon.png" alt="MurmurTone">MurmurTone</a>
+            <div class="nav-links">
+                <a href="/#features">Features</a>
+                <a href="/pricing.html">Pricing</a>
+                <a href="/docs/">Docs</a>
+                <a href="/support/faq.html">FAQ</a>
+                <a href="/install.html" class="nav-cta">Download</a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <h1>Contact Support</h1>
+        <p>We're here to help. Reach out with questions about MurmurTone, technical issues, or licensing.</p>
+    </section>
+
+    <main class="contact-container">
+        <div class="contact-info">
+            <h2>Get in Touch</h2>
+
+            <div class="contact-method">
+                <div class="contact-icon">&#9993;</div>
+                <div class="contact-details">
+                    <h3>Email Support</h3>
+                    <p>Best for detailed questions and technical issues</p>
+                    <a href="mailto:support@murmurtone.com">support@murmurtone.com</a>
+                </div>
+            </div>
+
+            <div class="contact-method">
+                <div class="contact-icon">&#128187;</div>
+                <div class="contact-details">
+                    <h3>GitHub Issues</h3>
+                    <p>Report bugs or request features</p>
+                    <a href="https://github.com/tuckerandrew21/murmurtone/issues" target="_blank">Open an Issue</a>
+                </div>
+            </div>
+
+            <div class="contact-method">
+                <div class="contact-icon">&#128218;</div>
+                <div class="contact-details">
+                    <h3>Documentation</h3>
+                    <p>Guides, tutorials, and troubleshooting</p>
+                    <a href="/docs/">Browse Docs</a>
+                </div>
+            </div>
+
+            <div class="response-times">
+                <h4>Response Times</h4>
+                <p><strong>Email:</strong> Within 2 business days</p>
+                <p><strong>GitHub:</strong> Within 3-5 business days</p>
+                <p><strong>Pro License Holders:</strong> Priority support</p>
+            </div>
+
+            <div class="helpful-links">
+                <h3>Before You Contact Us</h3>
+
+                <a href="/support/faq.html" class="link-card">
+                    <span class="link-icon">&#10067;</span>
+                    <div class="link-text">
+                        <h4>Check the FAQ</h4>
+                        <p>Common questions answered</p>
+                    </div>
+                </a>
+
+                <a href="/docs/troubleshooting.html" class="link-card">
+                    <span class="link-icon">&#128295;</span>
+                    <div class="link-text">
+                        <h4>Troubleshooting Guide</h4>
+                        <p>Solutions for common issues</p>
+                    </div>
+                </a>
+
+                <a href="/docs/" class="link-card">
+                    <span class="link-icon">&#128214;</span>
+                    <div class="link-text">
+                        <h4>Getting Started</h4>
+                        <p>Setup and basic usage</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <div class="contact-form-section">
+            <h2>Send a Message</h2>
+
+            <form action="https://formspree.io/f/YOUR_FORM_ID" method="POST">
+                <div class="form-group">
+                    <label for="name">Your Name</label>
+                    <input type="text" id="name" name="name" required placeholder="John Doe">
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" required placeholder="john@example.com">
+                    <small>We'll never share your email with anyone else.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="category">Category</label>
+                    <select id="category" name="category" required>
+                        <option value="">Select a category...</option>
+                        <option value="technical">Technical Issue</option>
+                        <option value="licensing">Licensing / Purchase</option>
+                        <option value="feature">Feature Request</option>
+                        <option value="feedback">General Feedback</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="license">License Type</label>
+                    <select id="license" name="license">
+                        <option value="trial">Free Trial</option>
+                        <option value="pro">Pro License</option>
+                        <option value="none">Not Using Yet</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="message">Message</label>
+                    <textarea id="message" name="message" required placeholder="Describe your question or issue in detail..."></textarea>
+                    <small>For technical issues, please include: your Windows version, MurmurTone version, and steps to reproduce.</small>
+                </div>
+
+                <button type="submit" class="btn-submit">Send Message</button>
+            </form>
+
+            <p style="margin-top: 20px; text-align: center; color: #999; font-size: 0.9em;">
+                Or email us directly at <a href="mailto:support@murmurtone.com" style="color: #667eea;">support@murmurtone.com</a>
+            </p>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2025 MurmurTone. All rights reserved.</p>
+            <div class="footer-links">
+                <a href="/legal/privacy.html">Privacy Policy</a>
+                <a href="/legal/terms.html">Terms of Service</a>
+                <a href="/docs/">Documentation</a>
+                <a href="mailto:support@murmurtone.com">Contact</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

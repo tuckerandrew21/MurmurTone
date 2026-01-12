@@ -89,10 +89,10 @@ MurmurTone empowers professionals to capture their thoughts instantly without sa
 
 ---
 
-## Pricing Strategy (Future)
-- **Free Tier**: Core functionality with standard models
-- **Pro ($29/year)**: Faster inference, premium models, priority updates
-- **Business**: Volume licensing, team management
+## Pricing Strategy
+- **Free Trial**: 14-day trial with all features unlocked, no credit card required
+- **Pro ($49/year)**: All features, unlimited transcription, lock in Early Access pricing forever
+- **Business** (Future): Volume licensing, team management
 
 ## Domain & Launch
 - **Domain**: murmurtone.com
