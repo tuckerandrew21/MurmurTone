@@ -9,8 +9,10 @@ import subprocess
 import sys
 import threading
 import os
+import webbrowser
 import config
 import text_processor
+import license
 
 
 def check_cuda_available():
@@ -202,21 +204,481 @@ class SettingsWindow:
 
         self.window = tk.Tk()
         self.window.title(f"{config.APP_NAME} Settings v{config.VERSION}")
-        self.window.geometry("500x1250")
+
+        # Use 85% of screen height or 700px (tabs reduce scroll needs)
+        screen_height = self.window.winfo_screenheight()
+        window_height = min(int(screen_height * 0.85), 700)
+        window_width = 560  # Slightly wider for tab labels
+
+        self.window.geometry(f"{window_width}x{window_height}")
         self.window.resizable(False, False)
 
         # Center on screen
         self.window.update_idletasks()
-        x = (self.window.winfo_screenwidth() - 500) // 2
-        y = (self.window.winfo_screenheight() - 1250) // 2
+        x = (self.window.winfo_screenwidth() - window_width) // 2
+        y = (screen_height - window_height) // 2
         self.window.geometry(f"+{x}+{y}")
 
+        # Search bar
+        search_frame = ttk.Frame(self.window)
+        search_frame.pack(fill=tk.X, padx=10, pady=(10, 5))
+
+        ttk.Label(search_frame, text="Search:").pack(side=tk.LEFT, padx=(0, 5))
+        self.search_var = tk.StringVar()
+        search_entry = ttk.Entry(search_frame, textvariable=self.search_var, width=40)
+        search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.search_var.trace_add("write", self._on_search_change)
+
+        # Create tabbed notebook
+        self.notebook = ttk.Notebook(self.window)
+        self.notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
+
+        # Initialize search index
+        # Each entry: {"terms": [searchable strings], "widget": frame, "tab_index": int, "tab_name": str}
+        self.search_index = []
+
+        # Create tabs
+        self._create_general_tab()
+        self._create_audio_tab()
+        self._create_recognition_tab()
+        self._create_text_tab()
+        self._create_advanced_tab()
+
+        # Buttons at bottom
+        button_frame = ttk.Frame(self.window)
+        button_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
+
+        ttk.Button(button_frame, text="Save", command=self.save).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Cancel", command=self.close).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Reset to Defaults", command=self.reset_defaults).pack(side=tk.LEFT, padx=5)
+
+        # Handle window close
+        self.window.protocol("WM_DELETE_WINDOW", self.close)
+
+        self.window.mainloop()
+
+    def _create_scrollable_tab(self):
+        """Create a scrollable tab frame with canvas and scrollbar."""
+        container = ttk.Frame(self.notebook)
+        canvas = tk.Canvas(container, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas)
+
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+        # Enable mouse wheel scrolling for this canvas
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        canvas.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>", _on_mousewheel))
+        canvas.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
+
+        return container, scrollable_frame
+
+    def _create_general_tab(self):
+        """Create General settings tab."""
+        container, scrollable_frame = self._create_scrollable_tab()
+        self.notebook.add(container, text="General")
+
         # Main frame with padding
-        main_frame = ttk.Frame(self.window, padding=20)
+        main_frame = ttk.Frame(scrollable_frame, padding=20)
         main_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Model size
         row = 0
+
+        # Hotkey
+        ttk.Label(main_frame, text="Hotkey:").grid(row=row, column=0, sticky=tk.W, pady=5)
+        hotkey_frame = ttk.Frame(main_frame)
+        hotkey_frame.grid(row=row, column=1, sticky=tk.W, pady=5)
+        self.hotkey_capture = HotkeyCapture(hotkey_frame, self.config["hotkey"])
+        self.hotkey_capture.frame.pack(side=tk.LEFT)
+        hotkey_help = ttk.Label(hotkey_frame, text="?", font=("", 9, "bold"),
+                                foreground="#888888", cursor="question_arrow")
+        hotkey_help.pack(side=tk.LEFT, padx=5)
+        Tooltip(hotkey_help, "Recommended Hotkeys:\n\n"
+                            "SINGLE KEYS (easiest):\n"
+                            "• Scroll Lock - never conflicts\n"
+                            "• Pause/Break - never used\n"
+                            "• Insert - rarely used\n\n"
+                            "NUMPAD (if available):\n"
+                            "• Numpad + or Numpad 0\n\n"
+                            "TWO-KEY COMBOS:\n"
+                            "• Ctrl+\\ or Ctrl+;")
+
+        # Language
+        row += 1
+        ttk.Label(main_frame, text="Language:").grid(row=row, column=0, sticky=tk.W, pady=5)
+        lang_labels = [config.LANGUAGE_LABELS.get(code, code) for code in config.LANGUAGE_OPTIONS]
+        current_lang = self.config["language"]
+        current_label = config.LANGUAGE_LABELS.get(current_lang, current_lang)
+        self.lang_var = tk.StringVar(value=current_label)
+        self.lang_combo = ttk.Combobox(main_frame, textvariable=self.lang_var,
+                                       values=lang_labels, state="readonly", width=15)
+        self.lang_combo.grid(row=row, column=1, sticky=tk.W, pady=5)
+
+        # Recording Mode
+        row += 1
+        ttk.Label(main_frame, text="Recording Mode:").grid(row=row, column=0, sticky=tk.W, pady=5)
+        self.mode_var = tk.StringVar(value=self.config.get("recording_mode", "push_to_talk"))
+        mode_combo = ttk.Combobox(main_frame, textvariable=self.mode_var,
+                                  values=config.RECORDING_MODE_OPTIONS, state="readonly", width=15)
+        mode_combo.grid(row=row, column=1, sticky=tk.W, pady=5)
+        mode_combo.bind("<<ComboboxSelected>>", self.on_mode_change)
+
+        # Mode hint
+        row += 1
+        self.mode_hint = ttk.Label(main_frame, text=self.get_mode_hint(),
+                                   font=("", 8), foreground="gray", wraplength=250)
+        self.mode_hint.grid(row=row, column=0, columnspan=2, sticky=tk.W)
+
+        # Silence timeout (only visible in auto_stop mode)
+        row += 1
+        self.silence_frame = ttk.Frame(main_frame)
+        self.silence_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=5)
+        ttk.Label(self.silence_frame, text="Silence Timeout:").pack(side=tk.LEFT)
+        self.silence_var = tk.StringVar(value=str(self.config.get("silence_duration_sec", 2.0)))
+        silence_entry = ttk.Entry(self.silence_frame, textvariable=self.silence_var, width=5)
+        silence_entry.pack(side=tk.LEFT, padx=5)
+        ttk.Label(self.silence_frame, text="seconds").pack(side=tk.LEFT)
+        self.update_silence_visibility()
+
+        # Auto-paste
+        row += 1
+        autopaste_frame = ttk.Frame(main_frame)
+        autopaste_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=5)
+        self.autopaste_var = tk.BooleanVar(value=self.config.get("auto_paste", True))
+        autopaste_check = ttk.Checkbutton(autopaste_frame, text="Auto-paste after transcription",
+                                          variable=self.autopaste_var)
+        autopaste_check.pack(side=tk.LEFT)
+        autopaste_help = ttk.Label(autopaste_frame, text="?", font=("", 9, "bold"),
+                                   foreground="#888888", cursor="question_arrow")
+        autopaste_help.pack(side=tk.LEFT, padx=5)
+        Tooltip(autopaste_help, "When enabled, text is automatically typed (Ctrl+V)\n"
+                               "into whichever text field has focus after\n"
+                               "transcription.\n\n"
+                               "When disabled, text is only copied to clipboard -\n"
+                               "you must manually paste.")
+
+        # Paste mode
+        row += 1
+        paste_mode_frame = ttk.Frame(main_frame)
+        paste_mode_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=5)
+        ttk.Label(paste_mode_frame, text="Paste mode:").pack(side=tk.LEFT)
+        self.paste_mode_var = tk.StringVar(value=self.config.get("paste_mode", "clipboard"))
+        paste_mode_combo = ttk.Combobox(paste_mode_frame, textvariable=self.paste_mode_var,
+                                        values=["clipboard", "direct"], width=12, state="readonly")
+        paste_mode_combo.pack(side=tk.LEFT, padx=(10, 5))
+        paste_mode_help = ttk.Label(paste_mode_frame, text="?", font=("", 9, "bold"),
+                                    foreground="#888888", cursor="question_arrow")
+        paste_mode_help.pack(side=tk.LEFT, padx=5)
+        Tooltip(paste_mode_help, "Clipboard: Uses Ctrl+V to paste. Faster for long text.\n"
+                                 "Preserves your clipboard contents (e.g. screenshots).\n\n"
+                                 "Direct: Types text character-by-character.\n"
+                                 "Never touches clipboard. Slightly slower.")
+
+        # Preview Window section
+        row += 1
+        ttk.Separator(main_frame, orient=tk.HORIZONTAL).grid(row=row, column=0, columnspan=2, sticky="ew", pady=10)
+
+        row += 1
+        preview_label = ttk.Label(main_frame, text="Preview Window", font=("", 10, "bold"))
+        preview_label.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
+
+        # Preview enabled
+        row += 1
+        preview_frame = ttk.Frame(main_frame)
+        preview_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=2)
+        self.preview_enabled_var = tk.BooleanVar(value=self.config.get("preview_enabled", True))
+        preview_check = ttk.Checkbutton(preview_frame, text="Show preview overlay",
+                                        variable=self.preview_enabled_var)
+        preview_check.pack(side=tk.LEFT)
+        preview_help = ttk.Label(preview_frame, text="?", font=("", 9, "bold"),
+                                 foreground="#888888", cursor="question_arrow")
+        preview_help.pack(side=tk.LEFT, padx=5)
+        Tooltip(preview_help, "Shows a floating overlay with:\n"
+                             "• \"Recording...\" while recording (red)\n"
+                             "• \"Transcribing...\" while processing (yellow)\n"
+                             "• Transcribed text briefly (white)")
+
+        # Preview position
+        row += 1
+        position_frame = ttk.Frame(main_frame)
+        position_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=2, padx=(20, 0))
+        ttk.Label(position_frame, text="Position:").pack(side=tk.LEFT)
+        self.preview_position_var = tk.StringVar(value=self.config.get("preview_position", "bottom-right"))
+        position_options = ["bottom-right", "bottom-left", "top-right", "top-left"]
+        position_combo = ttk.Combobox(position_frame, textvariable=self.preview_position_var,
+                                      values=position_options, state="readonly", width=12)
+        position_combo.pack(side=tk.LEFT, padx=(5, 0))
+
+        # Preview auto-hide delay
+        row += 1
+        delay_frame = ttk.Frame(main_frame)
+        delay_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=2, padx=(20, 0))
+        ttk.Label(delay_frame, text="Auto-hide delay:").pack(side=tk.LEFT)
+        self.preview_delay_var = tk.StringVar(value=str(self.config.get("preview_auto_hide_delay", 2.0)))
+        delay_entry = ttk.Entry(delay_frame, textvariable=self.preview_delay_var, width=5)
+        delay_entry.pack(side=tk.LEFT, padx=(5, 0))
+        ttk.Label(delay_frame, text="seconds").pack(side=tk.LEFT, padx=(5, 0))
+        delay_help = ttk.Label(delay_frame, text="?", font=("", 9, "bold"),
+                               foreground="#888888", cursor="question_arrow")
+        delay_help.pack(side=tk.LEFT, padx=5)
+        Tooltip(delay_help, "How long the transcribed text stays visible\n"
+                           "before the preview window disappears.\n\n"
+                           "Set to 0 to keep it visible until next recording.")
+
+        # Preview theme and font size
+        row += 1
+        theme_frame = ttk.Frame(main_frame)
+        theme_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=2, padx=(20, 0))
+        ttk.Label(theme_frame, text="Theme:").pack(side=tk.LEFT)
+        self.preview_theme_var = tk.StringVar(value=self.config.get("preview_theme", "dark"))
+        theme_combo = ttk.Combobox(theme_frame, textvariable=self.preview_theme_var,
+                                   values=config.PREVIEW_THEME_OPTIONS, state="readonly", width=8)
+        theme_combo.pack(side=tk.LEFT, padx=(5, 0))
+
+        ttk.Label(theme_frame, text="Font size:").pack(side=tk.LEFT, padx=(15, 0))
+        self.preview_font_size_var = tk.IntVar(value=self.config.get("preview_font_size", 11))
+        font_spin = ttk.Spinbox(theme_frame, from_=config.PREVIEW_FONT_SIZE_MIN,
+                                to=config.PREVIEW_FONT_SIZE_MAX, textvariable=self.preview_font_size_var,
+                                width=5)
+        font_spin.pack(side=tk.LEFT, padx=(5, 0))
+
+        # Start with Windows
+        row += 1
+        ttk.Separator(main_frame, orient=tk.HORIZONTAL).grid(row=row, column=0, columnspan=2, sticky="ew", pady=10)
+
+        row += 1
+        startup_frame = ttk.Frame(main_frame)
+        startup_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=5)
+        self.startup_var = tk.BooleanVar(value=config.get_startup_enabled())
+        startup_check = ttk.Checkbutton(startup_frame, text="Start with Windows",
+                                        variable=self.startup_var)
+        startup_check.pack(side=tk.LEFT)
+
+        # Register searchable widgets for Tab 1
+        self._register_searchable(hotkey_frame, ["hotkey", "keyboard shortcut", "key", "scroll lock", "pause"], 0, "General")
+        self._register_searchable(autopaste_frame, ["auto paste", "paste", "automatic", "typing"], 0, "General")
+        self._register_searchable(paste_mode_frame, ["paste mode", "clipboard", "direct typing"], 0, "General")
+        self._register_searchable(self.silence_frame, ["silence", "timeout", "auto stop", "duration"], 0, "General")
+        self._register_searchable(preview_frame, ["preview", "window", "overlay", "show"], 0, "General")
+        self._register_searchable(position_frame, ["preview", "position", "corner", "placement"], 0, "General")
+        self._register_searchable(delay_frame, ["preview", "auto hide", "delay", "duration"], 0, "General")
+        self._register_searchable(theme_frame, ["preview", "theme", "dark", "light", "font", "size"], 0, "General")
+        self._register_searchable(startup_frame, ["startup", "start with windows", "boot", "launch"], 0, "General")
+
+    def _create_audio_tab(self):
+        """Create Audio & Recording settings tab."""
+        container, scrollable_frame = self._create_scrollable_tab()
+        self.notebook.add(container, text="Audio & Recording")
+
+        main_frame = ttk.Frame(scrollable_frame, padding=20)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        row = 0
+
+        # === Section: Input Device ===
+        ttk.Separator(main_frame, orient="horizontal").grid(
+            row=row, column=0, columnspan=2, sticky="ew", pady=(0, 10)
+        )
+        row += 1
+        ttk.Label(main_frame, text="🎤 Input Device", font=("", 10, "bold")).grid(
+            row=row, column=0, columnspan=2, sticky=tk.W, pady=(0, 10)
+        )
+        row += 1
+
+        # Input Device dropdown with refresh button
+        ttk.Label(main_frame, text="Input Device:").grid(row=row, column=0, sticky=tk.W, pady=5)
+        device_frame = ttk.Frame(main_frame)
+        device_frame.grid(row=row, column=1, sticky=tk.W, pady=5)
+        self.device_var = tk.StringVar()
+        self.device_combo = ttk.Combobox(device_frame, textvariable=self.device_var,
+                                         state="readonly", width=40)
+        self.device_combo.pack(side=tk.LEFT)
+        ttk.Button(device_frame, text="↻", width=2, command=self.refresh_devices).pack(side=tk.LEFT, padx=2)
+
+        # Populate devices and select current
+        self.refresh_devices()
+
+        # Device hint
+        row += 1
+        device_hint = ttk.Label(main_frame, text="(showing enabled devices - restart app to detect new defaults)",
+                                font=("", 8), foreground="gray")
+        device_hint.grid(row=row, column=1, sticky=tk.W)
+
+        # Sample rate
+        row += 1
+        ttk.Label(main_frame, text="Sample Rate:").grid(row=row, column=0, sticky=tk.W, pady=5)
+        self.rate_var = tk.StringVar(value=str(self.config["sample_rate"]))
+        rate_entry = ttk.Entry(main_frame, textvariable=self.rate_var, width=17)
+        rate_entry.grid(row=row, column=1, sticky=tk.W, pady=5)
+
+        # === Section: Noise Gate ===
+        row += 1
+        ttk.Separator(main_frame, orient="horizontal").grid(
+            row=row, column=0, columnspan=2, sticky="ew", pady=(20, 10)
+        )
+        row += 1
+        ttk.Label(main_frame, text="🔇 Noise Gate", font=("", 10, "bold")).grid(
+            row=row, column=0, columnspan=2, sticky=tk.W, pady=(0, 10)
+        )
+        row += 1
+
+        # Noise gate checkbox with tooltip
+        noise_gate_frame = ttk.Frame(main_frame)
+        noise_gate_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=5)
+        self.noise_gate_var = tk.BooleanVar(value=self.config.get("noise_gate_enabled", True))
+        noise_gate_check = ttk.Checkbutton(noise_gate_frame, text="Enable Noise Gate",
+                                           variable=self.noise_gate_var)
+        noise_gate_check.pack(side=tk.LEFT)
+        noise_gate_help = ttk.Label(noise_gate_frame, text="?", font=("", 9, "bold"),
+                                    foreground="#888888", cursor="question_arrow")
+        noise_gate_help.pack(side=tk.LEFT, padx=5)
+        Tooltip(noise_gate_help, "Filters out audio below a threshold.\n"
+                                "Helps ignore background noise and reduce\n"
+                                "garbage transcriptions.\n\n"
+                                "Lower values = more sensitive (picks up quiet sounds)\n"
+                                "Higher values = less sensitive (only loud sounds)")
+
+        # Combined noise gate level meter with draggable threshold marker (Discord-style)
+        row += 1
+        noise_level_frame = ttk.Frame(main_frame)
+        noise_level_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=2, padx=(20, 0))
+
+        self.noise_test_btn = ttk.Button(noise_level_frame, text="Test", width=6,
+                                          command=self.toggle_noise_test)
+        self.noise_test_btn.pack(side=tk.LEFT)
+
+        # Canvas dimensions
+        self.meter_width = 200
+        self.meter_height = 20
+
+        self.noise_level_canvas = tk.Canvas(noise_level_frame, width=self.meter_width, height=self.meter_height,
+                                             bg="#333333", highlightthickness=1,
+                                             highlightbackground="#666666", cursor="hand2")
+        self.noise_level_canvas.pack(side=tk.LEFT, padx=5)
+
+        # Level bar (shows current audio level) - behind threshold marker
+        self.noise_level_bar = self.noise_level_canvas.create_rectangle(
+            0, 0, 0, self.meter_height, fill="#00aa00", width=0)
+
+        # Threshold marker (vertical orange line) - draggable
+        self.noise_threshold_var = tk.IntVar(value=self.config.get("noise_gate_threshold_db", -40))
+        initial_x = self._db_to_x(self.noise_threshold_var.get())
+        self.threshold_marker = self.noise_level_canvas.create_line(
+            initial_x, 0, initial_x, self.meter_height, fill="#ff6600", width=3)
+
+        # dB label
+        self.threshold_label = ttk.Label(noise_level_frame, text=f"{self.noise_threshold_var.get()} dB", width=7)
+        self.threshold_label.pack(side=tk.LEFT)
+
+        # Make threshold marker draggable
+        self.noise_level_canvas.bind("<Button-1>", self._on_threshold_click)
+        self.noise_level_canvas.bind("<B1-Motion>", self._on_threshold_drag)
+
+        # Update label when threshold changes
+        def update_threshold_label(*args):
+            self.threshold_label.config(text=f"{self.noise_threshold_var.get()} dB")
+        self.noise_threshold_var.trace_add("write", update_threshold_label)
+
+        # === Section: Audio Feedback ===
+        row += 1
+        ttk.Separator(main_frame, orient="horizontal").grid(
+            row=row, column=0, columnspan=2, sticky="ew", pady=(20, 10)
+        )
+        row += 1
+        ttk.Label(main_frame, text="🔊 Audio Feedback", font=("", 10, "bold")).grid(
+            row=row, column=0, columnspan=2, sticky=tk.W, pady=(0, 10)
+        )
+        row += 1
+
+        # Audio feedback checkbox
+        feedback_frame = ttk.Frame(main_frame)
+        feedback_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=5)
+        self.feedback_var = tk.BooleanVar(value=self.config.get("audio_feedback", True))
+        feedback_check = ttk.Checkbutton(feedback_frame, text="Enable Audio Feedback",
+                                         variable=self.feedback_var)
+        feedback_check.pack(side=tk.LEFT)
+        feedback_help = ttk.Label(feedback_frame, text="?", font=("", 9, "bold"),
+                                  foreground="#888888", cursor="question_arrow")
+        feedback_help.pack(side=tk.LEFT, padx=5)
+        Tooltip(feedback_help, "Play sounds for different states:\n"
+                              "• Start/stop recording clicks\n"
+                              "• Processing sound while transcribing\n"
+                              "• Success chime when text is typed\n"
+                              "• Error buzz when no speech detected")
+
+        # Sound type checkboxes (indented)
+        row += 1
+        sound_options_frame = ttk.Frame(main_frame)
+        sound_options_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=2, padx=(20, 0))
+        self.sound_processing_var = tk.BooleanVar(value=self.config.get("sound_processing", True))
+        ttk.Checkbutton(sound_options_frame, text="Processing",
+                        variable=self.sound_processing_var).pack(side=tk.LEFT, padx=(0, 10))
+        self.sound_success_var = tk.BooleanVar(value=self.config.get("sound_success", True))
+        ttk.Checkbutton(sound_options_frame, text="Success",
+                        variable=self.sound_success_var).pack(side=tk.LEFT, padx=(0, 10))
+        self.sound_error_var = tk.BooleanVar(value=self.config.get("sound_error", True))
+        ttk.Checkbutton(sound_options_frame, text="Error",
+                        variable=self.sound_error_var).pack(side=tk.LEFT, padx=(0, 10))
+        self.sound_command_var = tk.BooleanVar(value=self.config.get("sound_command", True))
+        ttk.Checkbutton(sound_options_frame, text="Command",
+                        variable=self.sound_command_var).pack(side=tk.LEFT)
+
+        # Volume slider
+        row += 1
+        volume_frame = ttk.Frame(main_frame)
+        volume_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=2, padx=(20, 0))
+        ttk.Label(volume_frame, text="Volume:").pack(side=tk.LEFT)
+        self.volume_var = tk.DoubleVar(value=self.config.get("audio_feedback_volume", 0.3))
+        volume_scale = ttk.Scale(volume_frame, from_=0.0, to=1.0, orient=tk.HORIZONTAL,
+                                 variable=self.volume_var, length=120)
+        volume_scale.pack(side=tk.LEFT, padx=5)
+        self.volume_label = ttk.Label(volume_frame, text=f"{int(self.volume_var.get() * 100)}%", width=5)
+        self.volume_label.pack(side=tk.LEFT)
+
+        # Update label when slider moves
+        def update_volume_label(*args):
+            self.volume_label.config(text=f"{int(self.volume_var.get() * 100)}%")
+        self.volume_var.trace_add("write", update_volume_label)
+
+        # Register searchable widgets for Tab 2
+        self._register_searchable(device_frame, ["input device", "microphone", "audio input"], 1, "Audio & Recording")
+        self._register_searchable(noise_gate_frame, ["noise gate", "threshold", "filter", "background noise"], 1, "Audio & Recording")
+        self._register_searchable(noise_level_frame, ["noise", "level", "meter", "test", "db"], 1, "Audio & Recording")
+        self._register_searchable(feedback_frame, ["audio feedback", "sounds", "beep", "chime"], 1, "Audio & Recording")
+        self._register_searchable(sound_options_frame, ["processing", "success", "error", "command", "sound"], 1, "Audio & Recording")
+        self._register_searchable(volume_frame, ["volume", "loudness", "sound volume"], 1, "Audio & Recording")
+
+    def _create_recognition_tab(self):
+        """Create Recognition & Model settings tab."""
+        container, scrollable_frame = self._create_scrollable_tab()
+        self.notebook.add(container, text="Recognition & Model")
+
+        main_frame = ttk.Frame(scrollable_frame, padding=20)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        row = 0
+
+        # === Section: Model & Processing ===
+        ttk.Separator(main_frame, orient="horizontal").grid(
+            row=row, column=0, columnspan=2, sticky="ew", pady=(0, 10)
+        )
+        row += 1
+        ttk.Label(main_frame, text="🧠 Model & Processing", font=("", 10, "bold")).grid(
+            row=row, column=0, columnspan=2, sticky=tk.W, pady=(0, 10)
+        )
+        row += 1
+
+        # Model Size
         ttk.Label(main_frame, text="Model Size:").grid(row=row, column=0, sticky=tk.W, pady=5)
         model_frame = ttk.Frame(main_frame)
         model_frame.grid(row=row, column=1, sticky=tk.W, pady=5)
@@ -311,20 +773,18 @@ class SettingsWindow:
         self.cuda_libs_installed = True  # Assume installed until we check
         self.refresh_gpu_status()
 
-        # Language
+        # === Section: Translation ===
         row += 1
-        ttk.Label(main_frame, text="Language:").grid(row=row, column=0, sticky=tk.W, pady=5)
-        # Use friendly labels in dropdown
-        lang_labels = [config.LANGUAGE_LABELS.get(code, code) for code in config.LANGUAGE_OPTIONS]
-        current_lang = self.config["language"]
-        current_label = config.LANGUAGE_LABELS.get(current_lang, current_lang)
-        self.lang_var = tk.StringVar(value=current_label)
-        self.lang_combo = ttk.Combobox(main_frame, textvariable=self.lang_var,
-                                       values=lang_labels, state="readonly", width=15)
-        self.lang_combo.grid(row=row, column=1, sticky=tk.W, pady=5)
+        ttk.Separator(main_frame, orient="horizontal").grid(
+            row=row, column=0, columnspan=2, sticky="ew", pady=(20, 10)
+        )
+        row += 1
+        ttk.Label(main_frame, text="🌐 Translation", font=("", 10, "bold")).grid(
+            row=row, column=0, columnspan=2, sticky=tk.W, pady=(0, 10)
+        )
+        row += 1
 
         # Translation Mode
-        row += 1
         self.translation_enabled_var = tk.BooleanVar(value=self.config.get("translation_enabled", False))
         trans_check = ttk.Checkbutton(main_frame, text="Translation Mode (speak one language, output English)",
                                       variable=self.translation_enabled_var,
@@ -334,6 +794,8 @@ class SettingsWindow:
         # Translation Source Language
         row += 1
         ttk.Label(main_frame, text="Source Language:").grid(row=row, column=0, sticky=tk.W, pady=5, padx=(20, 0))
+        # Use friendly labels in dropdown
+        lang_labels = [config.LANGUAGE_LABELS.get(code, code) for code in config.LANGUAGE_OPTIONS]
         current_trans_lang = self.config.get("translation_source_language", "auto")
         current_trans_label = config.LANGUAGE_LABELS.get(current_trans_lang, current_trans_lang)
         self.trans_lang_var = tk.StringVar(value=current_trans_label)
@@ -344,304 +806,72 @@ class SettingsWindow:
         # Update initial state
         self.on_translation_toggle()
 
-        # Input Device
+        # === Section: Custom Vocabulary ===
         row += 1
-        ttk.Label(main_frame, text="Input Device:").grid(row=row, column=0, sticky=tk.W, pady=5)
-        device_frame = ttk.Frame(main_frame)
-        device_frame.grid(row=row, column=1, sticky=tk.W, pady=5)
-        self.device_var = tk.StringVar()
-        self.device_combo = ttk.Combobox(device_frame, textvariable=self.device_var,
-                                         state="readonly", width=40)
-        self.device_combo.pack(side=tk.LEFT)
-        ttk.Button(device_frame, text="↻", width=2, command=self.refresh_devices).pack(side=tk.LEFT, padx=2)
-
-        # Populate devices and select current
-        self.refresh_devices()
-
-        # Device hint
+        ttk.Separator(main_frame, orient="horizontal").grid(
+            row=row, column=0, columnspan=2, sticky="ew", pady=(20, 10)
+        )
         row += 1
-        device_hint = ttk.Label(main_frame, text="(showing enabled devices - restart app to detect new defaults)",
-                                font=("", 8), foreground="gray")
-        device_hint.grid(row=row, column=1, sticky=tk.W)
-
-        # Sample rate
+        ttk.Label(main_frame, text="📝 Custom Vocabulary", font=("", 10, "bold")).grid(
+            row=row, column=0, columnspan=2, sticky=tk.W, pady=(0, 10)
+        )
         row += 1
-        ttk.Label(main_frame, text="Sample Rate:").grid(row=row, column=0, sticky=tk.W, pady=5)
-        self.rate_var = tk.StringVar(value=str(self.config["sample_rate"]))
-        rate_entry = ttk.Entry(main_frame, textvariable=self.rate_var, width=17)
-        rate_entry.grid(row=row, column=1, sticky=tk.W, pady=5)
 
-        # Hotkey
-        row += 1
-        ttk.Label(main_frame, text="Hotkey:").grid(row=row, column=0, sticky=tk.W, pady=5)
-        hotkey_frame = ttk.Frame(main_frame)
-        hotkey_frame.grid(row=row, column=1, sticky=tk.W, pady=5)
-        self.hotkey_capture = HotkeyCapture(hotkey_frame, self.config["hotkey"])
-        self.hotkey_capture.frame.pack(side=tk.LEFT)
-        hotkey_help = ttk.Label(hotkey_frame, text="?", font=("", 9, "bold"),
-                                foreground="#888888", cursor="question_arrow")
-        hotkey_help.pack(side=tk.LEFT, padx=5)
-        Tooltip(hotkey_help, "Recommended Hotkeys:\n\n"
-                            "SINGLE KEYS (easiest):\n"
-                            "• Scroll Lock - never conflicts\n"
-                            "• Pause/Break - never used\n"
-                            "• Insert - rarely used\n\n"
-                            "NUMPAD (if available):\n"
-                            "• Numpad + or Numpad 0\n\n"
-                            "TWO-KEY COMBOS:\n"
-                            "• Ctrl+\\ or Ctrl+;")
-
-        # Recording Mode
-        row += 1
-        ttk.Label(main_frame, text="Recording Mode:").grid(row=row, column=0, sticky=tk.W, pady=5)
-        self.mode_var = tk.StringVar(value=self.config.get("recording_mode", "push_to_talk"))
-        mode_combo = ttk.Combobox(main_frame, textvariable=self.mode_var,
-                                  values=config.RECORDING_MODE_OPTIONS, state="readonly", width=15)
-        mode_combo.grid(row=row, column=1, sticky=tk.W, pady=5)
-        mode_combo.bind("<<ComboboxSelected>>", self.on_mode_change)
-
-        # Mode hint
-        row += 1
-        self.mode_hint = ttk.Label(main_frame, text=self.get_mode_hint(),
-                                   font=("", 8), foreground="gray", wraplength=250)
-        self.mode_hint.grid(row=row, column=0, columnspan=2, sticky=tk.W)
-
-        # Silence timeout (only visible in auto_stop mode)
-        row += 1
-        self.silence_frame = ttk.Frame(main_frame)
-        self.silence_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=5)
-        ttk.Label(self.silence_frame, text="Silence Timeout:").pack(side=tk.LEFT)
-        self.silence_var = tk.StringVar(value=str(self.config.get("silence_duration_sec", 2.0)))
-        silence_entry = ttk.Entry(self.silence_frame, textvariable=self.silence_var, width=5)
-        silence_entry.pack(side=tk.LEFT, padx=5)
-        ttk.Label(self.silence_frame, text="seconds").pack(side=tk.LEFT)
-        self.update_silence_visibility()
-
-        # Noise gate section
-        row += 1
-        noise_gate_frame = ttk.Frame(main_frame)
-        noise_gate_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=5)
-        self.noise_gate_var = tk.BooleanVar(value=self.config.get("noise_gate_enabled", True))
-        noise_gate_check = ttk.Checkbutton(noise_gate_frame, text="Noise gate",
-                                           variable=self.noise_gate_var)
-        noise_gate_check.pack(side=tk.LEFT)
-        noise_gate_help = ttk.Label(noise_gate_frame, text="?", font=("", 9, "bold"),
-                                    foreground="#888888", cursor="question_arrow")
-        noise_gate_help.pack(side=tk.LEFT, padx=5)
-        Tooltip(noise_gate_help, "Filters out audio below a threshold.\n"
-                                "Helps ignore background noise and reduce\n"
-                                "garbage transcriptions.\n\n"
-                                "Lower values = more sensitive (picks up quiet sounds)\n"
-                                "Higher values = less sensitive (only loud sounds)")
-
-        # Combined noise gate level meter with draggable threshold marker (Discord-style)
-        row += 1
-        noise_level_frame = ttk.Frame(main_frame)
-        noise_level_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=2, padx=(20, 0))
-
-        self.noise_test_btn = ttk.Button(noise_level_frame, text="Test", width=6,
-                                          command=self.toggle_noise_test)
-        self.noise_test_btn.pack(side=tk.LEFT)
-
-        # Canvas dimensions
-        self.meter_width = 200
-        self.meter_height = 20
-
-        self.noise_level_canvas = tk.Canvas(noise_level_frame, width=self.meter_width, height=self.meter_height,
-                                             bg="#333333", highlightthickness=1,
-                                             highlightbackground="#666666", cursor="hand2")
-        self.noise_level_canvas.pack(side=tk.LEFT, padx=5)
-
-        # Level bar (shows current audio level) - behind threshold marker
-        self.noise_level_bar = self.noise_level_canvas.create_rectangle(
-            0, 0, 0, self.meter_height, fill="#00aa00", width=0)
-
-        # Threshold marker (vertical orange line) - draggable
-        self.noise_threshold_var = tk.IntVar(value=self.config.get("noise_gate_threshold_db", -40))
-        initial_x = self._db_to_x(self.noise_threshold_var.get())
-        self.threshold_marker = self.noise_level_canvas.create_line(
-            initial_x, 0, initial_x, self.meter_height, fill="#ff6600", width=3)
-
-        # dB label
-        self.threshold_label = ttk.Label(noise_level_frame, text=f"{self.noise_threshold_var.get()} dB", width=7)
-        self.threshold_label.pack(side=tk.LEFT)
-
-        # Make threshold marker draggable
-        self.noise_level_canvas.bind("<Button-1>", self._on_threshold_click)
-        self.noise_level_canvas.bind("<B1-Motion>", self._on_threshold_drag)
-
-        # Update label when threshold changes
-        def update_threshold_label(*args):
-            self.threshold_label.config(text=f"{self.noise_threshold_var.get()} dB")
-        self.noise_threshold_var.trace_add("write", update_threshold_label)
-
-        # Audio feedback checkbox
-        row += 1
-        feedback_frame = ttk.Frame(main_frame)
-        feedback_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=5)
-        self.feedback_var = tk.BooleanVar(value=self.config.get("audio_feedback", True))
-        feedback_check = ttk.Checkbutton(feedback_frame, text="Audio feedback",
-                                         variable=self.feedback_var)
-        feedback_check.pack(side=tk.LEFT)
-        feedback_help = ttk.Label(feedback_frame, text="?", font=("", 9, "bold"),
-                                  foreground="#888888", cursor="question_arrow")
-        feedback_help.pack(side=tk.LEFT, padx=5)
-        Tooltip(feedback_help, "Play sounds for different states:\n"
-                              "• Start/stop recording clicks\n"
-                              "• Processing sound while transcribing\n"
-                              "• Success chime when text is typed\n"
-                              "• Error buzz when no speech detected")
-
-        # Sound type checkboxes (indented)
-        row += 1
-        sound_options_frame = ttk.Frame(main_frame)
-        sound_options_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=2, padx=(20, 0))
-        self.sound_processing_var = tk.BooleanVar(value=self.config.get("sound_processing", True))
-        ttk.Checkbutton(sound_options_frame, text="Processing",
-                        variable=self.sound_processing_var).pack(side=tk.LEFT, padx=(0, 10))
-        self.sound_success_var = tk.BooleanVar(value=self.config.get("sound_success", True))
-        ttk.Checkbutton(sound_options_frame, text="Success",
-                        variable=self.sound_success_var).pack(side=tk.LEFT, padx=(0, 10))
-        self.sound_error_var = tk.BooleanVar(value=self.config.get("sound_error", True))
-        ttk.Checkbutton(sound_options_frame, text="Error",
-                        variable=self.sound_error_var).pack(side=tk.LEFT)
-
-        # Volume slider
-        row += 1
-        volume_frame = ttk.Frame(main_frame)
-        volume_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=2, padx=(20, 0))
-        ttk.Label(volume_frame, text="Volume:").pack(side=tk.LEFT)
-        self.volume_var = tk.DoubleVar(value=self.config.get("audio_feedback_volume", 0.3))
-        volume_scale = ttk.Scale(volume_frame, from_=0.0, to=1.0, orient=tk.HORIZONTAL,
-                                 variable=self.volume_var, length=120)
-        volume_scale.pack(side=tk.LEFT, padx=5)
-        self.volume_label = ttk.Label(volume_frame, text=f"{int(self.volume_var.get() * 100)}%", width=5)
-        self.volume_label.pack(side=tk.LEFT)
-        # Update label when slider moves
-        def update_volume_label(*args):
-            self.volume_label.config(text=f"{int(self.volume_var.get() * 100)}%")
-        self.volume_var.trace_add("write", update_volume_label)
-
-        # Auto-paste checkbox
-        row += 1
-        autopaste_frame = ttk.Frame(main_frame)
-        autopaste_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=5)
-        self.autopaste_var = tk.BooleanVar(value=self.config.get("auto_paste", True))
-        autopaste_check = ttk.Checkbutton(autopaste_frame, text="Auto-paste after transcription",
-                                          variable=self.autopaste_var)
-        autopaste_check.pack(side=tk.LEFT)
-        autopaste_help = ttk.Label(autopaste_frame, text="?", font=("", 9, "bold"),
-                                   foreground="#888888", cursor="question_arrow")
-        autopaste_help.pack(side=tk.LEFT, padx=5)
-        Tooltip(autopaste_help, "When enabled, text is automatically typed (Ctrl+V)\n"
-                               "into whichever text field has focus after\n"
-                               "transcription.\n\n"
-                               "When disabled, text is only copied to clipboard -\n"
-                               "you must manually paste.")
-
-        # Paste mode selector
-        row += 1
-        paste_mode_frame = ttk.Frame(main_frame)
-        paste_mode_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=5)
-        ttk.Label(paste_mode_frame, text="Paste mode:").pack(side=tk.LEFT)
-        self.paste_mode_var = tk.StringVar(value=self.config.get("paste_mode", "clipboard"))
-        paste_mode_combo = ttk.Combobox(paste_mode_frame, textvariable=self.paste_mode_var,
-                                        values=["clipboard", "direct"], width=12, state="readonly")
-        paste_mode_combo.pack(side=tk.LEFT, padx=(10, 5))
-        paste_mode_help = ttk.Label(paste_mode_frame, text="?", font=("", 9, "bold"),
-                                    foreground="#888888", cursor="question_arrow")
-        paste_mode_help.pack(side=tk.LEFT, padx=5)
-        Tooltip(paste_mode_help, "Clipboard: Uses Ctrl+V to paste. Faster for long text.\n"
-                                 "Preserves your clipboard contents (e.g. screenshots).\n\n"
-                                 "Direct: Types text character-by-character.\n"
-                                 "Never touches clipboard. Slightly slower.")
-
-        # Start with Windows checkbox
-        row += 1
-        self.startup_var = tk.BooleanVar(value=config.get_startup_enabled())
-        startup_check = ttk.Checkbutton(main_frame, text="Start with Windows",
-                                        variable=self.startup_var)
-        startup_check.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=5)
-
-        # Preview Window Section
-        row += 1
-        ttk.Separator(main_frame, orient=tk.HORIZONTAL).grid(row=row, column=0, columnspan=2, sticky="ew", pady=10)
-
-        row += 1
-        preview_label = ttk.Label(main_frame, text="Preview Window", font=("", 10, "bold"))
-        preview_label.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
-
-        # Preview enabled checkbox
-        row += 1
-        preview_frame = ttk.Frame(main_frame)
-        preview_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=2)
-        self.preview_enabled_var = tk.BooleanVar(value=self.config.get("preview_enabled", True))
-        preview_check = ttk.Checkbutton(preview_frame, text="Show preview overlay",
-                                        variable=self.preview_enabled_var)
-        preview_check.pack(side=tk.LEFT)
-        preview_help = ttk.Label(preview_frame, text="?", font=("", 9, "bold"),
-                                 foreground="#888888", cursor="question_arrow")
-        preview_help.pack(side=tk.LEFT, padx=5)
-        Tooltip(preview_help, "Shows a floating overlay with:\n"
-                             "• \"Recording...\" while recording (red)\n"
-                             "• \"Transcribing...\" while processing (yellow)\n"
-                             "• Transcribed text briefly (white)")
-
-        # Preview position dropdown
-        row += 1
-        position_frame = ttk.Frame(main_frame)
-        position_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=2, padx=(20, 0))
-        ttk.Label(position_frame, text="Position:").pack(side=tk.LEFT)
-        self.preview_position_var = tk.StringVar(value=self.config.get("preview_position", "bottom-right"))
-        position_options = ["bottom-right", "bottom-left", "top-right", "top-left"]
-        position_combo = ttk.Combobox(position_frame, textvariable=self.preview_position_var,
-                                      values=position_options, state="readonly", width=12)
-        position_combo.pack(side=tk.LEFT, padx=(5, 0))
-
-        # Preview auto-hide delay
-        row += 1
-        delay_frame = ttk.Frame(main_frame)
-        delay_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=2, padx=(20, 0))
-        ttk.Label(delay_frame, text="Auto-hide delay:").pack(side=tk.LEFT)
-        self.preview_delay_var = tk.StringVar(value=str(self.config.get("preview_auto_hide_delay", 2.0)))
-        delay_entry = ttk.Entry(delay_frame, textvariable=self.preview_delay_var, width=5)
-        delay_entry.pack(side=tk.LEFT, padx=(5, 0))
-        ttk.Label(delay_frame, text="seconds").pack(side=tk.LEFT, padx=(5, 0))
-        delay_help = ttk.Label(delay_frame, text="?", font=("", 9, "bold"),
+        # Vocabulary explanation
+        vocab_label_frame = ttk.Frame(main_frame)
+        vocab_label_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
+        ttk.Label(vocab_label_frame, text="Add names, jargon, and acronyms for better recognition").pack(side=tk.LEFT)
+        vocab_help = ttk.Label(vocab_label_frame, text="?", font=("", 9, "bold"),
                                foreground="#888888", cursor="question_arrow")
-        delay_help.pack(side=tk.LEFT, padx=5)
-        Tooltip(delay_help, "How long the transcribed text stays visible\n"
-                           "before the preview window disappears.\n\n"
-                           "Set to 0 to keep it visible until next recording.")
+        vocab_help.pack(side=tk.LEFT, padx=5)
+        Tooltip(vocab_help, "Add names, jargon, and acronyms for better recognition:\n\n"
+                           "TensorFlow, Kubernetes, HIPAA\n"
+                           "Dr. Smith, ChatGPT, PyTorch\n"
+                           "GitHub, OpenAI, FastAPI")
 
-        # Preview theme dropdown
+        # Vocabulary list
         row += 1
-        theme_frame = ttk.Frame(main_frame)
-        theme_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=2, padx=(20, 0))
-        ttk.Label(theme_frame, text="Theme:").pack(side=tk.LEFT)
-        self.preview_theme_var = tk.StringVar(value=self.config.get("preview_theme", "dark"))
-        theme_combo = ttk.Combobox(theme_frame, textvariable=self.preview_theme_var,
-                                   values=config.PREVIEW_THEME_OPTIONS, state="readonly", width=8)
-        theme_combo.pack(side=tk.LEFT, padx=(5, 0))
+        vocab_frame = ttk.Frame(main_frame)
+        vocab_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=2)
 
-        # Preview font size
-        ttk.Label(theme_frame, text="Font size:").pack(side=tk.LEFT, padx=(15, 0))
-        self.preview_font_size_var = tk.IntVar(value=self.config.get("preview_font_size", 11))
-        font_spin = ttk.Spinbox(theme_frame, from_=config.PREVIEW_FONT_SIZE_MIN,
-                                to=config.PREVIEW_FONT_SIZE_MAX,
-                                textvariable=self.preview_font_size_var, width=4)
-        font_spin.pack(side=tk.LEFT, padx=(5, 0))
+        self.vocab_listbox = tk.Listbox(vocab_frame, width=50, height=3, selectmode=tk.SINGLE)
+        self.vocab_listbox.pack(side=tk.LEFT)
+        self.custom_vocabulary = self.config.get("custom_vocabulary", []).copy()
+        self._refresh_vocab_listbox()
 
-        # Text Processing Section
+        vocab_btn_frame = ttk.Frame(vocab_frame)
+        vocab_btn_frame.pack(side=tk.LEFT, padx=5)
+        ttk.Button(vocab_btn_frame, text="Add", width=6, command=self.add_vocab_entry).pack(pady=1)
+        ttk.Button(vocab_btn_frame, text="Remove", width=6, command=self.remove_vocab_entry).pack(pady=1)
+
+        # Register searchable widgets for Tab 3
+        self._register_searchable(model_frame, ["model", "size", "tiny", "base", "small", "medium", "accuracy"], 2, "Recognition & Model")
+        self._register_searchable(processing_frame, ["processing", "cpu", "gpu", "cuda", "device", "compute"], 2, "Recognition & Model")
+        self._register_searchable(gpu_status_frame, ["gpu", "status", "cuda", "graphics card"], 2, "Recognition & Model")
+        self._register_searchable(self.install_gpu_frame, ["install", "gpu support", "cuda", "nvidia"], 2, "Recognition & Model")
+        self._register_searchable(vocab_frame, ["vocabulary", "custom", "jargon", "names", "acronyms"], 2, "Recognition & Model")
+
+    def _create_text_tab(self):
+        """Create Text Processing settings tab."""
+        container, scrollable_frame = self._create_scrollable_tab()
+        self.notebook.add(container, text="Text Processing")
+
+        main_frame = ttk.Frame(scrollable_frame, padding=20)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        row = 0
+
+        # === Section: Voice Commands ===
+        ttk.Separator(main_frame, orient="horizontal").grid(
+            row=row, column=0, columnspan=2, sticky="ew", pady=(0, 10)
+        )
         row += 1
-        ttk.Separator(main_frame, orient=tk.HORIZONTAL).grid(row=row, column=0, columnspan=2, sticky="ew", pady=10)
-
+        ttk.Label(main_frame, text="🎙️ Voice Commands", font=("", 10, "bold")).grid(
+            row=row, column=0, columnspan=2, sticky=tk.W, pady=(0, 10)
+        )
         row += 1
-        processing_label = ttk.Label(main_frame, text="Text Processing", font=("", 10, "bold"))
-        processing_label.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
 
         # Voice commands checkbox
-        row += 1
         self.voice_commands_var = tk.BooleanVar(value=self.config.get("voice_commands_enabled", True))
         voice_cmd_frame = ttk.Frame(main_frame)
         voice_cmd_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=2)
@@ -669,8 +899,18 @@ class SettingsWindow:
                                         variable=self.scratch_that_var)
         scratch_check.pack(side=tk.LEFT)
 
-        # Filler removal checkbox
+        # === Section: Filler Removal ===
         row += 1
+        ttk.Separator(main_frame, orient="horizontal").grid(
+            row=row, column=0, columnspan=2, sticky="ew", pady=(20, 10)
+        )
+        row += 1
+        ttk.Label(main_frame, text="🚫 Filler Removal", font=("", 10, "bold")).grid(
+            row=row, column=0, columnspan=2, sticky=tk.W, pady=(0, 10)
+        )
+        row += 1
+
+        # Filler removal checkbox
         self.filler_var = tk.BooleanVar(value=self.config.get("filler_removal_enabled", True))
         filler_frame = ttk.Frame(main_frame)
         filler_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=2)
@@ -692,11 +932,21 @@ class SettingsWindow:
                                            variable=self.filler_aggressive_var)
         aggressive_check.pack(side=tk.LEFT)
 
-        # Custom dictionary section
+        # === Section: Custom Dictionary ===
         row += 1
+        ttk.Separator(main_frame, orient="horizontal").grid(
+            row=row, column=0, columnspan=2, sticky="ew", pady=(20, 10)
+        )
+        row += 1
+        ttk.Label(main_frame, text="📖 Custom Dictionary", font=("", 10, "bold")).grid(
+            row=row, column=0, columnspan=2, sticky=tk.W, pady=(0, 10)
+        )
+        row += 1
+
+        # Dictionary explanation
         dict_label_frame = ttk.Frame(main_frame)
-        dict_label_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=(10, 2))
-        ttk.Label(dict_label_frame, text="Custom Dictionary:").pack(side=tk.LEFT)
+        dict_label_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
+        ttk.Label(dict_label_frame, text="Replace misheard words/phrases").pack(side=tk.LEFT)
         dict_help = ttk.Label(dict_label_frame, text="?", font=("", 9, "bold"),
                               foreground="#888888", cursor="question_arrow")
         dict_help.pack(side=tk.LEFT, padx=5)
@@ -720,39 +970,21 @@ class SettingsWindow:
         ttk.Button(dict_btn_frame, text="Add", width=6, command=self.add_dict_entry).pack(pady=1)
         ttk.Button(dict_btn_frame, text="Remove", width=6, command=self.remove_dict_entry).pack(pady=1)
 
-        # Custom Vocabulary section
+        # === Section: Custom Commands ===
         row += 1
-        vocab_label_frame = ttk.Frame(main_frame)
-        vocab_label_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=(10, 2))
-        ttk.Label(vocab_label_frame, text="Custom Vocabulary:").pack(side=tk.LEFT)
-        vocab_help = ttk.Label(vocab_label_frame, text="?", font=("", 9, "bold"),
-                               foreground="#888888", cursor="question_arrow")
-        vocab_help.pack(side=tk.LEFT, padx=5)
-        Tooltip(vocab_help, "Add names, jargon, and acronyms for better recognition:\n\n"
-                           "TensorFlow, Kubernetes, HIPAA\n"
-                           "Dr. Smith, ChatGPT, PyTorch\n"
-                           "GitHub, OpenAI, FastAPI")
-
-        # Vocabulary list
+        ttk.Separator(main_frame, orient="horizontal").grid(
+            row=row, column=0, columnspan=2, sticky="ew", pady=(20, 10)
+        )
         row += 1
-        vocab_frame = ttk.Frame(main_frame)
-        vocab_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=2)
-
-        self.vocab_listbox = tk.Listbox(vocab_frame, width=50, height=3, selectmode=tk.SINGLE)
-        self.vocab_listbox.pack(side=tk.LEFT)
-        self.custom_vocabulary = self.config.get("custom_vocabulary", []).copy()
-        self._refresh_vocab_listbox()
-
-        vocab_btn_frame = ttk.Frame(vocab_frame)
-        vocab_btn_frame.pack(side=tk.LEFT, padx=5)
-        ttk.Button(vocab_btn_frame, text="Add", width=6, command=self.add_vocab_entry).pack(pady=1)
-        ttk.Button(vocab_btn_frame, text="Remove", width=6, command=self.remove_vocab_entry).pack(pady=1)
-
-        # Custom Commands section
+        ttk.Label(main_frame, text="⚡ Custom Commands", font=("", 10, "bold")).grid(
+            row=row, column=0, columnspan=2, sticky=tk.W, pady=(0, 10)
+        )
         row += 1
+
+        # Commands explanation
         cmd_label_frame = ttk.Frame(main_frame)
-        cmd_label_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=(10, 2))
-        ttk.Label(cmd_label_frame, text="Custom Commands:").pack(side=tk.LEFT)
+        cmd_label_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
+        ttk.Label(cmd_label_frame, text="Trigger phrases that expand to text blocks").pack(side=tk.LEFT)
         cmd_help = ttk.Label(cmd_label_frame, text="?", font=("", 9, "bold"),
                              foreground="#888888", cursor="question_arrow")
         cmd_help.pack(side=tk.LEFT, padx=5)
@@ -776,15 +1008,34 @@ class SettingsWindow:
         ttk.Button(cmd_btn_frame, text="Add", width=6, command=self.add_cmd_entry).pack(pady=1)
         ttk.Button(cmd_btn_frame, text="Remove", width=6, command=self.remove_cmd_entry).pack(pady=1)
 
-        # AI Text Cleanup section
-        row += 1
-        ttk.Separator(main_frame, orient=tk.HORIZONTAL).grid(row=row, column=0, columnspan=2, sticky="ew", pady=10)
+        # Register searchable widgets for Tab 4
+        self._register_searchable(voice_cmd_frame, ["voice commands", "punctuation", "period", "comma", "new line"], 3, "Text Processing")
+        self._register_searchable(scratch_frame, ["scratch that", "delete", "undo", "remove"], 3, "Text Processing")
+        self._register_searchable(filler_frame, ["filler", "um", "uh", "removal", "filter"], 3, "Text Processing")
+        self._register_searchable(aggressive_frame, ["aggressive", "like", "filler"], 3, "Text Processing")
+        self._register_searchable(dict_frame, ["dictionary", "replace", "words", "phrases", "corrections"], 3, "Text Processing")
+        self._register_searchable(cmd_frame, ["commands", "custom", "trigger", "expand", "shortcuts"], 3, "Text Processing")
 
+    def _create_advanced_tab(self):
+        """Create Account & Advanced settings tab."""
+        container, scrollable_frame = self._create_scrollable_tab()
+        self.notebook.add(container, text="Account & Advanced")
+
+        main_frame = ttk.Frame(scrollable_frame, padding=20)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        row = 0
+
+        # === Section: AI Text Cleanup ===
+        ttk.Separator(main_frame, orient="horizontal").grid(
+            row=row, column=0, columnspan=2, sticky="ew", pady=(0, 10)
+        )
         row += 1
+
         ai_label_frame = ttk.Frame(main_frame)
-        ai_label_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=(5, 2))
-        ttk.Label(ai_label_frame, text="AI Text Cleanup (Ollama)", font=("", 10, "bold")).pack(side=tk.LEFT)
-        ttk.Label(ai_label_frame, text="🌟 Killer Feature - 100% Offline", font=("", 9), foreground="green").pack(side=tk.LEFT, padx=(5, 0))
+        ai_label_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=(0, 10))
+        ttk.Label(ai_label_frame, text="🤖 AI Text Cleanup (Ollama)", font=("", 10, "bold")).pack(side=tk.LEFT)
+        ttk.Label(ai_label_frame, text="🌟 100% Offline", font=("", 9), foreground="green").pack(side=tk.LEFT, padx=(5, 0))
         ai_help = ttk.Label(ai_label_frame, text="?", font=("", 9, "bold"),
                            foreground="#888888", cursor="question_arrow")
         ai_help.pack(side=tk.LEFT, padx=5)
@@ -794,8 +1045,9 @@ class SettingsWindow:
                         "• Remove redundancy\n\n"
                         "Requires Ollama to be installed and running.\n"
                         "Download from: https://ollama.ai/")
-
         row += 1
+
+        # Enable checkbox
         self.ai_cleanup_var = tk.BooleanVar(value=self.config.get("ai_cleanup_enabled", False))
         ai_check = ttk.Checkbutton(main_frame, text="Enable AI text cleanup",
                                    variable=self.ai_cleanup_var,
@@ -843,22 +1095,23 @@ class SettingsWindow:
         # Check Ollama status in background
         threading.Thread(target=self.check_ollama_status_bg, daemon=True).start()
 
-        # Separator before history
+        # === Section: Transcription History ===
         row += 1
-        ttk.Separator(main_frame, orient=tk.HORIZONTAL).grid(row=row, column=0, columnspan=2, sticky="ew", pady=10)
+        ttk.Separator(main_frame, orient="horizontal").grid(
+            row=row, column=0, columnspan=2, sticky="ew", pady=(20, 10)
+        )
+        row += 1
 
-        # Transcription History section
-        row += 1
         history_label_frame = ttk.Frame(main_frame)
-        history_label_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=(5, 2))
-        ttk.Label(history_label_frame, text="Transcription History", font=("", 10, "bold")).pack(side=tk.LEFT)
+        history_label_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=(0, 10))
+        ttk.Label(history_label_frame, text="📜 Transcription History", font=("", 10, "bold")).pack(side=tk.LEFT)
         ttk.Label(history_label_frame, text="(Recent transcriptions)", font=("", 9), foreground="gray").pack(side=tk.LEFT, padx=(5, 0))
-
         row += 1
+
+        # History listbox with scrollbar
         history_frame = ttk.Frame(main_frame)
         history_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=2)
 
-        # History listbox with scrollbar
         self.history_listbox = tk.Listbox(history_frame, width=60, height=4, selectmode=tk.SINGLE)
         history_scroll = ttk.Scrollbar(history_frame, orient=tk.VERTICAL, command=self.history_listbox.yview)
         self.history_listbox.configure(yscrollcommand=history_scroll.set)
@@ -872,21 +1125,18 @@ class SettingsWindow:
 
         self._refresh_history()
 
-        # Buttons frame
+        # === Section: About ===
         row += 1
-        btn_frame = ttk.Frame(main_frame)
-        btn_frame.grid(row=row, column=0, columnspan=2, pady=15)
-
-        ttk.Button(btn_frame, text="Save", command=self.save).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Cancel", command=self.close).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Reset to Defaults", command=self.reset_defaults).pack(side=tk.LEFT, padx=5)
-
-        # Separator
+        ttk.Separator(main_frame, orient="horizontal").grid(
+            row=row, column=0, columnspan=2, sticky="ew", pady=(20, 10)
+        )
         row += 1
-        ttk.Separator(main_frame, orient=tk.HORIZONTAL).grid(row=row, column=0, columnspan=2, sticky="ew", pady=10)
 
-        # About section
+        ttk.Label(main_frame, text="ℹ️ About", font=("", 10, "bold")).grid(
+            row=row, column=0, columnspan=2, sticky=tk.W, pady=(0, 10)
+        )
         row += 1
+
         about_frame = ttk.Frame(main_frame)
         about_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W)
 
@@ -904,10 +1154,70 @@ class SettingsWindow:
         update_link.pack(side=tk.LEFT, padx=(15, 0))
         update_link.bind("<Button-1>", lambda e: self.open_url(config.GITHUB_REPO + "/releases"))
 
-        # Handle window close
-        self.window.protocol("WM_DELETE_WINDOW", self.close)
+        # Register searchable widgets for Tab 5
+        self._register_searchable(ai_label_frame, ["ai", "ollama", "cleanup", "grammar", "formality", "local"], 4, "Account & Advanced")
+        self._register_searchable(mode_frame, ["cleanup mode", "grammar", "formality", "both"], 4, "Account & Advanced")
+        self._register_searchable(history_frame, ["history", "transcription", "recent", "log"], 4, "Account & Advanced")
+        self._register_searchable(about_frame, ["about", "version", "help", "updates"], 4, "Account & Advanced")
 
-        self.window.mainloop()
+    def _register_searchable(self, widget, terms, tab_index, tab_name):
+        """Register a widget in the search index.
+
+        Args:
+            widget: The frame/widget to show/hide during search
+            terms: List of searchable strings (label text, keywords, etc.)
+            tab_index: Index of the tab containing this widget
+            tab_name: Name of the tab
+        """
+        self.search_index.append({
+            "terms": [term.lower() for term in terms],
+            "widget": widget,
+            "tab_index": tab_index,
+            "tab_name": tab_name
+        })
+
+    def _on_search_change(self, *args):
+        """Handle search text changes and filter settings."""
+        query = self.search_var.get().lower().strip()
+
+        if not query:
+            # Clear search - show all widgets
+            for entry in self.search_index:
+                try:
+                    entry["widget"].grid()
+                except:
+                    pass
+            return
+
+        # Filter based on query
+        first_match_tab = None
+        matches_found = False
+
+        for entry in self.search_index:
+            # Check if any search term matches the query
+            matches = any(query in term for term in entry["terms"])
+
+            if matches:
+                matches_found = True
+                # Show the widget
+                try:
+                    entry["widget"].grid()
+                except:
+                    pass
+
+                # Track first matching tab
+                if first_match_tab is None:
+                    first_match_tab = entry["tab_index"]
+            else:
+                # Hide the widget
+                try:
+                    entry["widget"].grid_remove()
+                except:
+                    pass
+
+        # Switch to first tab with matches
+        if first_match_tab is not None:
+            self.notebook.select(first_match_tab)
 
     def get_mode_hint(self):
         """Return description text for current recording mode."""
@@ -1388,6 +1698,7 @@ class SettingsWindow:
             "sound_processing": self.sound_processing_var.get(),
             "sound_success": self.sound_success_var.get(),
             "sound_error": self.sound_error_var.get(),
+            "sound_command": self.sound_command_var.get(),
             # Text processing settings
             "voice_commands_enabled": self.voice_commands_var.get(),
             "scratch_that_enabled": self.scratch_that_var.get(),
@@ -1653,6 +1964,83 @@ class SettingsWindow:
 
         # Run test in background thread
         threading.Thread(target=do_test, daemon=True).start()
+
+    def activate_license(self):
+        """Validate and activate a license key."""
+        license_key = self.license_key_var.get().strip()
+
+        if not license_key:
+            messagebox.showerror("License Activation", "Please enter a license key.")
+            return
+
+        # Show progress indicator
+        progress_dialog = tk.Toplevel(self.window)
+        progress_dialog.title("Activating License")
+        progress_dialog.geometry("300x100")
+        progress_dialog.transient(self.window)
+        progress_dialog.grab_set()
+
+        # Center on parent window
+        x = self.window.winfo_x() + (self.window.winfo_width() - 300) // 2
+        y = self.window.winfo_y() + (self.window.winfo_height() - 100) // 2
+        progress_dialog.geometry(f"+{x}+{y}")
+
+        ttk.Label(progress_dialog, text="Validating license key...", font=("", 10)).pack(pady=20)
+        progress = ttk.Progressbar(progress_dialog, mode='indeterminate', length=200)
+        progress.pack(pady=10)
+        progress.start(10)
+
+        def do_validate():
+            key = self.license_key_var.get().strip()
+
+            # Validate license
+            is_valid, error_msg = license.validate_license_key(key, self.config)
+
+            def on_result():
+                progress_dialog.destroy()
+
+                if is_valid:
+                    # Save config with updated license
+                    config.save_config(self.config)
+                    messagebox.showinfo("License Activated",
+                                      "License activated successfully! Please restart MurmurTone for changes to take effect.")
+                    self.close()  # Close settings
+                else:
+                    messagebox.showerror("License Activation Failed", error_msg)
+
+            self.window.after(0, on_result)
+
+        # Run validation in background thread
+        threading.Thread(target=do_validate, daemon=True).start()
+
+    def deactivate_license(self):
+        """Deactivate the current license."""
+        confirm = messagebox.askyesno(
+            "Deactivate License",
+            "Are you sure you want to deactivate your license?\n\n"
+            "This will return the app to trial mode (if not expired).\n"
+            "You can reactivate with the same license key later."
+        )
+
+        if confirm:
+            self.config = license.deactivate_license(self.config)
+            config.save_config(self.config)
+
+            messagebox.showinfo(
+                "License Deactivated",
+                "Your license has been deactivated. You can transfer it to another device."
+            )
+
+            # Close and reopen settings to refresh UI
+            self.close()
+            if self.on_save_callback:
+                self.on_save_callback(self.config)
+
+    def open_purchase_page(self):
+        """Open the purchase page in the default browser."""
+        # TODO: Update URL when live
+        purchase_url = "https://murmurtone.com/buy"
+        webbrowser.open(purchase_url)
 
     def _refresh_cmd_listbox(self):
         """Refresh the custom commands listbox display."""
