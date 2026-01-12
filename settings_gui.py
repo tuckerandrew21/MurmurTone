@@ -14,6 +14,22 @@ import config
 import text_processor
 import license
 
+# V1 Brand Colors - Slate + Teal
+PRIMARY = "#0d9488"
+PRIMARY_DARK = "#0f766e"
+PRIMARY_LIGHT = "#14b8a6"
+SLATE_900 = "#0f172a"
+SLATE_800 = "#1e293b"
+SLATE_700 = "#334155"
+SLATE_600 = "#475569"
+SLATE_500 = "#64748b"
+SLATE_400 = "#94a3b8"
+SLATE_200 = "#e2e8f0"
+SLATE_100 = "#f1f5f9"
+SUCCESS = "#10b981"
+WARNING = "#f59e0b"
+ERROR = "#ef4444"
+
 
 def check_cuda_available():
     """Check if CUDA is available for GPU acceleration."""
@@ -100,9 +116,9 @@ class Tooltip:
         self.tooltip.wm_overrideredirect(True)
         self.tooltip.wm_geometry(f"+{x}+{y}")
 
-        frame = tk.Frame(self.tooltip, bg="#333333", bd=1, relief=tk.SOLID)
+        frame = tk.Frame(self.tooltip, bg=SLATE_700, bd=1, relief=tk.SOLID)
         frame.pack()
-        label = tk.Label(frame, text=self.text, bg="#333333", fg="#ffffff",
+        label = tk.Label(frame, text=self.text, bg=SLATE_700, fg="#ffffff",
                         font=("", 9), justify=tk.LEFT, padx=8, pady=6)
         label.pack()
 
@@ -301,7 +317,7 @@ class SettingsWindow:
         self.hotkey_capture = HotkeyCapture(hotkey_frame, self.config["hotkey"])
         self.hotkey_capture.frame.pack(side=tk.LEFT)
         hotkey_help = ttk.Label(hotkey_frame, text="?", font=("", 9, "bold"),
-                                foreground="#888888", cursor="question_arrow")
+                                foreground=SLATE_500, cursor="question_arrow")
         hotkey_help.pack(side=tk.LEFT, padx=5)
         Tooltip(hotkey_help, "Recommended Hotkeys:\n\n"
                             "SINGLE KEYS (easiest):\n"
@@ -336,7 +352,7 @@ class SettingsWindow:
         # Mode hint
         row += 1
         self.mode_hint = ttk.Label(main_frame, text=self.get_mode_hint(),
-                                   font=("", 8), foreground="gray", wraplength=250)
+                                   font=("", 8), foreground=SLATE_500, wraplength=250)
         self.mode_hint.grid(row=row, column=0, columnspan=2, sticky=tk.W)
 
         # Silence timeout (only visible in auto_stop mode)
@@ -359,7 +375,7 @@ class SettingsWindow:
                                           variable=self.autopaste_var)
         autopaste_check.pack(side=tk.LEFT)
         autopaste_help = ttk.Label(autopaste_frame, text="?", font=("", 9, "bold"),
-                                   foreground="#888888", cursor="question_arrow")
+                                   foreground=SLATE_500, cursor="question_arrow")
         autopaste_help.pack(side=tk.LEFT, padx=5)
         Tooltip(autopaste_help, "When enabled, text is automatically typed (Ctrl+V)\n"
                                "into whichever text field has focus after\n"
@@ -377,7 +393,7 @@ class SettingsWindow:
                                         values=["clipboard", "direct"], width=12, state="readonly")
         paste_mode_combo.pack(side=tk.LEFT, padx=(10, 5))
         paste_mode_help = ttk.Label(paste_mode_frame, text="?", font=("", 9, "bold"),
-                                    foreground="#888888", cursor="question_arrow")
+                                    foreground=SLATE_500, cursor="question_arrow")
         paste_mode_help.pack(side=tk.LEFT, padx=5)
         Tooltip(paste_mode_help, "Clipboard: Uses Ctrl+V to paste. Faster for long text.\n"
                                  "Preserves your clipboard contents (e.g. screenshots).\n\n"
@@ -401,7 +417,7 @@ class SettingsWindow:
                                         variable=self.preview_enabled_var)
         preview_check.pack(side=tk.LEFT)
         preview_help = ttk.Label(preview_frame, text="?", font=("", 9, "bold"),
-                                 foreground="#888888", cursor="question_arrow")
+                                 foreground=SLATE_500, cursor="question_arrow")
         preview_help.pack(side=tk.LEFT, padx=5)
         Tooltip(preview_help, "Shows a floating overlay with:\n"
                              "• \"Recording...\" while recording (red)\n"
@@ -429,7 +445,7 @@ class SettingsWindow:
         delay_entry.pack(side=tk.LEFT, padx=(5, 0))
         ttk.Label(delay_frame, text="seconds").pack(side=tk.LEFT, padx=(5, 0))
         delay_help = ttk.Label(delay_frame, text="?", font=("", 9, "bold"),
-                               foreground="#888888", cursor="question_arrow")
+                               foreground=SLATE_500, cursor="question_arrow")
         delay_help.pack(side=tk.LEFT, padx=5)
         Tooltip(delay_help, "How long the transcribed text stays visible\n"
                            "before the preview window disappears.\n\n"
@@ -511,7 +527,7 @@ class SettingsWindow:
         # Device hint
         row += 1
         device_hint = ttk.Label(main_frame, text="(showing enabled devices - restart app to detect new defaults)",
-                                font=("", 8), foreground="gray")
+                                font=("", 8), foreground=SLATE_500)
         device_hint.grid(row=row, column=1, sticky=tk.W)
 
         # Sample rate
@@ -540,7 +556,7 @@ class SettingsWindow:
                                            variable=self.noise_gate_var)
         noise_gate_check.pack(side=tk.LEFT)
         noise_gate_help = ttk.Label(noise_gate_frame, text="?", font=("", 9, "bold"),
-                                    foreground="#888888", cursor="question_arrow")
+                                    foreground=SLATE_500, cursor="question_arrow")
         noise_gate_help.pack(side=tk.LEFT, padx=5)
         Tooltip(noise_gate_help, "Filters out audio below a threshold.\n"
                                 "Helps ignore background noise and reduce\n"
@@ -562,19 +578,19 @@ class SettingsWindow:
         self.meter_height = 20
 
         self.noise_level_canvas = tk.Canvas(noise_level_frame, width=self.meter_width, height=self.meter_height,
-                                             bg="#333333", highlightthickness=1,
-                                             highlightbackground="#666666", cursor="hand2")
+                                             bg=SLATE_700, highlightthickness=1,
+                                             highlightbackground=SLATE_600, cursor="hand2")
         self.noise_level_canvas.pack(side=tk.LEFT, padx=5)
 
         # Level bar (shows current audio level) - behind threshold marker
         self.noise_level_bar = self.noise_level_canvas.create_rectangle(
-            0, 0, 0, self.meter_height, fill="#00aa00", width=0)
+            0, 0, 0, self.meter_height, fill=SUCCESS, width=0)
 
         # Threshold marker (vertical orange line) - draggable
         self.noise_threshold_var = tk.IntVar(value=self.config.get("noise_gate_threshold_db", -40))
         initial_x = self._db_to_x(self.noise_threshold_var.get())
         self.threshold_marker = self.noise_level_canvas.create_line(
-            initial_x, 0, initial_x, self.meter_height, fill="#ff6600", width=3)
+            initial_x, 0, initial_x, self.meter_height, fill=PRIMARY_LIGHT, width=3)
 
         # dB label
         self.threshold_label = ttk.Label(noise_level_frame, text=f"{self.noise_threshold_var.get()} dB", width=7)
@@ -608,7 +624,7 @@ class SettingsWindow:
                                          variable=self.feedback_var)
         feedback_check.pack(side=tk.LEFT)
         feedback_help = ttk.Label(feedback_frame, text="?", font=("", 9, "bold"),
-                                  foreground="#888888", cursor="question_arrow")
+                                  foreground=SLATE_500, cursor="question_arrow")
         feedback_help.pack(side=tk.LEFT, padx=5)
         Tooltip(feedback_help, "Play sounds for different states:\n"
                               "• Start/stop recording clicks\n"
@@ -687,7 +703,7 @@ class SettingsWindow:
                                    values=config.MODEL_OPTIONS, state="readonly", width=15)
         model_combo.pack(side=tk.LEFT)
         model_help = ttk.Label(model_frame, text="?", font=("", 9, "bold"),
-                               foreground="#888888", cursor="question_arrow")
+                               foreground=SLATE_500, cursor="question_arrow")
         model_help.pack(side=tk.LEFT, padx=5)
         Tooltip(model_help, "tiny.en    - Fastest, basic accuracy\n"
                            "base.en   - Fast, good accuracy\n"
@@ -709,7 +725,7 @@ class SettingsWindow:
         processing_combo.set(config.PROCESSING_MODE_LABELS.get(current_mode, "Auto"))
         processing_combo.pack(side=tk.LEFT)
         processing_help = ttk.Label(processing_frame, text="?", font=("", 9, "bold"),
-                                    foreground="#888888", cursor="question_arrow")
+                                    foreground=SLATE_500, cursor="question_arrow")
         processing_help.pack(side=tk.LEFT, padx=5)
         Tooltip(processing_help, "Auto          - GPU if available, else CPU (recommended)\n"
                                 "CPU           - Always use CPU (slower, reliable)\n"
@@ -744,7 +760,7 @@ class SettingsWindow:
         row += 1
         self.gpu_details_frame = ttk.Frame(main_frame)
         self.gpu_details_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, padx=(85, 0))
-        self.gpu_details_label = ttk.Label(self.gpu_details_frame, text="", font=("", 8), foreground="gray")
+        self.gpu_details_label = ttk.Label(self.gpu_details_frame, text="", font=("", 8), foreground=SLATE_500)
         self.gpu_details_label.pack(side=tk.LEFT)
 
         # Install GPU Support button row (only visible when needed)
@@ -755,7 +771,7 @@ class SettingsWindow:
                                           command=self.install_gpu_support)
         self.install_gpu_btn.pack(side=tk.LEFT)
         install_help = ttk.Label(self.install_gpu_frame, text="?", font=("", 9, "bold"),
-                                 foreground="#888888", cursor="question_arrow")
+                                 foreground=SLATE_500, cursor="question_arrow")
         install_help.pack(side=tk.LEFT, padx=5)
         Tooltip(install_help, "Downloads and installs NVIDIA CUDA libraries\n"
                              "for GPU acceleration (~2-3 GB download).\n\n"
@@ -765,7 +781,7 @@ class SettingsWindow:
         row += 1
         self.gpu_warning_frame = ttk.Frame(main_frame)
         self.gpu_warning_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W)
-        self.gpu_warning_label = ttk.Label(self.gpu_warning_frame, text="", foreground="#cc6600", font=("", 8))
+        self.gpu_warning_label = ttk.Label(self.gpu_warning_frame, text="", foreground=WARNING, font=("", 8))
         self.gpu_warning_label.pack(side=tk.LEFT)
 
         # Initialize GPU status display
@@ -822,7 +838,7 @@ class SettingsWindow:
         vocab_label_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
         ttk.Label(vocab_label_frame, text="Add names, jargon, and acronyms for better recognition").pack(side=tk.LEFT)
         vocab_help = ttk.Label(vocab_label_frame, text="?", font=("", 9, "bold"),
-                               foreground="#888888", cursor="question_arrow")
+                               foreground=SLATE_500, cursor="question_arrow")
         vocab_help.pack(side=tk.LEFT, padx=5)
         Tooltip(vocab_help, "Add names, jargon, and acronyms for better recognition:\n\n"
                            "TensorFlow, Kubernetes, HIPAA\n"
@@ -879,7 +895,7 @@ class SettingsWindow:
                                           variable=self.voice_commands_var)
         voice_cmd_check.pack(side=tk.LEFT)
         voice_cmd_help = ttk.Label(voice_cmd_frame, text="?", font=("", 9, "bold"),
-                                   foreground="#888888", cursor="question_arrow")
+                                   foreground=SLATE_500, cursor="question_arrow")
         voice_cmd_help.pack(side=tk.LEFT, padx=5)
         Tooltip(voice_cmd_help, "Converts spoken commands to punctuation:\n\n"
                                "\"period\" or \"full stop\" → .\n"
@@ -918,7 +934,7 @@ class SettingsWindow:
                                        variable=self.filler_var)
         filler_check.pack(side=tk.LEFT)
         filler_help = ttk.Label(filler_frame, text="?", font=("", 9, "bold"),
-                                foreground="#888888", cursor="question_arrow")
+                                foreground=SLATE_500, cursor="question_arrow")
         filler_help.pack(side=tk.LEFT, padx=5)
         Tooltip(filler_help, "Removes common filler words:\num, uh, er, ah, hmm\nyou know, I mean, sort of, kind of")
 
@@ -948,7 +964,7 @@ class SettingsWindow:
         dict_label_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
         ttk.Label(dict_label_frame, text="Replace misheard words/phrases").pack(side=tk.LEFT)
         dict_help = ttk.Label(dict_label_frame, text="?", font=("", 9, "bold"),
-                              foreground="#888888", cursor="question_arrow")
+                              foreground=SLATE_500, cursor="question_arrow")
         dict_help.pack(side=tk.LEFT, padx=5)
         Tooltip(dict_help, "Replace misheard words/phrases:\n\n"
                           "\"murmur tone\" → \"MurmurTone\"\n"
@@ -986,7 +1002,7 @@ class SettingsWindow:
         cmd_label_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
         ttk.Label(cmd_label_frame, text="Trigger phrases that expand to text blocks").pack(side=tk.LEFT)
         cmd_help = ttk.Label(cmd_label_frame, text="?", font=("", 9, "bold"),
-                             foreground="#888888", cursor="question_arrow")
+                             foreground=SLATE_500, cursor="question_arrow")
         cmd_help.pack(side=tk.LEFT, padx=5)
         Tooltip(cmd_help, "Trigger phrases that expand to text blocks:\n\n"
                          "\"email signature\" → full signature\n"
@@ -1035,9 +1051,9 @@ class SettingsWindow:
         ai_label_frame = ttk.Frame(main_frame)
         ai_label_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=(0, 10))
         ttk.Label(ai_label_frame, text="🤖 AI Text Cleanup (Ollama)", font=("", 10, "bold")).pack(side=tk.LEFT)
-        ttk.Label(ai_label_frame, text="🌟 100% Offline", font=("", 9), foreground="green").pack(side=tk.LEFT, padx=(5, 0))
+        ttk.Label(ai_label_frame, text="🌟 100% Offline", font=("", 9), foreground=PRIMARY).pack(side=tk.LEFT, padx=(5, 0))
         ai_help = ttk.Label(ai_label_frame, text="?", font=("", 9, "bold"),
-                           foreground="#888888", cursor="question_arrow")
+                           foreground=SLATE_500, cursor="question_arrow")
         ai_help.pack(side=tk.LEFT, padx=5)
         Tooltip(ai_help, "Use local AI (Ollama) to improve transcriptions:\n\n"
                         "• Fix grammar and spelling errors\n"
@@ -1056,7 +1072,7 @@ class SettingsWindow:
 
         # Ollama status indicator
         row += 1
-        self.ollama_status_label = ttk.Label(main_frame, text="Status: Checking...", foreground="gray")
+        self.ollama_status_label = ttk.Label(main_frame, text="Status: Checking...", foreground=SLATE_500)
         self.ollama_status_label.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=2)
 
         # Mode selector
@@ -1105,7 +1121,7 @@ class SettingsWindow:
         history_label_frame = ttk.Frame(main_frame)
         history_label_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=(0, 10))
         ttk.Label(history_label_frame, text="📜 Transcription History", font=("", 10, "bold")).pack(side=tk.LEFT)
-        ttk.Label(history_label_frame, text="(Recent transcriptions)", font=("", 9), foreground="gray").pack(side=tk.LEFT, padx=(5, 0))
+        ttk.Label(history_label_frame, text="(Recent transcriptions)", font=("", 9), foreground=SLATE_500).pack(side=tk.LEFT, padx=(5, 0))
         row += 1
 
         # History listbox with scrollbar
@@ -1141,16 +1157,16 @@ class SettingsWindow:
         about_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W)
 
         version_label = ttk.Label(about_frame, text=f"{config.APP_NAME} v{config.VERSION}",
-                                  font=("", 9), foreground="gray")
+                                  font=("", 9), foreground=SLATE_500)
         version_label.pack(side=tk.LEFT)
 
         help_link = ttk.Label(about_frame, text="Help", font=("", 9, "underline"),
-                              foreground="#4a9eff", cursor="hand2")
+                              foreground=PRIMARY, cursor="hand2")
         help_link.pack(side=tk.LEFT, padx=(15, 0))
         help_link.bind("<Button-1>", lambda e: self.open_url(config.HELP_URL))
 
         update_link = ttk.Label(about_frame, text="Check for Updates", font=("", 9, "underline"),
-                                foreground="#4a9eff", cursor="hand2")
+                                foreground=PRIMARY, cursor="hand2")
         update_link.pack(side=tk.LEFT, padx=(15, 0))
         update_link.bind("<Button-1>", lambda e: self.open_url(config.GITHUB_REPO + "/releases"))
 
@@ -1259,8 +1275,8 @@ class SettingsWindow:
 
         if is_available:
             # Green status
-            self.gpu_status_dot.config(foreground="#00aa00")
-            self.gpu_status_label.config(text=status_msg, foreground="#00aa00")
+            self.gpu_status_dot.config(foreground=SUCCESS)
+            self.gpu_status_label.config(text=status_msg, foreground=SUCCESS)
             if detail:
                 self.gpu_details_label.config(text=f"\u2514 {detail}")
             else:
@@ -1269,8 +1285,8 @@ class SettingsWindow:
             self.install_gpu_frame.grid_remove()
         else:
             # Red status
-            self.gpu_status_dot.config(foreground="#cc0000")
-            self.gpu_status_label.config(text=status_msg, foreground="#cc0000")
+            self.gpu_status_dot.config(foreground=ERROR)
+            self.gpu_status_label.config(text=status_msg, foreground=ERROR)
             if detail:
                 self.gpu_details_label.config(text=f"\u2514 {detail}")
             else:
@@ -1371,12 +1387,12 @@ class SettingsWindow:
 
         # Status label
         status_label = ttk.Label(frame, text="Downloading... this may take several minutes",
-                                  font=("", 9), foreground="gray")
+                                  font=("", 9), foreground=SLATE_500)
         status_label.pack(pady=10)
 
         # Size hint
         size_hint = ttk.Label(frame, text="(Download size: ~2-3 GB)",
-                              font=("", 8), foreground="#888888")
+                              font=("", 8), foreground=SLATE_500)
         size_hint.pack()
 
         # Store references for the completion handler
@@ -1612,13 +1628,13 @@ class SettingsWindow:
         width = int(level * self.meter_width)
         # Color based on gating status
         if is_gated:
-            color = "#555555"  # Dim gray when gated (below threshold)
+            color = SLATE_600  # Dim gray when gated (below threshold)
         elif level < 0.5:
-            color = "#00aa00"  # Green - normal
+            color = SUCCESS  # Green - normal
         elif level < 0.75:
-            color = "#aaaa00"  # Yellow - getting loud
+            color = WARNING  # Yellow - getting loud
         else:
-            color = "#aa0000"  # Red - very loud
+            color = ERROR  # Red - very loud
         self.noise_level_canvas.coords(self.noise_level_bar, 0, 0, width, self.meter_height)
         self.noise_level_canvas.itemconfig(self.noise_level_bar, fill=color)
 
@@ -1927,7 +1943,7 @@ class SettingsWindow:
 
         try:
             if ai_cleanup.check_ollama_available(ollama_url):
-                self.ollama_status_label.config(text="Status: ✓ Ollama running", foreground="green")
+                self.ollama_status_label.config(text="Status: ✓ Ollama running", foreground=SUCCESS)
             else:
                 self.ollama_status_label.config(text="Status: ✗ Ollama not running", foreground="red")
         except Exception:
@@ -1950,7 +1966,7 @@ class SettingsWindow:
 
             # Update UI on main thread
             if success:
-                self.ollama_status_label.config(text=f"Status: ✓ {message}", foreground="green")
+                self.ollama_status_label.config(text=f"Status: ✓ {message}", foreground=SUCCESS)
             else:
                 self.ollama_status_label.config(text=f"Status: ✗ {message}", foreground="red")
 
@@ -2081,7 +2097,7 @@ class SettingsWindow:
         replacement_text.grid(row=1, column=1, sticky=tk.W, pady=5)
 
         hint = ttk.Label(frame, text="Tip: Use multiple lines for templates",
-                        font=("", 8), foreground="gray")
+                        font=("", 8), foreground=SLATE_500)
         hint.grid(row=2, column=1, sticky=tk.W)
 
         def do_add():
