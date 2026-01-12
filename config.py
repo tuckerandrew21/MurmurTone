@@ -69,6 +69,11 @@ DEFAULTS = {
     "ollama_url": "http://localhost:11434",  # Ollama API URL
     "ai_cleanup_mode": "grammar",  # grammar, formality, or both
     "ai_formality_level": "professional",  # casual, professional, or formal
+    # License and trial system
+    "license_key": "",  # LemonSqueezy license key (empty = trial mode)
+    "license_status": "trial",  # trial, active, expired
+    "trial_started_date": None,  # ISO format timestamp when trial started
+    "license_last_checked": None,  # ISO format timestamp of last online license check
 }
 
 # GitHub repo for updates (TODO: update with real URLs)

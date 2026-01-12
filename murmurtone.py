@@ -22,6 +22,7 @@ import text_processor
 import stats
 import preview_window
 import clipboard_utils
+import license
 from logger import log
 
 
@@ -840,6 +841,98 @@ def on_settings(icon, item=None):
     threading.Thread(target=open_settings_window, daemon=True).start()
 
 
+def show_upgrade_dialog():
+    """Show blocking upgrade dialog when trial expires."""
+    import tkinter as tk
+    from tkinter import ttk
+    import webbrowser
+
+    root = tk.Tk()
+    root.title("MurmurTone - Trial Expired")
+    root.geometry("450x250")
+    root.resizable(False, False)
+
+    # Center on screen
+    root.update_idletasks()
+    x = (root.winfo_screenwidth() - 450) // 2
+    y = (root.winfo_screenheight() - 250) // 2
+    root.geometry(f"+{x}+{y}")
+
+    # Make it modal and topmost
+    root.attributes("-topmost", True)
+    root.grab_set()
+
+    frame = ttk.Frame(root, padding=20)
+    frame.pack(fill=tk.BOTH, expand=True)
+
+    # Title
+    ttk.Label(frame, text="Your 14-Day Trial Has Ended",
+              font=("", 14, "bold")).pack(pady=(0, 10))
+
+    # Message
+    message = (
+        "Thank you for trying MurmurTone!\n\n"
+        "To continue using all features, please purchase a Pro license.\n\n"
+        "Pro License: $49/year\n"
+        "✓ Unlimited voice transcription\n"
+        "✓ AI text cleanup with Ollama\n"
+        "✓ Translation mode & audio file transcription\n"
+        "✓ 100% offline & private"
+    )
+    ttk.Label(frame, text=message, justify=tk.LEFT, font=("", 10)).pack(pady=10)
+
+    # Buttons
+    btn_frame = ttk.Frame(frame)
+    btn_frame.pack(pady=(10, 0))
+
+    def purchase():
+        webbrowser.open("https://murmurtone.com/buy")
+        # Keep dialog open - user may want to enter key after purchase
+
+    def enter_key():
+        root.destroy()
+        # Open settings to license page
+        threading.Thread(target=open_settings_window, daemon=True).start()
+
+    def quit_app():
+        root.destroy()
+        sys.exit(0)
+
+    ttk.Button(btn_frame, text="Purchase Pro ($49/year)",
+              command=purchase, width=25).pack(side=tk.LEFT, padx=5)
+    ttk.Button(btn_frame, text="Already Purchased? Enter Key",
+              command=enter_key, width=28).pack(side=tk.LEFT, padx=5)
+
+    # Quit button at bottom
+    ttk.Button(frame, text="Exit", command=quit_app, width=15).pack(pady=(15, 0))
+
+    root.mainloop()
+
+
+def check_license_on_startup(app_config):
+    """Check license/trial status on app startup. Exit if expired."""
+    # Start trial if not already started
+    if app_config.get("trial_started_date") is None:
+        app_config = license.start_trial(app_config)
+        config.save_config(app_config)
+        log.info("Trial started - 14 days remaining")
+
+    # Check if trial is expired and no valid license
+    license_info = license.get_license_status_info(app_config)
+
+    if not license_info["can_use_app"]:
+        log.warning("Trial expired and no valid license - showing upgrade dialog")
+        show_upgrade_dialog()
+        # If we get here, user closed dialog without purchasing
+        sys.exit(0)
+    else:
+        # Log license status
+        if license_info["status"] == "trial":
+            log.info(f"Trial active - {license_info['days_remaining']} days remaining")
+        elif license_info["status"] == "active":
+            log.info("Licensed user - full access")
+
+
 def on_history(icon, item=None):
     """Open history viewer in a separate thread."""
     def show_history():
@@ -1352,6 +1445,9 @@ def main():
     # Load configuration
     app_config = config.load_config()
     hotkey_str = config.hotkey_to_string(app_config["hotkey"])
+
+    # Check license/trial status (blocks if expired)
+    check_license_on_startup(app_config)
 
     # Initialize audio feedback sounds
     init_sounds()

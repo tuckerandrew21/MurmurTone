@@ -1,40 +1,80 @@
 @echo off
 REM Build script for MurmurTone
-REM Requires Python 3.11 installed at the standard location
+REM Creates both standalone EXE and Windows installer
 
-SET PYTHON_311=C:\Users\tucke\AppData\Local\Programs\Python\Python311\python.exe
-SET VENV_DIR=build_venv
-
-echo === MurmurTone Build Script ===
+echo ============================================
+echo MurmurTone Build Script v1.0
+echo ============================================
 echo.
 
-REM Check if venv exists
-if not exist "%VENV_DIR%\Scripts\python.exe" (
-    echo Creating virtual environment...
-    "%PYTHON_311%" -m venv "%VENV_DIR%"
+REM Step 1: Prepare bundled model
+echo [Step 1/3] Preparing tiny.en model for bundling...
+echo.
 
-    echo Installing dependencies...
-    "%VENV_DIR%\Scripts\pip.exe" install -r requirements.txt pyinstaller
+if not exist "models\tiny.en" (
+    echo Model not found. Running prepare_model.py...
+    python prepare_model.py
+    if errorlevel 1 (
+        echo ERROR: Failed to prepare model
+        pause
+        exit /b 1
+    )
+) else (
+    echo Model already prepared at models\tiny.en\
 )
-
-REM Check if model is bundled
-if not exist "models\tiny.en\model.bin" (
-    echo.
-    echo WARNING: Bundled model not found at models\tiny.en\
-    echo The app will need to download the model on first run.
-    echo.
-    echo To bundle the model, run:
-    echo   %VENV_DIR%\Scripts\python.exe -c "from faster_whisper import WhisperModel; WhisperModel('tiny.en')"
-    echo   mkdir models\tiny.en
-    echo   copy %%USERPROFILE%%\.cache\huggingface\hub\models--Systran--faster-whisper-tiny.en\snapshots\*\* models\tiny.en\
-    echo.
-)
-
-echo Building with PyInstaller...
-"%VENV_DIR%\Scripts\pyinstaller.exe" murmurtone.spec --noconfirm
 
 echo.
-echo === Build Complete ===
-echo Output: dist\MurmurTone\
+echo [Step 2/3] Building EXE with PyInstaller...
+echo.
+
+REM Build with PyInstaller
+python -m pip install -q pyinstaller >nul 2>&1
+pyinstaller murmurtone.spec --noconfirm
+
+if errorlevel 1 (
+    echo ERROR: PyInstaller build failed
+    pause
+    exit /b 1
+)
+
+echo Build successful: dist\MurmurTone\MurmurTone.exe
+echo.
+
+REM Step 3: Build installer (optional - requires Inno Setup)
+echo [Step 3/3] Building Windows installer...
+echo.
+
+where iscc >nul 2>&1
+if errorlevel 1 (
+    echo Inno Setup not found. Skipping installer creation.
+    echo.
+    echo To build installer:
+    echo   1. Install Inno Setup from https://jrsoftware.org/isdl.php
+    echo   2. Add Inno Setup to PATH
+    echo   3. Run: iscc installer.iss
+    echo.
+    goto :skip_installer
+)
+
+echo Building installer with Inno Setup...
+iscc installer.iss
+
+if errorlevel 1 (
+    echo WARNING: Installer build failed
+    goto :skip_installer
+)
+
+echo Installer created: installer_output\MurmurTone-1.0.0-Setup.exe
+echo.
+
+:skip_installer
+
+echo ============================================
+echo Build Complete!
+echo ============================================
+echo.
+echo Output files:
+echo   - Standalone: dist\MurmurTone\
+echo   - Installer:  installer_output\MurmurTone-1.0.0-Setup.exe
 echo.
 pause
