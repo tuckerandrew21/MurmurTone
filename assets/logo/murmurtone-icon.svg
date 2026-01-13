@@ -1,0 +1,14 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Shield background -->
+  <path d="M256 32L64 96V240C64 368 144 464 256 496C368 464 448 368 448 240V96L256 32Z" fill="#0d9488"/>
+
+  <!-- Inner shield highlight -->
+  <path d="M256 56L88 112V240C88 352 160 440 256 468C352 440 424 352 424 240V112L256 56Z" fill="#0f766e"/>
+
+  <!-- Sound waveform bars - centered in shield -->
+  <rect x="160" y="224" width="24" height="64" rx="12" fill="white"/>
+  <rect x="200" y="192" width="24" height="128" rx="12" fill="white"/>
+  <rect x="244" y="160" width="24" height="192" rx="12" fill="white"/>
+  <rect x="288" y="192" width="24" height="128" rx="12" fill="white"/>
+  <rect x="328" y="224" width="24" height="64" rx="12" fill="white"/>
+</svg>
