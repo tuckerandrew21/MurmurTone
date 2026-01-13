@@ -188,6 +188,10 @@ def make_combobox_clickable(combobox):
     if hasattr(combobox, '_canvas'):
         combobox._canvas.configure(cursor="hand2")
 
+    # Disable CTkComboBox's built-in cursor manipulation (it resets to arrow on leave)
+    if hasattr(combobox, '_cursor_manipulation_enabled'):
+        combobox._cursor_manipulation_enabled = False
+
     # Set cursor on the combobox frame itself
     combobox.configure(cursor="hand2")
 
