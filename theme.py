@@ -23,7 +23,8 @@ SLATE_800 = "#1e293b"      # Card backgrounds, sidebar
 SLATE_700 = "#334155"      # Hover states, tooltip bg
 SLATE_600 = "#475569"      # Borders, disabled elements
 SLATE_500 = "#64748b"      # Help text, secondary labels
-SLATE_400 = "#94a3b8"      # Placeholder text
+SLATE_400 = "#94a3b8"      # Placeholder text, section headers
+SLATE_300 = "#cbd5e1"      # Nav items, lighter text
 SLATE_200 = "#e2e8f0"      # Primary text (light on dark)
 SLATE_100 = "#f1f5f9"      # Bright text, titles
 
@@ -165,18 +166,18 @@ def get_label_style(variant="default"):
     styles = {
         "default": {
             "text_color": SLATE_200,
-            "font": ("", 12),
+            "font": ("", 13),
         },
         "title": {
             "text_color": SLATE_100,
-            "font": ("", 16, "bold"),
+            "font": ("", 20, "bold"),
         },
         "subtitle": {
             "text_color": SLATE_200,
-            "font": ("", 14, "bold"),
+            "font": ("", 15, "bold"),
         },
         "help": {
-            "text_color": SLATE_500,
+            "text_color": SLATE_400,  # Improved contrast from SLATE_500
             "font": ("", 11),
         },
         "link": {
@@ -199,24 +200,26 @@ def get_nav_item_style(active=False):
     """
     if active:
         return {
-            "fg_color": SLATE_700,
-            "text_color": PRIMARY_LIGHT,
-            "hover_color": SLATE_700,
+            "fg_color": PRIMARY,  # Stronger active state
+            "text_color": "#ffffff",
+            "hover_color": PRIMARY_DARK,
             "corner_radius": 8,
+            "font": ("", 13),
         }
     return {
         "fg_color": "transparent",
-        "text_color": SLATE_400,
+        "text_color": SLATE_300,  # Lighter for better visibility
         "hover_color": SLATE_700,
         "corner_radius": 8,
+        "font": ("", 13),
     }
 
 
 def get_nav_section_style():
     """Style for sidebar section headers."""
     return {
-        "text_color": SLATE_500,
-        "font": ("", 10, "bold"),
+        "text_color": SLATE_400,  # Improved from SLATE_500
+        "font": ("", 11, "bold"),
     }
 
 
@@ -279,12 +282,12 @@ PAD_DEFAULT = 12
 PAD_SPACIOUS = 24
 
 # Card internal padding
-CARD_PAD_X = 16
-CARD_PAD_Y = 12
+CARD_PAD_X = 20
+CARD_PAD_Y = 16
 
 # Sidebar dimensions
-SIDEBAR_WIDTH = 200
-NAV_ITEM_HEIGHT = 36
+SIDEBAR_WIDTH = 220
+NAV_ITEM_HEIGHT = 40
 
 
 # =============================================================================

@@ -107,6 +107,7 @@ class HotkeyCapture(ctk.CTkFrame):
             command=self.start_capture,
         )
         self.set_btn.pack(side="left", padx=(8, 0))
+        Tooltip(self.set_btn, "Click to capture a new hotkey")
 
         # Listener reference (will be set up when capturing)
         self.listener = None
@@ -129,7 +130,7 @@ class HotkeyCapture(ctk.CTkFrame):
             return
 
         self.capturing = True
-        self.set_btn.configure(text="...", state="disabled")
+        self.set_btn.configure(text="...", state="disabled", fg_color=PRIMARY)
         self.display_label.configure(text="Press any key...")
 
         # Start keyboard listener
@@ -161,7 +162,7 @@ class HotkeyCapture(ctk.CTkFrame):
     def stop_capture(self):
         """Stop capturing."""
         self.capturing = False
-        self.set_btn.configure(text="Set", state="normal")
+        self.set_btn.configure(text="Set", state="normal", **get_button_style("secondary"))
         if self.listener:
             self.listener.stop()
             self.listener = None
@@ -331,6 +332,13 @@ class SettingsWindow:
         self.window.minsize(WINDOW_CONFIG["min_width"], WINDOW_CONFIG["min_height"])
         self.window.configure(fg_color=SLATE_900)
 
+        # Set window icon
+        try:
+            icon_path = "assets/logo/murmurtone-logo-icon.ico"
+            self.window.iconbitmap(icon_path)
+        except Exception as e:
+            print(f"Could not set window icon: {e}")
+
         # Center on screen
         self.window.update_idletasks()
         screen_width = self.window.winfo_screenwidth()
@@ -372,21 +380,21 @@ class SettingsWindow:
 
         # App title in sidebar
         title_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
-        title_frame.pack(fill="x", padx=12, pady=(16, 24))
+        title_frame.pack(fill="x", padx=16, pady=(20, 28))
 
         ctk.CTkLabel(
             title_frame,
             text=config.APP_NAME,
-            font=("", 18, "bold"),
+            font=("", 20, "bold"),
             text_color=SLATE_100,
         ).pack(anchor="w")
 
         ctk.CTkLabel(
             title_frame,
             text="Settings",
-            font=("", 12),
-            text_color=SLATE_500,
-        ).pack(anchor="w")
+            font=("", 13),
+            text_color=SLATE_400,
+        ).pack(anchor="w", pady=(2, 0))
 
         # Recording section
         SectionHeader(self.sidebar, "Recording").pack(
@@ -419,24 +427,24 @@ class SettingsWindow:
 
         # Footer links
         footer_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
-        footer_frame.pack(fill="x", padx=12, pady=12)
+        footer_frame.pack(fill="x", padx=16, pady=16)
 
         # Version info
         ctk.CTkLabel(
             footer_frame,
             text=f"v{config.VERSION}",
-            font=("", 10),
-            text_color=SLATE_500,
+            font=("", 11),
+            text_color=SLATE_400,
         ).pack(anchor="w")
 
         # Links
         links_frame = ctk.CTkFrame(footer_frame, fg_color="transparent")
-        links_frame.pack(anchor="w", pady=(4, 0))
+        links_frame.pack(anchor="w", pady=(6, 0))
 
         privacy_link = ctk.CTkLabel(
             links_frame,
             text="Privacy",
-            font=("", 10),
+            font=("", 11),
             text_color=PRIMARY,
             cursor="hand2",
         )
@@ -446,14 +454,14 @@ class SettingsWindow:
         ctk.CTkLabel(
             links_frame,
             text=" | ",
-            font=("", 10),
+            font=("", 11),
             text_color=SLATE_500,
         ).pack(side="left")
 
         terms_link = ctk.CTkLabel(
             links_frame,
             text="Terms",
-            font=("", 10),
+            font=("", 11),
             text_color=PRIMARY,
             cursor="hand2",
         )
@@ -468,7 +476,7 @@ class SettingsWindow:
             icon=icon,
             command=lambda: self._show_section(section_id),
         )
-        nav_item.pack(fill="x", padx=8, pady=1)
+        nav_item.pack(fill="x", padx=12, pady=2)
         self.nav_items[section_id] = nav_item
 
     def _create_content_area(self):
@@ -500,9 +508,13 @@ class SettingsWindow:
         )
         self.scroll_frame.pack(fill="both", expand=True, padx=PAD_SPACIOUS, pady=PAD_DEFAULT)
 
-        # Footer with buttons
-        self.footer = ctk.CTkFrame(self.content_area, fg_color="transparent", height=50)
-        self.footer.pack(fill="x", padx=PAD_SPACIOUS, pady=PAD_DEFAULT)
+        # Separator line above footer
+        separator = ctk.CTkFrame(self.content_area, fg_color=SLATE_700, height=1)
+        separator.pack(fill="x", padx=0, pady=0)
+
+        # Footer with buttons - subtle background to distinguish from content
+        self.footer = ctk.CTkFrame(self.content_area, fg_color=SLATE_800, height=56, corner_radius=0)
+        self.footer.pack(fill="x", padx=0, pady=0)
         self.footer.pack_propagate(False)
 
         ctk.CTkButton(
@@ -511,7 +523,7 @@ class SettingsWindow:
             width=100,
             **get_button_style("primary"),
             command=self.save,
-        ).pack(side="left", padx=(0, 8))
+        ).pack(side="left", padx=(PAD_SPACIOUS, 8), pady=PAD_DEFAULT)
 
         ctk.CTkButton(
             self.footer,
@@ -519,7 +531,7 @@ class SettingsWindow:
             width=100,
             **get_button_style("secondary"),
             command=self.close,
-        ).pack(side="left", padx=(0, 8))
+        ).pack(side="left", padx=(0, 8), pady=PAD_DEFAULT)
 
         ctk.CTkButton(
             self.footer,
@@ -527,7 +539,7 @@ class SettingsWindow:
             width=140,
             **get_button_style("ghost"),
             command=self.reset_defaults,
-        ).pack(side="left")
+        ).pack(side="right", padx=PAD_SPACIOUS, pady=PAD_DEFAULT)
 
     def _show_section(self, section_id):
         """Show a specific section in the content area."""
@@ -595,6 +607,10 @@ class SettingsWindow:
             **get_dropdown_style(),
         )
         mode_combo.pack()
+        Tooltip(mode_combo,
+            "Push-to-Talk: Hold key to record\n"
+            "Toggle: Press once to start, again to stop\n"
+            "Auto-stop: Stops when you pause speaking")
 
         # Language
         lang_row = SettingRow(
@@ -656,6 +672,9 @@ class SettingsWindow:
             **get_dropdown_style(),
         )
         paste_mode_combo.pack()
+        Tooltip(paste_mode_combo,
+            "Clipboard: Copies to clipboard, then pastes\n"
+            "Type: Types each character (slowest, most compatible)")
 
         # Preview window card
         preview_card = Card(section, title="Preview Window")
@@ -779,13 +798,14 @@ class SettingsWindow:
         refresh_row = ctk.CTkFrame(device_card.content_frame, fg_color="transparent")
         refresh_row.pack(fill="x", pady=(0, 12))
 
-        ctk.CTkButton(
+        self.refresh_btn = ctk.CTkButton(
             refresh_row,
             text="Refresh Devices",
             width=120,
             **get_button_style("secondary"),
             command=self.refresh_devices,
-        ).pack(side="left")
+        )
+        self.refresh_btn.pack(side="left")
 
         # Sample rate
         rate_row = SettingRow(
@@ -853,6 +873,10 @@ class SettingsWindow:
             progress_color=PRIMARY,
         )
         self.threshold_slider.pack(side="left")
+        Tooltip(self.threshold_slider,
+            "Audio below this level is ignored\n"
+            "Try -40 for quiet rooms, -50 for noisy environments\n"
+            "Watch the meter and adjust until gate works smoothly")
 
         self.threshold_label = ctk.CTkLabel(
             threshold_control,
@@ -1003,6 +1027,11 @@ class SettingsWindow:
             **get_dropdown_style(),
         )
         model_combo.pack()
+        Tooltip(model_combo,
+            "Tiny: Fastest, less accurate\n"
+            "Base: Good balance (recommended)\n"
+            "Small/Medium: More accurate, slower\n"
+            "Large: Most accurate, requires GPU")
 
         # Auto-stop settings
         autostop_row = SettingRow(
@@ -1499,6 +1528,11 @@ class SettingsWindow:
 
     def refresh_devices(self):
         """Refresh the list of available input devices."""
+        # Show loading state
+        self.refresh_btn.configure(text="Refreshing...", state="disabled")
+        self.window.update()
+
+        # Refresh device list
         self.devices_list = settings_logic.get_input_devices()
         display_names = [name for name, _ in self.devices_list]
         self.device_combo.configure(values=display_names)
@@ -1508,6 +1542,9 @@ class SettingsWindow:
         if current not in display_names:
             if display_names:
                 self.device_var.set(display_names[0])
+
+        # Reset button state
+        self.refresh_btn.configure(text="Refresh Devices", state="normal")
 
     def refresh_gpu_status(self):
         """Refresh GPU status display."""
