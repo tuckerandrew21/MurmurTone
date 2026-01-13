@@ -79,7 +79,6 @@ current_keys = set()
 is_recording = False
 audio_data = []
 stream = None
-last_tray_click_time = 0  # For double-click detection
 tray_icon = None
 settings_process = None
 key_listener = None
@@ -365,18 +364,42 @@ def play_sound(sound_data, sound_type=None):
         ).start()
 
 
-def generate_status_icon(color):
-    """Generate a simple colored circle icon."""
+def generate_status_icon(color, logo_path="assets/logo/murmurtone-icon-white.png"):
+    """Generate a circular icon with logo centered."""
     size = 64
-    image = Image.new('RGB', (size, size), color=color)
+
+    # Create circular background with transparency
+    image = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(image)
+
+    # Draw filled circle
+    draw.ellipse([0, 0, size-1, size-1], fill=color)
+
+    # Load and resize logo to 40x40 (leaves 12px padding)
+    try:
+        logo = Image.open(logo_path)
+
+        # Resize logo with antialiasing
+        logo = logo.resize((40, 40), Image.Resampling.LANCZOS)
+
+        # Convert to RGBA if needed
+        if logo.mode != 'RGBA':
+            logo = logo.convert('RGBA')
+
+        # Paste logo centered (12px offset for 64-40 = 24/2 = 12)
+        image.paste(logo, (12, 12), logo)
+    except Exception as e:
+        print(f"Could not load logo for tray icon: {e}")
+        # Fallback: just use colored circle
+
     return image
 
 
 def init_icons():
-    """Initialize status icons."""
+    """Initialize status icons with brand colors."""
     global icon_ready, icon_recording
-    icon_ready = generate_status_icon('#4CAF50')      # Green
-    icon_recording = generate_status_icon('#F44336')  # Red
+    icon_ready = generate_status_icon('#0d9488')      # PRIMARY teal
+    icon_recording = generate_status_icon('#ef4444')  # ERROR red
 
 
 def update_tray_icon(recording=False):
@@ -1364,15 +1387,10 @@ def on_transcribe_file(icon, item=None):
 
 
 def on_tray_click(icon, item=None):
-    """Handle tray icon click - only open settings on double-click."""
-    global last_tray_click_time
-    current_time = time.time()
-
-    if current_time - last_tray_click_time < 0.5:  # 500ms threshold
-        on_settings(icon, item)
-        last_tray_click_time = 0  # Reset to prevent triple-click
-    else:
-        last_tray_click_time = current_time
+    """Handle tray icon double-click - open settings."""
+    # pystray handles double-click detection when default=True
+    # This function is called on double-click automatically
+    on_settings(icon, item)
 
 
 def open_settings_window():
@@ -1383,10 +1401,52 @@ def open_settings_window():
     main thread, avoiding the 'main thread is not in main loop' error.
     """
     global settings_process
+
+    # Check if settings window is already open
+    if settings_process and settings_process.poll() is None:
+        log.info("Settings window already open")
+        return
+
     import subprocess
     app_dir = os.path.dirname(os.path.abspath(__file__))
     settings_script = os.path.join(app_dir, "settings_gui.py")
-    settings_process = subprocess.Popen([sys.executable, settings_script])
+
+    # Verify settings script exists
+    if not os.path.exists(settings_script):
+        log.error(f"Settings GUI not found at: {settings_script}")
+        return
+
+    try:
+        # Capture stderr to log any errors from settings_gui.py
+        log.info(f"Attempting to launch settings GUI: {settings_script}")
+        log.info(f"Python executable: {sys.executable}")
+        log.info(f"Working directory: {app_dir}")
+
+        settings_process = subprocess.Popen(
+            [sys.executable, settings_script],
+            cwd=app_dir,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            text=True
+        )
+        log.info(f"Settings process started with PID: {settings_process.pid}")
+
+        # Check if process failed immediately
+        import time
+        time.sleep(0.5)
+        if settings_process.poll() is not None:
+            # Process already exited - get error output
+            stdout, stderr = settings_process.communicate()
+            log.error(f"Settings GUI exited immediately!")
+            log.error(f"Exit code: {settings_process.returncode}")
+            if stderr:
+                log.error(f"Error output: {stderr}")
+            if stdout:
+                log.info(f"Standard output: {stdout}")
+    except Exception as e:
+        log.error(f"Failed to open settings: {e}")
+        import traceback
+        log.error(traceback.format_exc())
 
 
 def on_settings_saved(new_config):
