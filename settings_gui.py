@@ -878,60 +878,15 @@ class SettingsWindow:
         )
         gate_switch.pack()
 
-        # Threshold slider
-        threshold_row = SettingRow(
-            gate_card.content_frame,
-            "Threshold",
-            "Noise gate threshold in dB",
-        )
-        threshold_row.pack(fill="x", pady=(0, 12))
-
-        threshold_control = ctk.CTkFrame(threshold_row.control_frame, fg_color="transparent")
-        threshold_control.pack()
-
+        # Combined noise gate level meter with draggable threshold (Discord-style)
         self.noise_threshold_var = ctk.IntVar(
             value=self.config.get("noise_gate_threshold_db", -40)
         )
-        self.threshold_slider = ctk.CTkSlider(
-            threshold_control,
-            from_=-60,
-            to=-20,
-            variable=self.noise_threshold_var,
-            width=200,
-            button_color=PRIMARY,
-            button_hover_color=PRIMARY_LIGHT,
-            progress_color=PRIMARY,
-        )
-        self.threshold_slider.pack(side="left")
-        Tooltip(self.threshold_slider,
-            "Audio below this level is ignored\n"
-            "Try -40 for quiet rooms, -50 for noisy environments\n"
-            "Watch the meter and adjust until gate works smoothly")
 
-        self.threshold_label = ctk.CTkLabel(
-            threshold_control,
-            text=f"{self.noise_threshold_var.get()} dB",
-            width=50,
-            **get_label_style("default"),
-        )
-        self.threshold_label.pack(side="left", padx=(8, 0))
-
-        # Update label when slider changes
-        def update_threshold_label(*args):
-            self.threshold_label.configure(text=f"{self.noise_threshold_var.get()} dB")
-        self.noise_threshold_var.trace_add("write", update_threshold_label)
-
-        # Audio level meter
         meter_row = ctk.CTkFrame(gate_card.content_frame, fg_color="transparent")
         meter_row.pack(fill="x", pady=(0, 12))
 
-        ctk.CTkLabel(
-            meter_row,
-            text="Level Meter",
-            **get_label_style("default"),
-        ).pack(anchor="w", pady=(0, 4))
-
-        # Canvas for audio meter
+        # Canvas for audio meter with interactive threshold
         self.meter_width = 300
         self.meter_height = 20
         self.noise_level_canvas = tk.Canvas(
@@ -941,22 +896,43 @@ class SettingsWindow:
             bg=SLATE_700,
             highlightthickness=1,
             highlightbackground=SLATE_600,
+            cursor="hand2",
         )
-        self.noise_level_canvas.pack(anchor="w")
+        self.noise_level_canvas.pack(side="left")
 
-        # Level bar
+        # Level bar (shows current audio level)
         self.noise_level_bar = self.noise_level_canvas.create_rectangle(
             0, 0, 0, self.meter_height, fill=SUCCESS, width=0
         )
 
-        # Threshold marker
-        thresh_x = settings_logic.db_to_linear(
-            self.noise_threshold_var.get(), -60, -20
-        ) * self.meter_width
+        # Threshold marker (draggable)
+        thresh_x = self._db_to_x(self.noise_threshold_var.get())
         self.threshold_marker = self.noise_level_canvas.create_line(
             thresh_x, 0, thresh_x, self.meter_height,
             fill=PRIMARY_LIGHT, width=3
         )
+
+        # Make threshold marker draggable
+        self.noise_level_canvas.bind("<Button-1>", self._on_threshold_click)
+        self.noise_level_canvas.bind("<B1-Motion>", self._on_threshold_drag)
+
+        # dB label
+        self.threshold_label = ctk.CTkLabel(
+            meter_row,
+            text=f"{self.noise_threshold_var.get()} dB",
+            width=60,
+            **get_label_style("default"),
+        )
+        self.threshold_label.pack(side="left", padx=(8, 0))
+        Tooltip(self.noise_level_canvas,
+            "Click or drag to set noise gate threshold\n"
+            "Audio below this level is ignored\n"
+            "Try -40 for quiet rooms, -50 for noisy environments")
+
+        # Update label when threshold changes
+        def update_threshold_label(*args):
+            self.threshold_label.configure(text=f"{self.noise_threshold_var.get()} dB")
+        self.noise_threshold_var.trace_add("write", update_threshold_label)
 
         # Test button
         test_row = ctk.CTkFrame(gate_card.content_frame, fg_color="transparent")
@@ -1670,6 +1646,32 @@ class SettingsWindow:
         self.noise_level_canvas.coords(
             self.threshold_marker, thresh_x, 0, thresh_x, self.meter_height
         )
+
+    def _db_to_x(self, db):
+        """Convert dB value (-60 to -20) to x pixel position."""
+        return int((db + 60) / 40 * self.meter_width)
+
+    def _x_to_db(self, x):
+        """Convert x pixel position to dB value (-60 to -20)."""
+        x = max(0, min(self.meter_width, x))
+        return int(-60 + (x / self.meter_width) * 40)
+
+    def _on_threshold_click(self, event):
+        """Handle click on the level meter to set threshold."""
+        db = self._x_to_db(event.x)
+        self.noise_threshold_var.set(db)
+        self._update_threshold_marker_position()
+
+    def _on_threshold_drag(self, event):
+        """Handle drag on the level meter to adjust threshold."""
+        db = self._x_to_db(event.x)
+        self.noise_threshold_var.set(db)
+        self._update_threshold_marker_position()
+
+    def _update_threshold_marker_position(self):
+        """Update the threshold marker position on the canvas."""
+        x = self._db_to_x(self.noise_threshold_var.get())
+        self.noise_level_canvas.coords(self.threshold_marker, x, 0, x, self.meter_height)
 
     def get_selected_device_info(self):
         """Get the device_info dict for the currently selected device."""
