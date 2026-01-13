@@ -1832,7 +1832,21 @@ def open_settings(current_config, on_save_callback=None):
 
 
 if __name__ == "__main__":
-    # Test mode - load config and show settings
+    """Entry point when run as standalone script."""
     import config as cfg
-    current = cfg.load_config()
+
+    # Set working directory to script location
+    import os
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(script_dir)
+
+    # Load config
+    try:
+        current = cfg.load_config()
+    except Exception as e:
+        print(f"Error loading config: {e}")
+        # Use defaults if config load fails
+        current = cfg.DEFAULT_CONFIG
+
+    # Open settings window
     open_settings(current)
