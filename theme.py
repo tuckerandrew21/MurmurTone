@@ -184,9 +184,12 @@ def make_combobox_clickable(combobox):
         combobox._entry.bind("<Button-1>", open_dropdown)
         combobox._entry.configure(cursor="hand2")
 
-    # Set cursor on canvas (background) widget too
+    # Set cursor on canvas (background/arrow area) widget too
     if hasattr(combobox, '_canvas'):
         combobox._canvas.configure(cursor="hand2")
+
+    # Set cursor on the combobox frame itself
+    combobox.configure(cursor="hand2")
 
     return combobox
 
