@@ -81,6 +81,7 @@ audio_data = []
 stream = None
 last_tray_click_time = 0  # For double-click detection
 tray_icon = None
+settings_process = None
 key_listener = None
 transcription_history = text_processor.TranscriptionHistory()
 
@@ -831,7 +832,10 @@ def get_icon_path():
 
 
 def on_quit(icon, item):
+    global settings_process
     log.info("Exiting...")
+    if settings_process and settings_process.poll() is None:
+        settings_process.terminate()
     icon.stop()
     os._exit(0)
 
@@ -1295,10 +1299,11 @@ def open_settings_window():
     the main thread. Running settings as a subprocess gives it its own
     main thread, avoiding the 'main thread is not in main loop' error.
     """
+    global settings_process
     import subprocess
     app_dir = os.path.dirname(os.path.abspath(__file__))
     settings_script = os.path.join(app_dir, "settings_gui.py")
-    subprocess.Popen([sys.executable, settings_script])
+    settings_process = subprocess.Popen([sys.executable, settings_script])
 
 
 def on_settings_saved(new_config):
