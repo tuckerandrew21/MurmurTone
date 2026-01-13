@@ -604,6 +604,7 @@ class SettingsWindow:
             values=["push_to_talk", "toggle", "auto_stop"],
             variable=self.mode_var,
             width=160,
+            state="readonly",
             **get_dropdown_style(),
         )
         mode_combo.pack()
@@ -630,6 +631,7 @@ class SettingsWindow:
             values=settings_logic.get_language_labels(),
             variable=self.lang_var,
             width=160,
+            state="readonly",
             **get_dropdown_style(),
         )
         lang_combo.pack()
@@ -669,6 +671,7 @@ class SettingsWindow:
             values=["clipboard", "type"],
             variable=self.paste_mode_var,
             width=120,
+            state="readonly",
             **get_dropdown_style(),
         )
         paste_mode_combo.pack()
@@ -714,6 +717,7 @@ class SettingsWindow:
             values=["top_left", "top_right", "bottom_left", "bottom_right", "center"],
             variable=self.preview_position_var,
             width=140,
+            state="readonly",
             **get_dropdown_style(),
         )
         position_combo.pack()
@@ -733,6 +737,7 @@ class SettingsWindow:
             values=["dark", "light"],
             variable=self.preview_theme_var,
             width=100,
+            state="readonly",
             **get_dropdown_style(),
         )
         theme_combo.pack()
@@ -790,6 +795,7 @@ class SettingsWindow:
             values=display_names,
             variable=self.device_var,
             width=240,
+            state="readonly",
             **get_dropdown_style(),
         )
         self.device_combo.pack()
@@ -821,6 +827,7 @@ class SettingsWindow:
             values=["8000", "16000", "22050", "44100", "48000"],
             variable=self.rate_var,
             width=100,
+            state="readonly",
             **get_dropdown_style(),
         )
         rate_combo.pack()
@@ -1024,6 +1031,7 @@ class SettingsWindow:
             values=["tiny", "base", "small", "medium", "large-v2", "large-v3"],
             variable=self.model_var,
             width=140,
+            state="readonly",
             **get_dropdown_style(),
         )
         model_combo.pack()
@@ -1113,6 +1121,7 @@ class SettingsWindow:
             values=["int8", "float16"],
             variable=self.compute_type_var,
             width=100,
+            state="readonly",
             **get_dropdown_style(),
         )
         compute_combo.pack()
@@ -1158,6 +1167,7 @@ class SettingsWindow:
             values=settings_logic.get_language_labels(),
             variable=self.trans_lang_var,
             width=160,
+            state="readonly",
             **get_dropdown_style(),
         )
         trans_lang_combo.pack()
@@ -1345,6 +1355,7 @@ class SettingsWindow:
             values=["grammar", "professional", "casual", "creative"],
             variable=self.ai_mode_var,
             width=140,
+            state="readonly",
             **get_dropdown_style(),
         )
         ai_mode_combo.pack()
@@ -1364,6 +1375,7 @@ class SettingsWindow:
             values=["casual", "neutral", "formal"],
             variable=self.ai_formality_var,
             width=100,
+            state="readonly",
             **get_dropdown_style(),
         )
         formality_combo.pack()
