@@ -20,29 +20,29 @@ class TestGetCudaStatus:
 
     def test_status_when_test_mode_enabled(self):
         """Test mode returns fake 'unavailable' status."""
-        import settings_gui
+        import settings_logic
 
         # Store original value
-        original_value = settings_gui._TEST_GPU_UNAVAILABLE
+        original_value = settings_logic._TEST_GPU_UNAVAILABLE
 
         try:
             # Enable test mode
-            settings_gui._TEST_GPU_UNAVAILABLE = True
+            settings_logic._TEST_GPU_UNAVAILABLE = True
 
-            available, status_msg, detail = settings_gui.get_cuda_status()
+            available, status_msg, detail = settings_logic.get_cuda_status()
 
             assert available is False
             assert status_msg == "GPU libraries not installed"
             assert detail is None
         finally:
             # Restore original value
-            settings_gui._TEST_GPU_UNAVAILABLE = original_value
+            settings_logic._TEST_GPU_UNAVAILABLE = original_value
 
     def test_status_returns_tuple(self):
         """get_cuda_status should return a 3-tuple."""
-        import settings_gui
+        import settings_logic
 
-        result = settings_gui.get_cuda_status()
+        result = settings_logic.get_cuda_status()
 
         assert isinstance(result, tuple)
         assert len(result) == 3
@@ -146,7 +146,7 @@ class TestCheckCudaAvailable:
 
     def test_returns_bool(self):
         """check_cuda_available should return a boolean."""
-        import settings_gui
+        import settings_logic
 
-        result = settings_gui.check_cuda_available()
+        result = settings_logic.check_cuda_available()
         assert isinstance(result, bool)
