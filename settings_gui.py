@@ -353,8 +353,9 @@ class SettingRow(ctk.CTkFrame):
         """Pack the row and optionally add a divider below."""
         super().pack(**kwargs)
         if self._show_divider:
-            self._divider = ctk.CTkFrame(self.master, fg_color=SLATE_600, height=1)
-            self._divider.pack(fill="x", pady=(8, 0))
+            # Use tk.Frame to maintain height - balanced spacing above/below
+            self._divider = tk.Frame(self.master, bg=SLATE_600, height=1)
+            self._divider.pack(fill="x", pady=(4, 8))
 
 
 class StatusIndicator(ctk.CTkFrame):
@@ -921,6 +922,7 @@ class SettingsWindow:
             device_card.content_frame,
             "Microphone",
             "Select your audio input device",
+            show_divider=False,
         )
         device_row.pack(fill="x", pady=(0, 12))
 
@@ -955,6 +957,9 @@ class SettingsWindow:
             command=self.refresh_devices,
         )
         self.refresh_btn.pack(side="left")
+
+        # Divider after microphone section
+        tk.Frame(device_card.content_frame, bg=SLATE_600, height=1).pack(fill="x", pady=(4, 8))
 
         # Sample rate
         rate_row = SettingRow(
