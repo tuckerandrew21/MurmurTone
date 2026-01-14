@@ -309,8 +309,10 @@ class Card(ctk.CTkFrame):
 class SettingRow(ctk.CTkFrame):
     """A single setting row with label and control."""
 
-    def __init__(self, parent, label, description=None, help_text=None, **kwargs):
+    def __init__(self, parent, label, description=None, help_text=None, show_divider=True, **kwargs):
         super().__init__(parent, fg_color="transparent", **kwargs)
+        self._show_divider = show_divider
+        self._divider = None
 
         # Left side: label and description
         self.label_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -346,6 +348,13 @@ class SettingRow(ctk.CTkFrame):
         # Right side: control (added by caller)
         self.control_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.control_frame.pack(side="right")
+
+    def pack(self, **kwargs):
+        """Pack the row and optionally add a divider below."""
+        super().pack(**kwargs)
+        if self._show_divider:
+            self._divider = ctk.CTkFrame(self.master, fg_color=SLATE_600, height=1)
+            self._divider.pack(fill="x", pady=(8, 0))
 
 
 class StatusIndicator(ctk.CTkFrame):
@@ -724,6 +733,7 @@ class SettingsWindow:
             recording_card.content_frame,
             "Language",
             "Primary transcription language",
+            show_divider=False,
         )
         lang_row.pack(fill="x", pady=(0, 12))
 
@@ -771,6 +781,7 @@ class SettingsWindow:
             "Paste Method",
             "How text is inserted",
             help_text="Clipboard: Uses Ctrl+V to paste (faster for long text)\nDirect: Types characters one by one (works everywhere)",
+            show_divider=False,
         )
         paste_mode_row.pack(fill="x", pady=(0, 12))
 
@@ -833,6 +844,7 @@ class SettingsWindow:
         theme_row = SettingRow(
             preview_card.content_frame,
             "Theme",
+            show_divider=False,
         )
         theme_row.pack(fill="x", pady=(0, 12))
 
@@ -859,6 +871,7 @@ class SettingsWindow:
             startup_card.content_frame,
             "Start with Windows",
             "Launch automatically on login",
+            show_divider=False,
         )
         startup_row.pack(fill="x")
 
@@ -928,6 +941,7 @@ class SettingsWindow:
             device_card.content_frame,
             "Sample Rate",
             "Audio sample rate in Hz",
+            show_divider=False,
         )
         rate_row.pack(fill="x")
 
@@ -956,6 +970,7 @@ class SettingsWindow:
             gate_card.content_frame,
             "Enable Noise Gate",
             "Filter out background noise below threshold",
+            show_divider=False,
         )
         gate_enable_row.pack(fill="x", pady=(0, 12))
 
@@ -1161,6 +1176,7 @@ class SettingsWindow:
         volume_row = SettingRow(
             feedback_card.content_frame,
             "Volume",
+            show_divider=False,
         )
         volume_row.pack(fill="x")
 
@@ -1229,6 +1245,7 @@ class SettingsWindow:
             model_card.content_frame,
             "Silence Duration",
             "Seconds of silence before auto-stop",
+            show_divider=False,
         )
         autostop_row.pack(fill="x")
 
@@ -1286,6 +1303,7 @@ class SettingsWindow:
             "Processing Mode",
             "Auto uses GPU if available, otherwise CPU",
             help_text="Auto: GPU if available, else CPU (recommended)\nCPU: Always use CPU (slower but reliable)\nGPU: Force GPU (fails if unavailable)",
+            show_divider=False,
         )
         processing_row.pack(fill="x")
 
@@ -1332,6 +1350,7 @@ class SettingsWindow:
             translation_card.content_frame,
             "Source Language",
             "Language being spoken",
+            show_divider=False,
         )
         trans_lang_row.pack(fill="x")
 
@@ -1385,6 +1404,7 @@ class SettingsWindow:
             commands_card.content_frame,
             '"Scratch That" Command',
             "Delete the last transcription",
+            show_divider=False,
         )
         scratch_row.pack(fill="x")
 
@@ -1427,6 +1447,7 @@ class SettingsWindow:
             filler_card.content_frame,
             "Aggressive Mode",
             "Remove more hesitation patterns",
+            show_divider=False,
         )
         aggressive_row.pack(fill="x")
 
@@ -1571,6 +1592,7 @@ class SettingsWindow:
             ai_card.content_frame,
             "Ollama Model",
             "Local AI model (llama3.2 recommended)",
+            show_divider=False,
         )
         model_row.pack(fill="x")
 
