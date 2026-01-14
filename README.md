@@ -67,6 +67,8 @@ Powered by [faster-whisper](https://github.com/SYSTRAN/faster-whisper) for fast,
 
 #### Setup from Source
 
+**Requires Python 3.12**
+
 ```bash
 git clone https://github.com/tuckerandrew21/murmurtone.git
 cd murmurtone
@@ -90,7 +92,7 @@ pip install -r requirements-gpu.txt
 pytest tests/ -v
 ```
 
-All **289 tests** should pass.
+All tests should pass.
 
 #### Building from Source
 
@@ -268,7 +270,7 @@ murmurtone/
 ├── clipboard_utils.py     # Clipboard operations (Windows)
 ├── stats.py               # Usage statistics
 ├── logger.py              # Logging setup
-├── tests/                 # Test suite (289 tests)
+├── tests/                 # Test suite
 ├── murmurtone.spec        # PyInstaller build config
 ├── installer.iss          # Inno Setup installer config
 ├── build.bat              # Automated build script
