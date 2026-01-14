@@ -826,7 +826,6 @@ class SettingsWindow:
         theme_row = SettingRow(
             preview_card.content_frame,
             "Theme",
-            show_divider=False,
         )
         theme_row.pack(fill="x", pady=(0, 12))
 
@@ -843,6 +842,45 @@ class SettingsWindow:
         )
         theme_combo.pack()
         make_combobox_clickable(theme_combo)
+
+        # Preview auto-hide delay
+        delay_row = SettingRow(
+            preview_card.content_frame,
+            "Auto-hide Delay",
+            "Seconds before overlay disappears",
+        )
+        delay_row.pack(fill="x", pady=(0, 12))
+
+        self.preview_delay_var = ctk.StringVar(
+            value=str(self.config.get("preview_auto_hide_delay", 2.0))
+        )
+        delay_entry = ctk.CTkEntry(
+            delay_row.control_frame,
+            textvariable=self.preview_delay_var,
+            width=80,
+            **get_entry_style(),
+        )
+        delay_entry.pack()
+
+        # Preview font size
+        font_row = SettingRow(
+            preview_card.content_frame,
+            "Font Size",
+            "Text size in preview overlay",
+            show_divider=False,
+        )
+        font_row.pack(fill="x", pady=(0, 12))
+
+        self.preview_font_size_var = ctk.IntVar(
+            value=self.config.get("preview_font_size", 11)
+        )
+        font_entry = ctk.CTkEntry(
+            font_row.control_frame,
+            textvariable=self.preview_font_size_var,
+            width=80,
+            **get_entry_style(),
+        )
+        font_entry.pack()
 
         # Startup card
         startup_card = Card(section, title="Startup")
@@ -1475,6 +1513,27 @@ class SettingsWindow:
             **get_button_style("secondary"),
             command=self._open_vocabulary_editor,
         ).pack(side="left")
+
+        # Text Shortcuts card
+        shortcuts_card = Card(section, title="Text Shortcuts")
+        shortcuts_card.pack(fill="x", pady=(0, PAD_DEFAULT))
+        self._register_searchable("text", shortcuts_card, "Text Shortcuts trigger phrases expand template")
+
+        shortcuts_info = ctk.CTkLabel(
+            shortcuts_card.content_frame,
+            text="Define trigger phrases that expand to text blocks (e.g., 'email signature' -> your full signature).",
+            **get_label_style("help"),
+            wraplength=400,
+        )
+        shortcuts_info.pack(anchor="w", pady=(0, 8))
+
+        ctk.CTkButton(
+            shortcuts_card.content_frame,
+            text="Edit Shortcuts",
+            width=120,
+            **get_button_style("secondary"),
+            command=self._open_shortcuts_editor,
+        ).pack(anchor="w")
 
     def _create_advanced_section(self):
         """Create the Advanced settings section."""
@@ -2458,6 +2517,244 @@ class SettingsWindow:
             command=dialog.destroy,
         ).pack(side="right", padx=(8, 0), pady=PAD_DEFAULT)
 
+    def _open_shortcuts_editor(self):
+        """Open text shortcuts editor dialog."""
+        # Create modal dialog
+        dialog = ctk.CTkToplevel(self.window)
+        dialog.title("Text Shortcuts")
+        dialog.geometry("650x500")
+        dialog.transient(self.window)
+        dialog.grab_set()
+
+        # Center on parent window
+        dialog.update_idletasks()
+        x = self.window.winfo_x() + (self.window.winfo_width() - 650) // 2
+        y = self.window.winfo_y() + (self.window.winfo_height() - 500) // 2
+        dialog.geometry(f"+{x}+{y}")
+
+        # Configure dialog colors
+        dialog.configure(fg_color=SLATE_900)
+
+        # Header
+        header = ctk.CTkFrame(dialog, fg_color=SLATE_800, corner_radius=0, height=60)
+        header.pack(fill="x", padx=0, pady=0)
+        header.pack_propagate(False)
+
+        ctk.CTkLabel(
+            header,
+            text="Text Shortcuts",
+            **get_label_style("title"),
+        ).pack(side="left", padx=PAD_SPACIOUS, pady=PAD_DEFAULT)
+
+        # Info label
+        info_frame = ctk.CTkFrame(dialog, fg_color="transparent")
+        info_frame.pack(fill="x", padx=PAD_SPACIOUS, pady=(PAD_DEFAULT, 0))
+
+        ctk.CTkLabel(
+            info_frame,
+            text="Define trigger phrases that expand to text blocks. Say the trigger phrase while recording to insert the expanded text.",
+            **get_label_style("help"),
+            wraplength=600,
+            anchor="w",
+            justify="left",
+        ).pack(fill="x")
+
+        # Shortcuts list area
+        list_frame = ctk.CTkScrollableFrame(
+            dialog,
+            fg_color=SLATE_800,
+            corner_radius=8,
+        )
+        list_frame.pack(fill="both", expand=True, padx=PAD_SPACIOUS, pady=PAD_DEFAULT)
+
+        # Container for shortcut items
+        items_container = ctk.CTkFrame(list_frame, fg_color="transparent")
+        items_container.pack(fill="both", expand=True)
+
+        # Load existing shortcuts - convert dict to list of dicts for editing
+        shortcut_items = []
+        for trigger, replacement in self.custom_commands.items():
+            shortcut_items.append({"trigger": trigger, "replacement": replacement})
+
+        # Function to refresh the display
+        def refresh_display():
+            # Clear existing items
+            for widget in items_container.winfo_children():
+                widget.destroy()
+
+            # Display all items
+            for item in shortcut_items:
+                item_frame = ctk.CTkFrame(items_container, fg_color=SLATE_700, corner_radius=6)
+                item_frame.pack(fill="x", pady=(0, 4), padx=2)
+
+                # Trigger label
+                ctk.CTkLabel(
+                    item_frame,
+                    text=f'"{item["trigger"]}"',
+                    font=("", 13),
+                    text_color=PRIMARY,
+                    anchor="w",
+                    width=150,
+                ).pack(side="left", padx=(12, 0), pady=8)
+
+                # Arrow
+                ctk.CTkLabel(
+                    item_frame,
+                    text="->",
+                    **get_label_style("help"),
+                ).pack(side="left", padx=8, pady=8)
+
+                # Preview of replacement (truncated)
+                preview = item["replacement"][:40].replace("\n", " ")
+                if len(item["replacement"]) > 40:
+                    preview += "..."
+                ctk.CTkLabel(
+                    item_frame,
+                    text=preview,
+                    **get_label_style("help"),
+                    anchor="w",
+                ).pack(side="left", fill="x", expand=True, padx=0, pady=8)
+
+                remove_btn = ctk.CTkButton(
+                    item_frame,
+                    text="Remove",
+                    width=80,
+                    **get_button_style("ghost"),
+                    command=lambda i=item: remove_shortcut(i),
+                )
+                remove_btn.pack(side="right", padx=12, pady=8)
+
+        def add_shortcut():
+            # Create a dialog to add new shortcut
+            add_dialog = ctk.CTkToplevel(dialog)
+            add_dialog.title("Add Text Shortcut")
+            add_dialog.geometry("450x300")
+            add_dialog.transient(dialog)
+            add_dialog.grab_set()
+            add_dialog.configure(fg_color=SLATE_900)
+
+            # Center on parent
+            add_dialog.update_idletasks()
+            dx = dialog.winfo_x() + (dialog.winfo_width() - 450) // 2
+            dy = dialog.winfo_y() + (dialog.winfo_height() - 300) // 2
+            add_dialog.geometry(f"+{dx}+{dy}")
+
+            content = ctk.CTkFrame(add_dialog, fg_color="transparent")
+            content.pack(fill="both", expand=True, padx=PAD_SPACIOUS, pady=PAD_SPACIOUS)
+
+            # Trigger field
+            ctk.CTkLabel(
+                content,
+                text="Trigger phrase:",
+                **get_label_style("default"),
+                anchor="w",
+            ).pack(fill="x", pady=(0, 4))
+
+            trigger_entry = ctk.CTkEntry(content, **get_entry_style())
+            trigger_entry.pack(fill="x", pady=(0, 12))
+            trigger_entry.focus()
+
+            # Replacement field
+            ctk.CTkLabel(
+                content,
+                text="Expands to:",
+                **get_label_style("default"),
+                anchor="w",
+            ).pack(fill="x", pady=(0, 4))
+
+            replacement_text = ctk.CTkTextbox(
+                content,
+                height=100,
+                fg_color=SLATE_800,
+                text_color=SLATE_100,
+                corner_radius=6,
+            )
+            replacement_text.pack(fill="x", pady=(0, 4))
+
+            ctk.CTkLabel(
+                content,
+                text="Tip: Use multiple lines for templates",
+                **get_label_style("help"),
+            ).pack(anchor="w", pady=(0, 12))
+
+            # Buttons
+            btn_frame = ctk.CTkFrame(content, fg_color="transparent")
+            btn_frame.pack(fill="x")
+
+            def save_new_shortcut():
+                trigger = trigger_entry.get().strip()
+                replacement = replacement_text.get("1.0", "end-1c").strip()
+
+                if not trigger or not replacement:
+                    messagebox.showwarning("Invalid Entry", "Both trigger and replacement are required.", parent=add_dialog)
+                    return
+
+                # Check for duplicates
+                if any(s["trigger"].lower() == trigger.lower() for s in shortcut_items):
+                    messagebox.showwarning("Duplicate Entry", "This trigger phrase already exists.", parent=add_dialog)
+                    return
+
+                shortcut_items.append({"trigger": trigger, "replacement": replacement})
+                refresh_display()
+                add_dialog.destroy()
+
+            ctk.CTkButton(
+                btn_frame,
+                text="Add",
+                width=100,
+                **get_button_style("primary"),
+                command=save_new_shortcut,
+            ).pack(side="left", padx=(0, 8))
+
+            ctk.CTkButton(
+                btn_frame,
+                text="Cancel",
+                width=100,
+                **get_button_style("secondary"),
+                command=add_dialog.destroy,
+            ).pack(side="left")
+
+        def remove_shortcut(item):
+            shortcut_items.remove(item)
+            refresh_display()
+
+        def save_shortcuts():
+            # Update the custom_commands dict
+            self.custom_commands = {item["trigger"]: item["replacement"] for item in shortcut_items}
+            dialog.destroy()
+
+        # Initial display
+        refresh_display()
+
+        # Footer with buttons
+        footer = ctk.CTkFrame(dialog, fg_color=SLATE_800, corner_radius=0, height=56)
+        footer.pack(fill="x", padx=0, pady=0)
+        footer.pack_propagate(False)
+
+        ctk.CTkButton(
+            footer,
+            text="Add Shortcut",
+            width=120,
+            **get_button_style("primary"),
+            command=add_shortcut,
+        ).pack(side="left", padx=PAD_SPACIOUS, pady=PAD_DEFAULT)
+
+        ctk.CTkButton(
+            footer,
+            text="Save",
+            width=100,
+            **get_button_style("primary"),
+            command=save_shortcuts,
+        ).pack(side="right", padx=(0, PAD_SPACIOUS), pady=PAD_DEFAULT)
+
+        ctk.CTkButton(
+            footer,
+            text="Cancel",
+            width=100,
+            **get_button_style("secondary"),
+            command=dialog.destroy,
+        ).pack(side="right", padx=(8, 0), pady=PAD_DEFAULT)
+
     def _open_history_viewer(self):
         """Open history viewer dialog."""
         # Create modal dialog
@@ -2701,6 +2998,8 @@ class SettingsWindow:
             "preview_enabled": self.preview_enabled_var.get(),
             "preview_position": self.preview_position_var.get(),
             "preview_theme": self.preview_theme_var.get(),
+            "preview_auto_hide_delay": float(self.preview_delay_var.get() or 2.0),
+            "preview_font_size": max(8, min(24, self.preview_font_size_var.get())),
         }
 
         config.save_config(new_config)
@@ -2734,6 +3033,8 @@ class SettingsWindow:
         self.preview_enabled_var.set(defaults.get("preview_enabled", True))
         self.preview_position_var.set(defaults.get("preview_position", "bottom_right"))
         self.preview_theme_var.set(defaults.get("preview_theme", "dark"))
+        self.preview_delay_var.set(str(defaults.get("preview_auto_hide_delay", 2.0)))
+        self.preview_font_size_var.set(defaults.get("preview_font_size", 11))
 
         # Audio
         self.rate_var.set(
