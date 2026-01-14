@@ -1191,47 +1191,34 @@ class SettingsWindow:
             command=self.refresh_gpu_status,
         ).pack(side="right")
 
-        # Enable GPU
-        gpu_enable_row = SettingRow(
+        # Processing mode dropdown
+        processing_row = SettingRow(
             gpu_card.content_frame,
-            "Use GPU",
-            "Enable CUDA acceleration if available",
+            "Processing Mode",
+            "Auto uses GPU if available, otherwise CPU",
         )
-        gpu_enable_row.pack(fill="x", pady=(0, 12))
+        processing_row.pack(fill="x")
 
-        processing_mode = self.config.get("processing_mode", "cpu")
-        gpu_enabled, compute_type = settings_logic.get_ui_from_processing_mode(processing_mode)
+        processing_mode = self.config.get("processing_mode", "auto")
+        # Convert mode to display label
+        mode_label = config.PROCESSING_MODE_LABELS.get(processing_mode, "Auto")
 
-        self.gpu_enabled_var = ctk.BooleanVar(value=gpu_enabled)
-        gpu_switch = ctk.CTkSwitch(
-            gpu_enable_row.control_frame,
-            text="",
-            variable=self.gpu_enabled_var,
-            **get_switch_style(),
-        )
-        gpu_switch.pack()
-        if not is_available:
-            gpu_switch.configure(state="disabled")
-
-        # Compute type
-        compute_row = SettingRow(
-            gpu_card.content_frame,
-            "Compute Type",
-            "Precision level (int8 = faster, float16 = more accurate)",
-        )
-        compute_row.pack(fill="x")
-
-        self.compute_type_var = ctk.StringVar(value=compute_type)
-        compute_combo = ctk.CTkComboBox(
-            compute_row.control_frame,
-            values=["int8", "float16"],
-            variable=self.compute_type_var,
-            width=100,
+        self.processing_mode_var = ctk.StringVar(value=mode_label)
+        mode_combo = ctk.CTkComboBox(
+            processing_row.control_frame,
+            values=list(config.PROCESSING_MODE_LABELS.values()),
+            variable=self.processing_mode_var,
+            width=160,
             state="readonly",
             **get_dropdown_style(),
         )
-        compute_combo.pack()
-        make_combobox_clickable(compute_combo)
+        mode_combo.pack()
+        make_combobox_clickable(mode_combo)
+        Tooltip(mode_combo,
+            "Auto: GPU if available, else CPU\n"
+            "CPU: Always use CPU\n"
+            "GPU - Balanced: GPU with float16 (faster)\n"
+            "GPU - Quality: GPU with float32 (better quality)")
 
         # Translation card
         translation_card = Card(section, title="Translation")
@@ -1864,10 +1851,9 @@ class SettingsWindow:
         lang_code = settings_logic.language_label_to_code(self.lang_var.get())
         trans_lang_code = settings_logic.language_label_to_code(self.trans_lang_var.get())
 
-        # Get processing mode
-        processing_mode = settings_logic.get_processing_mode_from_ui(
-            self.gpu_enabled_var.get(),
-            self.compute_type_var.get(),
+        # Convert processing mode label back to code
+        processing_mode = settings_logic.processing_mode_label_to_code(
+            self.processing_mode_var.get()
         )
 
         new_config = {
@@ -1956,8 +1942,9 @@ class SettingsWindow:
         self.sound_command_var.set(defaults.get("sound_command", True))
 
         # Recognition
-        self.gpu_enabled_var.set(False)
-        self.compute_type_var.set("int8")
+        default_mode = defaults.get("processing_mode", "auto")
+        default_mode_label = config.PROCESSING_MODE_LABELS.get(default_mode, "Auto")
+        self.processing_mode_var.set(default_mode_label)
         self.translation_enabled_var.set(defaults["translation_enabled"])
 
         # Text
