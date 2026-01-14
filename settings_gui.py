@@ -98,6 +98,73 @@ class Tooltip:
             self.tooltip = None
 
 
+class HelpIcon(ctk.CTkLabel):
+    """Clickable question mark that toggles tooltip on click."""
+
+    def __init__(self, parent, help_text):
+        super().__init__(
+            parent,
+            text="?",
+            text_color=SLATE_500,
+            font=("", 11, "bold"),
+            cursor="hand2",
+            width=20,
+        )
+        self.help_text = help_text
+        self.tooltip = None
+        self.bind("<Button-1>", self.toggle)
+
+    def toggle(self, event=None):
+        if self.tooltip:
+            self.hide()
+        else:
+            self.show()
+
+    def show(self, event=None):
+        if self.tooltip:
+            return
+        x = self.winfo_rootx() + 25
+        y = self.winfo_rooty() + 25
+
+        self.tooltip = ctk.CTkToplevel(self)
+        self.tooltip.wm_overrideredirect(True)
+        self.tooltip.wm_geometry(f"+{x}+{y}")
+        self.tooltip.configure(fg_color=SLATE_700)
+
+        label = ctk.CTkLabel(
+            self.tooltip,
+            text=self.help_text,
+            text_color=SLATE_200,
+            font=("", 11),
+            padx=10,
+            pady=8,
+            corner_radius=6,
+            justify="left",
+        )
+        label.pack()
+
+        # Click anywhere on tooltip dismisses it
+        self.tooltip.bind("<Button-1>", self.hide)
+        # Click outside dismisses
+        self.winfo_toplevel().bind("<Button-1>", self._check_dismiss, add="+")
+
+    def _check_dismiss(self, event):
+        if self.tooltip:
+            # Check if click was outside tooltip
+            try:
+                widget = event.widget
+                if widget != self and widget != self.tooltip:
+                    self.hide()
+            except Exception:
+                self.hide()
+
+    def hide(self, event=None):
+        if self.tooltip:
+            self.tooltip.destroy()
+            self.tooltip = None
+
+
+
 class HotkeyCapture(ctk.CTkFrame):
     """Widget for capturing keyboard hotkeys."""
 
@@ -265,26 +332,24 @@ class SettingRow(ctk.CTkFrame):
     def __init__(self, parent, label, description=None, **kwargs):
         super().__init__(parent, fg_color="transparent", **kwargs)
 
-        # Left side: label and description
+        # Left side: label with optional help icon
         self.label_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.label_frame.pack(side="left", fill="x", expand=True)
 
+        self.label_container = ctk.CTkFrame(self.label_frame, fg_color="transparent")
+        self.label_container.pack(fill="x")
+
         self.label = ctk.CTkLabel(
-            self.label_frame,
+            self.label_container,
             text=label,
             **get_label_style("default"),
             anchor="w",
         )
-        self.label.pack(fill="x")
+        self.label.pack(side="left")
 
         if description:
-            self.description = ctk.CTkLabel(
-                self.label_frame,
-                text=description,
-                **get_label_style("help"),
-                anchor="w",
-            )
-            self.description.pack(fill="x")
+            self.help_icon = HelpIcon(self.label_container, description)
+            self.help_icon.pack(side="left", padx=(6, 0))
 
         # Right side: control (added by caller)
         self.control_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -646,7 +711,7 @@ class SettingsWindow:
         mode_row = SettingRow(
             recording_card.content_frame,
             "Recording Mode",
-            "How recording stops",
+            "Push-to-Talk: Hold key to record\nToggle: Press once to start, again to stop\nAuto-stop: Stops when you pause speaking",
         )
         mode_row.pack(fill="x", pady=(0, 12))
 
@@ -661,11 +726,6 @@ class SettingsWindow:
         )
         mode_combo.pack()
         make_combobox_clickable(mode_combo)
-        Tooltip(mode_combo,
-            "Push-to-Talk: Hold key to record\n"
-            "Toggle: Press once to start, again to stop\n"
-            "Auto-stop: Stops when you pause speaking")
-
         # Language
         lang_row = SettingRow(
             recording_card.content_frame,
@@ -716,7 +776,7 @@ class SettingsWindow:
         paste_mode_row = SettingRow(
             output_card.content_frame,
             "Paste Method",
-            "How text is inserted",
+            "Clipboard: Uses Ctrl+V to paste (faster for long text)\nDirect: Types characters one by one (works everywhere)",
         )
         paste_mode_row.pack(fill="x", pady=(0, 12))
 
@@ -731,10 +791,6 @@ class SettingsWindow:
         )
         paste_mode_combo.pack()
         make_combobox_clickable(paste_mode_combo)
-        Tooltip(paste_mode_combo,
-            "Clipboard: Copies to clipboard, then pastes\n"
-            "Type: Types each character (slowest, most compatible)")
-
         # Preview window card
         preview_card = Card(section, title="Preview Window")
         preview_card.pack(fill="x", pady=(0, PAD_DEFAULT))
@@ -1158,7 +1214,7 @@ class SettingsWindow:
         model_row = SettingRow(
             model_card.content_frame,
             "Model Size",
-            "Larger models are more accurate but slower",
+            "tiny.en - Fastest, basic accuracy\nbase.en - Fast, good accuracy\nsmall.en - Balanced speed/accuracy\nmedium.en - High accuracy, slower\nlarge - Best accuracy, slowest",
         )
         model_row.pack(fill="x", pady=(0, 12))
 
@@ -1173,12 +1229,6 @@ class SettingsWindow:
         )
         model_combo.pack()
         make_combobox_clickable(model_combo)
-        Tooltip(model_combo,
-            "Tiny: Fastest, less accurate\n"
-            "Base: Good balance (recommended)\n"
-            "Small/Medium: More accurate, slower\n"
-            "Large: Most accurate, requires GPU")
-
         # Auto-stop settings
         autostop_row = SettingRow(
             model_card.content_frame,
@@ -1239,7 +1289,7 @@ class SettingsWindow:
         processing_row = SettingRow(
             gpu_card.content_frame,
             "Processing Mode",
-            "Auto uses GPU if available, otherwise CPU",
+            "Auto: GPU if available, else CPU (recommended)\nCPU: Always use CPU (slower but reliable)\nGPU: Force GPU (fails if unavailable)",
         )
         processing_row.pack(fill="x")
 
@@ -1258,12 +1308,6 @@ class SettingsWindow:
         )
         mode_combo.pack()
         make_combobox_clickable(mode_combo)
-        Tooltip(mode_combo,
-            "Auto: GPU if available, else CPU\n"
-            "CPU: Always use CPU\n"
-            "GPU - Balanced: GPU with float16 (faster)\n"
-            "GPU - Quality: GPU with float32 (better quality)")
-
         # Translation card
         translation_card = Card(section, title="Translation")
         translation_card.pack(fill="x", pady=(0, PAD_DEFAULT))
