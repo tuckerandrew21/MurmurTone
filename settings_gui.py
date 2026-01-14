@@ -939,7 +939,7 @@ class SettingsWindow:
             rate_row.control_frame,
             values=list(SAMPLE_RATE_OPTIONS.values()),
             variable=self.rate_var,
-            width=220,
+            width=280,
             state="readonly",
             **get_dropdown_style(),
         )
