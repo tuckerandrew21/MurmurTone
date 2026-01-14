@@ -26,6 +26,7 @@ from theme import (
     # Style helpers
     get_card_style, get_button_style, get_entry_style, get_switch_style,
     get_dropdown_style, get_label_style, get_nav_item_style, get_nav_section_style,
+    make_combobox_clickable,
     get_status_color, get_meter_color,
     # Constants
     SPACING, PAD_DEFAULT, PAD_SPACIOUS, CARD_PAD_X, CARD_PAD_Y,
@@ -69,6 +70,9 @@ class Tooltip:
         widget.bind("<Leave>", self.hide)
 
     def show(self, event=None):
+        if self.tooltip:
+            self.tooltip.destroy()
+
         x = self.widget.winfo_rootx() + 25
         y = self.widget.winfo_rooty() + 25
 
@@ -628,6 +632,7 @@ class SettingsWindow:
             **get_dropdown_style(),
         )
         mode_combo.pack()
+        make_combobox_clickable(mode_combo)
         Tooltip(mode_combo,
             "Push-to-Talk: Hold key to record\n"
             "Toggle: Press once to start, again to stop\n"
@@ -655,6 +660,7 @@ class SettingsWindow:
             **get_dropdown_style(),
         )
         lang_combo.pack()
+        make_combobox_clickable(lang_combo)
 
         # Output card
         output_card = Card(section, title="Output")
@@ -695,6 +701,7 @@ class SettingsWindow:
             **get_dropdown_style(),
         )
         paste_mode_combo.pack()
+        make_combobox_clickable(paste_mode_combo)
         Tooltip(paste_mode_combo,
             "Clipboard: Copies to clipboard, then pastes\n"
             "Type: Types each character (slowest, most compatible)")
@@ -741,6 +748,7 @@ class SettingsWindow:
             **get_dropdown_style(),
         )
         position_combo.pack()
+        make_combobox_clickable(position_combo)
 
         # Preview theme
         theme_row = SettingRow(
@@ -761,6 +769,7 @@ class SettingsWindow:
             **get_dropdown_style(),
         )
         theme_combo.pack()
+        make_combobox_clickable(theme_combo)
 
         # Startup card
         startup_card = Card(section, title="Startup")
@@ -819,6 +828,7 @@ class SettingsWindow:
             **get_dropdown_style(),
         )
         self.device_combo.pack()
+        make_combobox_clickable(self.device_combo)
 
         # Refresh button
         refresh_row = ctk.CTkFrame(device_card.content_frame, fg_color="transparent")
@@ -854,6 +864,7 @@ class SettingsWindow:
             **get_dropdown_style(),
         )
         rate_combo.pack()
+        make_combobox_clickable(rate_combo)
 
         # Noise gate card
         gate_card = Card(section, title="Noise Gate")
@@ -1129,6 +1140,7 @@ class SettingsWindow:
             **get_dropdown_style(),
         )
         model_combo.pack()
+        make_combobox_clickable(model_combo)
         Tooltip(model_combo,
             "Tiny: Fastest, less accurate\n"
             "Base: Good balance (recommended)\n"
@@ -1219,6 +1231,7 @@ class SettingsWindow:
             **get_dropdown_style(),
         )
         compute_combo.pack()
+        make_combobox_clickable(compute_combo)
 
         # Translation card
         translation_card = Card(section, title="Translation")
@@ -1265,6 +1278,7 @@ class SettingsWindow:
             **get_dropdown_style(),
         )
         trans_lang_combo.pack()
+        make_combobox_clickable(trans_lang_combo)
 
     def _create_text_section(self):
         """Create the Text Processing settings section."""
@@ -1440,6 +1454,7 @@ class SettingsWindow:
         ai_mode_row = SettingRow(
             ai_card.content_frame,
             "Cleanup Mode",
+            "Grammar: fix errors. Professional/Casual/Creative: rewrite style",
         )
         ai_mode_row.pack(fill="x", pady=(0, 12))
 
@@ -1453,11 +1468,13 @@ class SettingsWindow:
             **get_dropdown_style(),
         )
         ai_mode_combo.pack()
+        make_combobox_clickable(ai_mode_combo)
 
         # Formality
         formality_row = SettingRow(
             ai_card.content_frame,
             "Formality Level",
+            "Adjust language register for your audience",
         )
         formality_row.pack(fill="x", pady=(0, 12))
 
@@ -1473,11 +1490,13 @@ class SettingsWindow:
             **get_dropdown_style(),
         )
         formality_combo.pack()
+        make_combobox_clickable(formality_combo)
 
         # Model selection
         model_row = SettingRow(
             ai_card.content_frame,
             "Ollama Model",
+            "Local AI model (llama3.2 recommended)",
         )
         model_row.pack(fill="x")
 
