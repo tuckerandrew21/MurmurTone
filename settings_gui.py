@@ -1824,8 +1824,179 @@ class SettingsWindow:
 
     def _open_history_viewer(self):
         """Open history viewer dialog."""
-        # TODO: Implement history viewer
-        messagebox.showinfo("Coming Soon", "History viewer will be available soon.")
+        # Create modal dialog
+        dialog = ctk.CTkToplevel(self.window)
+        dialog.title("Transcription History")
+        dialog.geometry("700x500")
+        dialog.transient(self.window)
+        dialog.grab_set()
+
+        # Center on parent window
+        dialog.update_idletasks()
+        x = self.window.winfo_x() + (self.window.winfo_width() - 700) // 2
+        y = self.window.winfo_y() + (self.window.winfo_height() - 500) // 2
+        dialog.geometry(f"+{x}+{y}")
+
+        # Configure dialog colors
+        dialog.configure(fg_color=SLATE_900)
+
+        # Header
+        header = ctk.CTkFrame(dialog, fg_color=SLATE_800, corner_radius=0, height=60)
+        header.pack(fill="x", padx=0, pady=0)
+        header.pack_propagate(False)
+
+        ctk.CTkLabel(
+            header,
+            text="Transcription History",
+            **get_label_style("title"),
+        ).pack(side="left", padx=PAD_SPACIOUS, pady=PAD_DEFAULT)
+
+        # Buttons frame
+        btn_frame = ctk.CTkFrame(header, fg_color="transparent")
+        btn_frame.pack(side="right", padx=PAD_SPACIOUS, pady=PAD_DEFAULT)
+
+        refresh_btn = ctk.CTkButton(
+            btn_frame,
+            text="Refresh",
+            width=80,
+            **get_button_style("secondary"),
+            command=lambda: self._refresh_history_list(listbox, status_label),
+        )
+        refresh_btn.pack(side="left", padx=(0, 8))
+
+        clear_btn = ctk.CTkButton(
+            btn_frame,
+            text="Clear All",
+            width=80,
+            **get_button_style("ghost"),
+            command=lambda: self._clear_history(listbox, status_label, dialog),
+        )
+        clear_btn.pack(side="left")
+
+        # Status label
+        status_frame = ctk.CTkFrame(dialog, fg_color="transparent")
+        status_frame.pack(fill="x", padx=PAD_SPACIOUS, pady=(PAD_DEFAULT, 0))
+
+        status_label = ctk.CTkLabel(
+            status_frame,
+            text="",
+            **get_label_style("help"),
+            anchor="w",
+        )
+        status_label.pack(fill="x")
+
+        # Scrollable listbox area
+        listbox_frame = ctk.CTkScrollableFrame(
+            dialog,
+            fg_color=SLATE_800,
+            corner_radius=8,
+        )
+        listbox_frame.pack(fill="both", expand=True, padx=PAD_SPACIOUS, pady=PAD_DEFAULT)
+
+        # Create a custom listbox using frames
+        listbox = listbox_frame  # We'll add items as frames
+        listbox.items = []  # Track items for refreshing
+
+        # Load initial history
+        self._refresh_history_list(listbox, status_label)
+
+        # Footer with close button
+        footer = ctk.CTkFrame(dialog, fg_color=SLATE_800, corner_radius=0, height=56)
+        footer.pack(fill="x", padx=0, pady=0)
+        footer.pack_propagate(False)
+
+        ctk.CTkButton(
+            footer,
+            text="Close",
+            width=100,
+            **get_button_style("secondary"),
+            command=dialog.destroy,
+        ).pack(side="right", padx=PAD_SPACIOUS, pady=PAD_DEFAULT)
+
+    def _refresh_history_list(self, listbox, status_label):
+        """Refresh the history list display."""
+        # Clear existing items
+        for item in listbox.items:
+            item.destroy()
+        listbox.items.clear()
+
+        # Load history from file
+        history = text_processor.TranscriptionHistory(persist=True)
+        entries = history.get_all()  # Returns newest first
+
+        if not entries:
+            status_label.configure(text="No transcriptions in history")
+            return
+
+        status_label.configure(text=f"{len(entries)} transcription(s)")
+
+        # Display entries
+        for entry in entries:
+            item_frame = ctk.CTkFrame(listbox, fg_color=SLATE_700, corner_radius=6)
+            item_frame.pack(fill="x", pady=(0, 8), padx=2)
+
+            # Timestamp and char count
+            info_frame = ctk.CTkFrame(item_frame, fg_color="transparent")
+            info_frame.pack(fill="x", padx=12, pady=(8, 4))
+
+            timestamp_str = entry.get("timestamp", "")
+            if timestamp_str:
+                try:
+                    from datetime import datetime
+                    dt = datetime.fromisoformat(timestamp_str)
+                    timestamp_display = dt.strftime("%Y-%m-%d %H:%M:%S")
+                except Exception:
+                    timestamp_display = timestamp_str
+            else:
+                timestamp_display = "Unknown time"
+
+            ctk.CTkLabel(
+                info_frame,
+                text=timestamp_display,
+                **get_label_style("help"),
+                anchor="w",
+            ).pack(side="left")
+
+            char_count = entry.get("char_count", 0)
+            ctk.CTkLabel(
+                info_frame,
+                text=f"{char_count} characters",
+                **get_label_style("help"),
+                anchor="e",
+            ).pack(side="right")
+
+            # Text content
+            text_content = entry.get("text", "")
+            # Truncate if too long for display
+            display_text = text_content if len(text_content) <= 200 else text_content[:200] + "..."
+
+            text_label = ctk.CTkLabel(
+                item_frame,
+                text=display_text,
+                **get_label_style("default"),
+                anchor="w",
+                justify="left",
+                wraplength=640,
+            )
+            text_label.pack(fill="x", padx=12, pady=(0, 8))
+
+            listbox.items.append(item_frame)
+
+    def _clear_history(self, listbox, status_label, dialog):
+        """Clear all transcription history after confirmation."""
+        if not messagebox.askyesno(
+            "Clear History",
+            "Delete all transcription history?\nThis cannot be undone.",
+            parent=dialog
+        ):
+            return
+
+        # Clear the history
+        history = text_processor.TranscriptionHistory(persist=True)
+        history.clear()
+
+        # Refresh the display
+        self._refresh_history_list(listbox, status_label)
 
     def _open_license_dialog(self):
         """Open license entry dialog."""
