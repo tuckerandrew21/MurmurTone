@@ -99,7 +99,7 @@ class Tooltip:
 
 
 class HelpIcon(ctk.CTkLabel):
-    """Clickable question mark that toggles tooltip on click."""
+    """Question mark icon that shows tooltip on hover."""
 
     def __init__(self, parent, help_text):
         super().__init__(
@@ -107,18 +107,13 @@ class HelpIcon(ctk.CTkLabel):
             text="?",
             text_color=SLATE_500,
             font=("", 11, "bold"),
-            cursor="hand2",
+            cursor="question_arrow",
             width=20,
         )
         self.help_text = help_text
         self.tooltip = None
-        self.bind("<Button-1>", self.toggle)
-
-    def toggle(self, event=None):
-        if self.tooltip:
-            self.hide()
-        else:
-            self.show()
+        self.bind("<Enter>", self.show)
+        self.bind("<Leave>", self.hide)
 
     def show(self, event=None):
         if self.tooltip:
@@ -142,21 +137,6 @@ class HelpIcon(ctk.CTkLabel):
             justify="left",
         )
         label.pack()
-
-        # Click anywhere on tooltip dismisses it
-        self.tooltip.bind("<Button-1>", self.hide)
-        # Click outside dismisses
-        self.winfo_toplevel().bind("<Button-1>", self._check_dismiss, add="+")
-
-    def _check_dismiss(self, event):
-        if self.tooltip:
-            # Check if click was outside tooltip
-            try:
-                widget = event.widget
-                if widget != self and widget != self.tooltip:
-                    self.hide()
-            except Exception:
-                self.hide()
 
     def hide(self, event=None):
         if self.tooltip:
