@@ -472,27 +472,9 @@ class SettingsWindow:
         self.sidebar.pack(side="left", fill="y")
         self.sidebar.pack_propagate(False)
 
-        # App title in sidebar
-        title_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
-        title_frame.pack(fill="x", padx=16, pady=(20, 28))
-
-        ctk.CTkLabel(
-            title_frame,
-            text=config.APP_NAME,
-            font=("", 20, "bold"),
-            text_color=SLATE_100,
-        ).pack(anchor="w")
-
-        ctk.CTkLabel(
-            title_frame,
-            text="Settings",
-            font=("", 13),
-            text_color=SLATE_400,
-        ).pack(anchor="w", pady=(2, 0))
-
         # Recording section
         SectionHeader(self.sidebar, "Recording").pack(
-            fill="x", padx=12, pady=(0, 4)
+            fill="x", padx=12, pady=(20, 4)
         )
 
         self._add_nav_item("general", "General", icon=None)
