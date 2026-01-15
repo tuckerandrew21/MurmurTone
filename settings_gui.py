@@ -363,7 +363,7 @@ class SettingRow(ctk.CTkFrame):
 
         # Right side: control (added by caller)
         self.control_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.control_frame.pack(side="right")
+        self.control_frame.pack(side="right", anchor="n")
 
     def pack(self, **kwargs):
         """Pack the row and optionally add a divider below."""
