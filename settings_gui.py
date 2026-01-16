@@ -1,464 +1,188 @@
 """
-Settings GUI for MurmurTone using CustomTkinter.
-
-Modern dark theme with sidebar navigation, matching V1 brand.
+MurmurTone Settings GUI - V2
+Rebuilt to exactly match the HTML mockup (Slack Examples/settings-mockup-v2.html)
 """
+
 import customtkinter as ctk
 import tkinter as tk
 from tkinter import messagebox
-import numpy as np
-import sounddevice as sd
-import subprocess
-import sys
-import threading
-import os
 import webbrowser
+import os
+import sys
+from PIL import Image
 
 import config
-import text_processor
-import license
 import settings_logic
-from theme import (
-    # Colors
-    PRIMARY, PRIMARY_DARK, PRIMARY_LIGHT,
-    SLATE_900, SLATE_800, SLATE_700, SLATE_600, SLATE_500, SLATE_400, SLATE_200, SLATE_100,
-    SUCCESS, WARNING, ERROR,
-    # Style helpers
-    get_card_style, get_button_style, get_entry_style, get_switch_style,
-    get_dropdown_style, get_label_style, get_nav_item_style, get_nav_section_style,
-    make_combobox_clickable,
-    get_status_color, get_meter_color,
-    # Constants
-    SPACING, PAD_DEFAULT, PAD_SPACIOUS, CARD_PAD_X, CARD_PAD_Y,
-    SIDEBAR_WIDTH, NAV_ITEM_HEIGHT, FONT_SIZES, WINDOW_CONFIG,
-)
+
+# =============================================================================
+# COLORS - Exact match to HTML mockup CSS variables
+# =============================================================================
+PRIMARY = "#0d9488"        # --primary (teal)
+PRIMARY_DARK = "#0f766e"   # --primary-dark
+PRIMARY_LIGHT = "#14b8a6"  # --primary-light
+
+SLATE_900 = "#0f172a"      # Window background
+SLATE_800 = "#1e293b"      # Sidebar, card backgrounds
+SLATE_700 = "#334155"      # Hover states, borders
+SLATE_600 = "#475569"      # Borders, disabled
+SLATE_500 = "#64748b"      # Help text, version text
+SLATE_400 = "#94a3b8"      # Placeholder, close button
+SLATE_300 = "#cbd5e1"      # Nav items text
+SLATE_200 = "#e2e8f0"      # Primary text
+SLATE_100 = "#f1f5f9"      # Titles, bright text
+
+SUCCESS = "#10b981"
+WARNING = "#f59e0b"
+ERROR = "#ef4444"
+
+# =============================================================================
+# SPACING - Exact match to HTML mockup CSS variables
+# =============================================================================
+SPACE_XS = 4
+SPACE_SM = 8
+SPACE_MD = 12
+SPACE_LG = 16
+SPACE_XL = 24
+SPACE_2XL = 32
+
+# Window dimensions
+WINDOW_WIDTH = 900
+WINDOW_HEIGHT = 650
+SIDEBAR_WIDTH = 220
+
+# =============================================================================
+# SAMPLE RATE OPTIONS
+# =============================================================================
+SAMPLE_RATE_OPTIONS = {
+    16000: "16000 Hz (Recommended)",
+    44100: "44100 Hz (CD Quality)",
+    48000: "48000 Hz (Studio)",
+}
+
+# =============================================================================
+# RECORDING MODE LABELS - Display labels for recording modes
+# =============================================================================
+RECORDING_MODE_LABELS = {
+    "push_to_talk": "Push-to-Talk",
+    "toggle": "Toggle",
+    "auto_stop": "Auto-stop",
+}
+RECORDING_MODE_VALUES = {v: k for k, v in RECORDING_MODE_LABELS.items()}
+
+# =============================================================================
+# PASTE MODE LABELS
+# =============================================================================
+PASTE_MODE_LABELS = {
+    "clipboard": "Clipboard",
+    "type": "Type",
+}
+PASTE_MODE_VALUES = {v: k for k, v in PASTE_MODE_LABELS.items()}
+
+# =============================================================================
+# PREVIEW POSITION LABELS
+# =============================================================================
+PREVIEW_POSITION_LABELS = {
+    "top_left": "Top Left",
+    "top_right": "Top Right",
+    "bottom_left": "Bottom Left",
+    "bottom_right": "Bottom Right",
+    "center": "Center",
+}
+PREVIEW_POSITION_VALUES = {v: k for k, v in PREVIEW_POSITION_LABELS.items()}
+
+# =============================================================================
+# PREVIEW THEME LABELS
+# =============================================================================
+PREVIEW_THEME_LABELS = {
+    "dark": "Dark",
+    "light": "Light",
+}
+PREVIEW_THEME_VALUES = {v: k for k, v in PREVIEW_THEME_LABELS.items()}
+
+# =============================================================================
+# ICONS - PNG icons matching mockup SVG line icons
+# Icons are loaded from assets/icons/ directory
+# =============================================================================
+ICON_NAMES = ["general", "audio", "recognition", "text", "advanced", "about"]
+ICON_SIZE = (20, 20)  # Matches mockup .nav-icon size
+
+def load_nav_icons():
+    """Load navigation icons as CTkImage objects."""
+    icons = {}
+    icons_dir = resource_path(os.path.join("assets", "icons"))
+
+    for name in ICON_NAMES:
+        icon_path = os.path.join(icons_dir, f"icon_{name}.png")
+        if os.path.exists(icon_path):
+            try:
+                img = Image.open(icon_path)
+                icons[name] = ctk.CTkImage(light_image=img, dark_image=img, size=ICON_SIZE)
+            except Exception as e:
+                print(f"Failed to load icon {name}: {e}")
+                icons[name] = None
+        else:
+            print(f"Icon not found: {icon_path}")
+            icons[name] = None
+
+    return icons
 
 
 def resource_path(relative_path):
-    """Get absolute path to resource, works for dev and for PyInstaller."""
+    """Get absolute path to resource."""
     try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = sys._MEIPASS
     except AttributeError:
-        # Running in dev mode
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
 
-# Configure CustomTkinter appearance
+# Configure CustomTkinter
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("dark-blue")
 
-# Sample rate options with user-friendly descriptions
-SAMPLE_RATE_OPTIONS = {
-    8000: "8000 Hz - Phone quality",
-    16000: "16000 Hz - Speech (Recommended)",
-    22050: "22050 Hz - Standard audio",
-    44100: "44100 Hz - CD quality",
-    48000: "48000 Hz - Studio quality",
-}
-
-
-class Tooltip:
-    """Modern tooltip that appears on hover."""
-
-    def __init__(self, widget, text):
-        self.widget = widget
-        self.text = text
-        self.tooltip = None
-        widget.bind("<Enter>", self.show)
-        widget.bind("<Leave>", self.hide)
-        # Hide on window move/minimize
-        toplevel = widget.winfo_toplevel()
-        toplevel.bind("<Configure>", self._on_window_configure, add="+")
-        toplevel.bind("<Unmap>", self.hide, add="+")
-
-    def _on_window_configure(self, event=None):
-        if event and event.widget == self.widget.winfo_toplevel():
-            self.hide()
-
-    def show(self, event=None):
-        if self.tooltip:
-            self.tooltip.destroy()
-
-        x = self.widget.winfo_rootx() + 25
-        y = self.widget.winfo_rooty() + 25
-
-        self.tooltip = ctk.CTkToplevel(self.widget)
-        self.tooltip.wm_overrideredirect(True)
-        self.tooltip.wm_geometry(f"+{x}+{y}")
-        self.tooltip.configure(fg_color=SLATE_700)
-
-        label = ctk.CTkLabel(
-            self.tooltip,
-            text=self.text,
-            text_color=SLATE_200,
-            font=("", 11),
-            padx=8,
-            pady=4,
-            corner_radius=6,
-        )
-        label.pack()
-
-    def hide(self, event=None):
-        if self.tooltip:
-            self.tooltip.destroy()
-            self.tooltip = None
-
-
-class HelpIcon(ctk.CTkLabel):
-    """Question mark icon that shows tooltip on hover."""
-
-    def __init__(self, parent, help_text):
-        super().__init__(
-            parent,
-            text="?",
-            text_color=SLATE_500,
-            font=("", 11, "bold"),
-            cursor="question_arrow",
-            width=20,
-        )
-        self.help_text = help_text
-        self.tooltip = None
-        self.bind("<Enter>", self.show)
-        self.bind("<Leave>", self.hide)
-        # Hide on window move/minimize
-        toplevel = self.winfo_toplevel()
-        toplevel.bind("<Configure>", self._on_window_configure, add="+")
-        toplevel.bind("<Unmap>", self.hide, add="+")
-
-    def _on_window_configure(self, event=None):
-        if event and event.widget == self.winfo_toplevel():
-            self.hide()
-
-    def show(self, event=None):
-        if self.tooltip:
-            return
-        x = self.winfo_rootx() + 25
-        y = self.winfo_rooty() + 25
-
-        self.tooltip = ctk.CTkToplevel(self)
-        self.tooltip.wm_overrideredirect(True)
-        self.tooltip.wm_geometry(f"+{x}+{y}")
-        self.tooltip.configure(fg_color=SLATE_700)
-
-        label = ctk.CTkLabel(
-            self.tooltip,
-            text=self.help_text,
-            text_color=SLATE_200,
-            font=("", 11),
-            padx=10,
-            pady=8,
-            corner_radius=6,
-            justify="left",
-        )
-        label.pack()
-
-    def hide(self, event=None):
-        if self.tooltip:
-            self.tooltip.destroy()
-            self.tooltip = None
-
-
-
-class HotkeyCapture(ctk.CTkFrame):
-    """Widget for capturing keyboard hotkeys."""
-
-    def __init__(self, parent, initial_hotkey="scroll_lock"):
-        super().__init__(parent, fg_color="transparent")
-
-        self.hotkey = initial_hotkey
-        self.capturing = False
-
-        # Display label
-        self.display_frame = ctk.CTkFrame(self, fg_color=SLATE_700, corner_radius=6)
-        self.display_frame.pack(side="left", fill="x", expand=True)
-
-        self.display_label = ctk.CTkLabel(
-            self.display_frame,
-            text=self._format_hotkey(initial_hotkey),
-            text_color=SLATE_200,
-            font=("", 12),
-            anchor="w",
-            padx=12,
-            pady=8,
-        )
-        self.display_label.pack(fill="x")
-
-        # Set button
-        self.set_btn = ctk.CTkButton(
-            self,
-            text="Set",
-            width=60,
-            **get_button_style("secondary"),
-            command=self.start_capture,
-        )
-        self.set_btn.pack(side="left", padx=(8, 0))
-        Tooltip(self.set_btn, "Click to capture a new hotkey")
-
-        # Listener reference (will be set up when capturing)
-        self.listener = None
-
-    def _format_hotkey(self, hotkey):
-        """Format hotkey for display."""
-        if not hotkey:
-            return "Not set"
-        # Handle dict format (from config.py)
-        if isinstance(hotkey, dict):
-            return config.hotkey_to_string(hotkey)
-        # Handle string format
-        parts = hotkey.split("+")
-        formatted = [p.replace("_", " ").title() for p in parts]
-        return " + ".join(formatted)
-
-    def start_capture(self):
-        """Start capturing a hotkey."""
-        if self.capturing:
-            return
-
-        self.capturing = True
-        self.set_btn.configure(text="...", state="disabled", fg_color=PRIMARY)
-        self.display_label.configure(text="Press any key...")
-
-        # Start keyboard listener
-        try:
-            from pynput import keyboard
-
-            def on_press(key):
-                try:
-                    # Get key name
-                    if hasattr(key, "char") and key.char:
-                        key_name = key.char.lower()
-                    else:
-                        key_name = key.name.lower()
-
-                    self.hotkey = key_name
-                    self.display_label.configure(text=self._format_hotkey(key_name))
-                except AttributeError:
-                    pass
-
-                self.stop_capture()
-                return False
-
-            self.listener = keyboard.Listener(on_press=on_press)
-            self.listener.start()
-        except ImportError:
-            self.display_label.configure(text="pynput not installed")
-            self.stop_capture()
-
-    def stop_capture(self):
-        """Stop capturing."""
-        self.capturing = False
-        self.set_btn.configure(text="Set", state="normal", **get_button_style("secondary"))
-        if self.listener:
-            self.listener.stop()
-            self.listener = None
-
-    def get_hotkey(self):
-        """Get the current hotkey."""
-        return self.hotkey
-
-    def set_hotkey(self, hotkey):
-        """Set the hotkey programmatically."""
-        self.hotkey = hotkey
-        self.display_label.configure(text=self._format_hotkey(hotkey))
-
-
-class NavItem(ctk.CTkButton):
-    """Sidebar navigation item."""
-
-    def __init__(self, parent, text, icon=None, command=None, **kwargs):
-        super().__init__(
-            parent,
-            text=f"  {icon}  {text}" if icon else f"  {text}",
-            anchor="w",
-            height=NAV_ITEM_HEIGHT,
-            command=command,
-            **get_nav_item_style(active=False),
-            **kwargs,
-        )
-        self._text = text
-        self._icon = icon
-        self._is_active = False
-
-    def set_active(self, active):
-        """Set the active state of this nav item."""
-        self._is_active = active
-        style = get_nav_item_style(active=active)
-        self.configure(**style)
-
-
-class SectionHeader(ctk.CTkLabel):
-    """Sidebar section header (e.g., "Recording", "System")."""
-
-    def __init__(self, parent, text):
-        super().__init__(
-            parent,
-            text=text.upper(),
-            anchor="w",
-            **get_nav_section_style(),
-        )
-
-
-class Card(ctk.CTkFrame):
-    """Card container for grouping related settings."""
-
-    def __init__(self, parent, title=None, **kwargs):
-        style = get_card_style()
-        super().__init__(parent, **style, **kwargs)
-
-        self.content_frame = ctk.CTkFrame(self, fg_color="transparent")
-
-        if title:
-            self.title_label = ctk.CTkLabel(
-                self,
-                text=title,
-                **get_label_style("subtitle"),
-                anchor="w",
-            )
-            self.title_label.pack(fill="x", padx=CARD_PAD_X, pady=(CARD_PAD_Y, 4))
-            self.content_frame.pack(fill="both", expand=True, padx=CARD_PAD_X, pady=(0, CARD_PAD_Y))
-        else:
-            self.content_frame.pack(fill="both", expand=True, padx=CARD_PAD_X, pady=CARD_PAD_Y)
-
-
-class SettingRow(ctk.CTkFrame):
-    """A single setting row with label and control."""
-
-    def __init__(self, parent, label, description=None, help_text=None, show_divider=True, **kwargs):
-        super().__init__(parent, fg_color="transparent", **kwargs)
-        self._show_divider = show_divider
-        self._divider = None
-
-        # Left side: label and description
-        self.label_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.label_frame.pack(side="left", fill="x", expand=True)
-
-        # Label row with optional help icon
-        self.label_container = ctk.CTkFrame(self.label_frame, fg_color="transparent")
-        self.label_container.pack(fill="x")
-
-        self.label = ctk.CTkLabel(
-            self.label_container,
-            text=label,
-            **get_label_style("default"),
-            anchor="w",
-        )
-        self.label.pack(side="left")
-
-        # "?" icon for detailed help (optional)
-        if help_text:
-            self.help_icon = HelpIcon(self.label_container, help_text)
-            self.help_icon.pack(side="left", padx=(6, 0))
-
-        # Simple description below label (optional)
-        if description:
-            self.description = ctk.CTkLabel(
-                self.label_frame,
-                text=description,
-                **get_label_style("help"),
-                anchor="w",
-            )
-            self.description.pack(fill="x")
-
-        # Right side: control (added by caller)
-        self.control_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.control_frame.pack(side="right", anchor="s")
-
-    def pack(self, **kwargs):
-        """Pack the row and optionally add a divider below."""
-        super().pack(**kwargs)
-        if self._show_divider:
-            # Use tk.Frame to maintain height - balanced spacing above/below
-            self._divider = tk.Frame(self.master, bg=SLATE_600, height=1)
-            self._divider.pack(fill="x", pady=(4, 8))
-
-
-class StatusIndicator(ctk.CTkFrame):
-    """Status indicator with colored dot and text."""
-
-    def __init__(self, parent, status="inactive", text=""):
-        super().__init__(parent, fg_color="transparent")
-
-        self.dot = ctk.CTkLabel(
-            self,
-            text="",
-            width=10,
-            height=10,
-            corner_radius=5,
-            fg_color=get_status_color(status),
-        )
-        self.dot.pack(side="left", padx=(0, 6))
-
-        self.text_label = ctk.CTkLabel(
-            self,
-            text=text,
-            **get_label_style("default"),
-        )
-        self.text_label.pack(side="left")
-
-    def set_status(self, status, text=None):
-        """Update the status indicator."""
-        self.dot.configure(fg_color=get_status_color(status))
-        if text is not None:
-            self.text_label.configure(text=text)
-
 
 class SettingsWindow:
-    """Modern settings dialog window with sidebar navigation."""
+    """Settings window matching the HTML mockup exactly."""
 
     def __init__(self, current_config, on_save_callback=None):
-        self.config = current_config.copy()
+        self.config = current_config or {}
         self.on_save_callback = on_save_callback
         self.window = None
-        self.devices_list = []
-        self.noise_test_stream = None
-        self.noise_test_running = False
-
-        # Navigation state
-        self.current_section = "general"
         self.nav_items = {}
+        self.nav_icons = {}  # Will hold CTkImage objects for nav icons
         self.sections = {}
+        self.current_section = "general"
 
-        # Search state
-        self.searchable_items = []  # List of (section_id, widget, original_text) tuples
-        self.current_search_query = ""
+        # Audio test state
+        self.noise_test_running = False
+        self.noise_stream = None
 
-        # Custom data (preserved across saves)
+        # Custom data
         self.custom_dictionary = self.config.get("custom_dictionary", {})
         self.custom_vocabulary = self.config.get("custom_vocabulary", [])
         self.custom_commands = self.config.get("custom_commands", {})
 
     def show(self):
         """Show the settings window."""
-        if self.window is not None:
-            self.window.lift()
-            self.window.focus_force()
-            return
-
-        # Create main window
-        self.window = ctk.CTk()
-        self.window.title(WINDOW_CONFIG["title"])
-        self.window.geometry(f"{WINDOW_CONFIG['width']}x{WINDOW_CONFIG['height']}")
-        self.window.minsize(WINDOW_CONFIG["min_width"], WINDOW_CONFIG["min_height"])
+        self.window = ctk.CTkToplevel()
+        self.window.title("MurmurTone Settings")
+        self.window.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
+        self.window.resizable(True, True)
+        self.window.minsize(800, 500)
         self.window.configure(fg_color=SLATE_900)
 
-        # Set window icon
+        # Try to set icon
         try:
-            icon_path = resource_path("assets/logo/murmurtone-logo-icon.ico")
-            self.window.iconbitmap(icon_path)
-        except Exception as e:
-            print(f"Could not set window icon: {e}")
+            icon_path = resource_path("icon.ico")
+            if os.path.exists(icon_path):
+                self.window.iconbitmap(icon_path)
+        except Exception:
+            pass
 
-        # Center on screen
-        self.window.update_idletasks()
-        screen_width = self.window.winfo_screenwidth()
-        screen_height = self.window.winfo_screenheight()
-        x = (screen_width - WINDOW_CONFIG["width"]) // 2
-        y = (screen_height - WINDOW_CONFIG["height"]) // 2
-        self.window.geometry(f"+{x}+{y}")
+        # Load navigation icons
+        self.nav_icons = load_nav_icons()
 
-        # Create layout
+        # Build UI
         self._create_sidebar()
         self._create_content_area()
 
@@ -473,13 +197,14 @@ class SettingsWindow:
         # Show initial section
         self._show_section("general")
 
-        # Handle window close
+        # Focus window
+        self.window.focus_force()
+        self.window.lift()
         self.window.protocol("WM_DELETE_WINDOW", self.close)
-
         self.window.mainloop()
 
     def _create_sidebar(self):
-        """Create the sidebar navigation."""
+        """Create sidebar - matches mockup exactly."""
         self.sidebar = ctk.CTkFrame(
             self.window,
             width=SIDEBAR_WIDTH,
@@ -489,114 +214,68 @@ class SettingsWindow:
         self.sidebar.pack(side="left", fill="y")
         self.sidebar.pack_propagate(False)
 
-        # Search box
-        search_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
-        search_frame.pack(fill="x", padx=16, pady=(16, 16))
+        # "Settings" title - 20px bold, SLATE_100
+        title = ctk.CTkLabel(
+            self.sidebar,
+            text="Settings",
+            font=ctk.CTkFont(size=20, weight="bold"),
+            text_color=SLATE_100,
+            anchor="w",
+        )
+        title.pack(fill="x", padx=SPACE_LG, pady=(SPACE_LG, SPACE_XL))
 
-        ctk.CTkLabel(
-            search_frame,
-            text="SEARCH",
-            font=("", 11, "bold"),
+        # Navigation items with PNG icons
+        nav_items_data = [
+            ("general", "General"),
+            ("audio", "Audio"),
+            ("recognition", "Recognition"),
+            ("text", "Text"),
+            ("advanced", "Advanced"),
+            ("about", "About"),
+        ]
+
+        for section_id, label in nav_items_data:
+            icon = self.nav_icons.get(section_id)
+            self._add_nav_item(section_id, label, icon)
+
+        # Spacer
+        ctk.CTkFrame(self.sidebar, fg_color="transparent").pack(fill="both", expand=True)
+
+        # Footer separator
+        sep = ctk.CTkFrame(self.sidebar, fg_color=SLATE_600, height=1)
+        sep.pack(fill="x", padx=SPACE_LG, pady=(0, SPACE_LG))
+
+        # Version text - 11px, SLATE_500
+        version = ctk.CTkLabel(
+            self.sidebar,
+            text=f"MurmurTone v{config.VERSION}",
+            font=ctk.CTkFont(size=11),
             text_color=SLATE_500,
             anchor="w",
-        ).pack(fill="x", pady=(0, 4))
-
-        self.search_var = ctk.StringVar()
-        self.search_var.trace_add("write", lambda *args: self._on_search_changed())
-
-        self.search_entry = ctk.CTkEntry(
-            search_frame,
-            textvariable=self.search_var,
-            placeholder_text="Search settings...",
-            **get_entry_style(),
         )
-        self.search_entry.pack(fill="x")
+        version.pack(fill="x", padx=SPACE_LG, pady=(0, SPACE_LG))
 
-        # Recording section
-        SectionHeader(self.sidebar, "Recording").pack(
-            fill="x", padx=12, pady=(20, 4)
-        )
-
-        self._add_nav_item("general", "General", icon=None)
-        self._add_nav_item("audio", "Audio", icon=None)
-
-        # Processing section
-        SectionHeader(self.sidebar, "Processing").pack(
-            fill="x", padx=12, pady=(16, 4)
-        )
-
-        self._add_nav_item("recognition", "Recognition", icon=None)
-        self._add_nav_item("text", "Text", icon=None)
-        self._add_nav_item("advanced", "Advanced", icon=None)
-
-        # System section
-        SectionHeader(self.sidebar, "System").pack(
-            fill="x", padx=12, pady=(16, 4)
-        )
-
-        self._add_nav_item("about", "About", icon=None)
-
-        # Spacer to push footer to bottom
-        ctk.CTkFrame(self.sidebar, fg_color="transparent", height=1).pack(
-            fill="both", expand=True
-        )
-
-        # Footer links
-        footer_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
-        footer_frame.pack(fill="x", padx=16, pady=16)
-
-        # Version info
-        ctk.CTkLabel(
-            footer_frame,
-            text=f"v{config.VERSION}",
-            font=("", 11),
-            text_color=SLATE_400,
-        ).pack(anchor="w")
-
-        # Links
-        links_frame = ctk.CTkFrame(footer_frame, fg_color="transparent")
-        links_frame.pack(anchor="w", pady=(6, 0))
-
-        privacy_link = ctk.CTkLabel(
-            links_frame,
-            text="Privacy",
-            font=("", 11),
-            text_color=PRIMARY,
-            cursor="hand2",
-        )
-        privacy_link.pack(side="left")
-        privacy_link.bind("<Button-1>", lambda e: webbrowser.open("https://murmurtone.com/privacy"))
-
-        ctk.CTkLabel(
-            links_frame,
-            text=" | ",
-            font=("", 11),
-            text_color=SLATE_500,
-        ).pack(side="left")
-
-        terms_link = ctk.CTkLabel(
-            links_frame,
-            text="Terms",
-            font=("", 11),
-            text_color=PRIMARY,
-            cursor="hand2",
-        )
-        terms_link.pack(side="left")
-        terms_link.bind("<Button-1>", lambda e: webbrowser.open("https://murmurtone.com/terms"))
-
-    def _add_nav_item(self, section_id, text, icon=None):
-        """Add a navigation item to the sidebar."""
-        nav_item = NavItem(
+    def _add_nav_item(self, section_id, label, icon):
+        """Add a navigation item with PNG icon."""
+        btn = ctk.CTkButton(
             self.sidebar,
-            text=text,
-            icon=icon,
+            text=label,
+            image=icon,  # CTkImage object
+            compound="left",  # Icon on the left of text
+            font=ctk.CTkFont(size=13),
+            anchor="w",
+            height=36,
+            corner_radius=8,
+            fg_color="transparent",
+            hover_color=SLATE_700,
+            text_color=SLATE_300,
             command=lambda: self._show_section(section_id),
         )
-        nav_item.pack(fill="x", padx=12, pady=2)
-        self.nav_items[section_id] = nav_item
+        btn.pack(fill="x", padx=SPACE_MD, pady=2)
+        self.nav_items[section_id] = btn
 
     def _create_content_area(self):
-        """Create the main content area."""
+        """Create content area - matches mockup exactly."""
         self.content_area = ctk.CTkFrame(
             self.window,
             fg_color=SLATE_900,
@@ -604,64 +283,112 @@ class SettingsWindow:
         )
         self.content_area.pack(side="right", fill="both", expand=True)
 
-        # Header with section title
-        self.header = ctk.CTkFrame(self.content_area, fg_color="transparent", height=60)
-        self.header.pack(fill="x", padx=PAD_SPACIOUS, pady=(PAD_SPACIOUS, 0))
-        self.header.pack_propagate(False)
+        # Page header container
+        header_container = ctk.CTkFrame(self.content_area, fg_color="transparent")
+        header_container.pack(fill="x", padx=SPACE_XL, pady=(SPACE_XL, 0))
 
-        self.section_title = ctk.CTkLabel(
-            self.header,
-            text="",
-            **get_label_style("title"),
+        # Header row: title on left, X button on right
+        header_row = ctk.CTkFrame(header_container, fg_color="transparent")
+        header_row.pack(fill="x", pady=(0, SPACE_LG))
+
+        self.page_title = ctk.CTkLabel(
+            header_row,
+            text="General",
+            font=ctk.CTkFont(size=20, weight="bold"),
+            text_color=SLATE_100,
             anchor="w",
         )
-        self.section_title.pack(side="left", fill="x", expand=True)
+        self.page_title.pack(side="left")
 
-        # Scrollable content
+        # Close button (X) - 32x32, transparent, SLATE_400 text
+        close_btn = ctk.CTkButton(
+            header_row,
+            text="✕",
+            width=32,
+            height=32,
+            corner_radius=6,
+            fg_color="transparent",
+            hover_color=SLATE_700,
+            text_color=SLATE_400,
+            font=ctk.CTkFont(size=16),
+            command=self.close,
+        )
+        close_btn.pack(side="right")
+
+        # Border below header
+        border = ctk.CTkFrame(header_container, fg_color=SLATE_600, height=1)
+        border.pack(fill="x")
+
+        # Scrollable content area
         self.scroll_frame = ctk.CTkScrollableFrame(
             self.content_area,
             fg_color="transparent",
         )
-        self.scroll_frame.pack(fill="both", expand=True, padx=PAD_SPACIOUS, pady=PAD_DEFAULT)
+        self.scroll_frame.pack(fill="both", expand=True, padx=SPACE_XL, pady=SPACE_LG)
 
-        # Separator line above footer
-        separator = ctk.CTkFrame(self.content_area, fg_color=SLATE_700, height=1)
-        separator.pack(fill="x", padx=0, pady=0)
+        # Footer with Save/Cancel buttons
+        footer_sep = ctk.CTkFrame(self.content_area, fg_color=SLATE_700, height=1)
+        footer_sep.pack(fill="x")
 
-        # Footer with buttons - subtle background to distinguish from content
-        self.footer = ctk.CTkFrame(self.content_area, fg_color=SLATE_800, height=56, corner_radius=0)
-        self.footer.pack(fill="x", padx=0, pady=0)
-        self.footer.pack_propagate(False)
+        footer = ctk.CTkFrame(self.content_area, fg_color=SLATE_800, height=56, corner_radius=0)
+        footer.pack(fill="x")
+        footer.pack_propagate(False)
 
-        ctk.CTkButton(
-            self.footer,
+        # Save button - primary style
+        save_btn = ctk.CTkButton(
+            footer,
             text="Save",
             width=100,
-            **get_button_style("primary"),
+            height=36,
+            corner_radius=8,
+            fg_color=PRIMARY,
+            hover_color=PRIMARY_DARK,
+            text_color="white",
+            font=ctk.CTkFont(size=13),
             command=self.save,
-        ).pack(side="left", padx=(PAD_SPACIOUS, 8), pady=PAD_DEFAULT)
+        )
+        save_btn.pack(side="left", padx=(SPACE_XL, SPACE_SM), pady=10)
 
-        ctk.CTkButton(
-            self.footer,
+        # Cancel button - secondary style
+        cancel_btn = ctk.CTkButton(
+            footer,
             text="Cancel",
             width=100,
-            **get_button_style("secondary"),
+            height=36,
+            corner_radius=8,
+            fg_color=SLATE_800,
+            hover_color=SLATE_700,
+            border_color=SLATE_600,
+            border_width=1,
+            text_color=SLATE_200,
+            font=ctk.CTkFont(size=13),
             command=self.close,
-        ).pack(side="left", padx=(0, 8), pady=PAD_DEFAULT)
+        )
+        cancel_btn.pack(side="left", pady=10)
 
-        ctk.CTkButton(
-            self.footer,
+        # Reset button - ghost style, right aligned
+        reset_btn = ctk.CTkButton(
+            footer,
             text="Reset to Defaults",
             width=140,
-            **get_button_style("ghost"),
+            height=36,
+            corner_radius=8,
+            fg_color="transparent",
+            hover_color=SLATE_700,
+            text_color=SLATE_200,
+            font=ctk.CTkFont(size=13),
             command=self.reset_defaults,
-        ).pack(side="right", padx=PAD_SPACIOUS, pady=PAD_DEFAULT)
+        )
+        reset_btn.pack(side="right", padx=SPACE_XL, pady=10)
 
     def _show_section(self, section_id):
-        """Show a specific section in the content area."""
+        """Show a specific section."""
         # Update nav item states
-        for nav_id, nav_item in self.nav_items.items():
-            nav_item.set_active(nav_id == section_id)
+        for nav_id, btn in self.nav_items.items():
+            if nav_id == section_id:
+                btn.configure(fg_color=PRIMARY, text_color="white", hover_color=PRIMARY_DARK)
+            else:
+                btn.configure(fg_color="transparent", text_color=SLATE_300, hover_color=SLATE_700)
 
         # Hide all sections
         for section in self.sections.values():
@@ -671,276 +398,520 @@ class SettingsWindow:
         if section_id in self.sections:
             self.sections[section_id].pack(fill="both", expand=True)
 
-        # Update header
+        # Update page title
         titles = {
             "general": "General",
             "audio": "Audio",
             "recognition": "Recognition",
-            "text": "Text Processing",
+            "text": "Text",
             "advanced": "Advanced",
             "about": "About",
         }
-        self.section_title.configure(text=titles.get(section_id, section_id.title()))
+        self.page_title.configure(text=titles.get(section_id, section_id.title()))
         self.current_section = section_id
 
+    # =========================================================================
+    # SECTION BUILDERS
+    # =========================================================================
+
+    def _create_section_header(self, parent, title, description=None):
+        """Create a section header matching mockup exactly.
+
+        Returns a frame for adding controls to.
+        """
+        container = ctk.CTkFrame(parent, fg_color="transparent")
+        container.pack(fill="x", pady=(0, SPACE_2XL))
+
+        # Section header - 14px semibold, SLATE_200
+        if title:
+            header = ctk.CTkLabel(
+                container,
+                text=title,
+                font=ctk.CTkFont(size=14, weight="bold"),
+                text_color=SLATE_200,
+                anchor="w",
+            )
+            header.pack(fill="x")
+
+        # Description - 12px, SLATE_400
+        if description:
+            desc = ctk.CTkLabel(
+                container,
+                text=description,
+                font=ctk.CTkFont(size=12),
+                text_color=SLATE_400,
+                anchor="w",
+            )
+            desc.pack(fill="x", pady=(SPACE_XS, 0))
+
+        # Content frame with proper spacing
+        content = ctk.CTkFrame(container, fg_color="transparent")
+        content.pack(fill="x", pady=(SPACE_LG, 0))
+
+        return content
+
+    def _create_toggle_setting(self, parent, label, help_text=None, variable=None, command=None):
+        """Create toggle setting matching mockup: [toggle] [label + help on right]."""
+        row = ctk.CTkFrame(parent, fg_color="transparent")
+        row.pack(fill="x", pady=(0, SPACE_MD))
+
+        # Toggle switch on left - 40x22
+        switch = ctk.CTkSwitch(
+            row,
+            text="",
+            variable=variable,
+            command=command,
+            width=40,
+            height=22,
+            switch_width=40,
+            switch_height=22,
+            corner_radius=11,
+            button_color="white",
+            button_hover_color="white",
+            fg_color=SLATE_600,
+            progress_color=PRIMARY,
+        )
+        switch.pack(side="left")
+
+        # Text content on right
+        text_frame = ctk.CTkFrame(row, fg_color="transparent")
+        text_frame.pack(side="left", padx=(SPACE_MD, 0), fill="x", expand=True)
+
+        # Label - 13px, SLATE_200
+        lbl = ctk.CTkLabel(
+            text_frame,
+            text=label,
+            font=ctk.CTkFont(size=13),
+            text_color=SLATE_200,
+            anchor="w",
+        )
+        lbl.pack(fill="x")
+
+        # Help text - 11px, SLATE_500
+        if help_text:
+            help_lbl = ctk.CTkLabel(
+                text_frame,
+                text=help_text,
+                font=ctk.CTkFont(size=11),
+                text_color=SLATE_500,
+                anchor="w",
+            )
+            help_lbl.pack(fill="x", pady=(SPACE_XS, 0))
+
+        return switch
+
+    def _create_labeled_dropdown(self, parent, label, values, variable, help_text=None, width=160):
+        """Create labeled dropdown: label above, dropdown below, help below."""
+        container = ctk.CTkFrame(parent, fg_color="transparent")
+        container.pack(fill="x", pady=(0, SPACE_LG))
+
+        # Label - 13px, SLATE_200
+        lbl = ctk.CTkLabel(
+            container,
+            text=label,
+            font=ctk.CTkFont(size=13),
+            text_color=SLATE_200,
+            anchor="w",
+        )
+        lbl.pack(fill="x")
+
+        # Dropdown - matches mockup styling
+        dropdown = ctk.CTkComboBox(
+            container,
+            values=values,
+            variable=variable,
+            width=width,
+            height=36,
+            corner_radius=8,
+            border_width=1,
+            fg_color=SLATE_800,
+            border_color=SLATE_600,
+            button_color=SLATE_700,
+            button_hover_color=SLATE_600,
+            dropdown_fg_color=SLATE_800,
+            dropdown_hover_color=SLATE_700,
+            text_color=SLATE_200,
+            font=ctk.CTkFont(size=13),
+            state="readonly",
+        )
+        dropdown.pack(anchor="w", pady=(SPACE_SM, 0))
+
+        # Help text
+        if help_text:
+            help_lbl = ctk.CTkLabel(
+                container,
+                text=help_text,
+                font=ctk.CTkFont(size=11),
+                text_color=SLATE_500,
+                anchor="w",
+            )
+            help_lbl.pack(fill="x", pady=(SPACE_XS, 0))
+
+        return dropdown
+
+    def _create_labeled_entry(self, parent, label, variable, help_text=None, width=80):
+        """Create labeled entry: label above, entry below, help below."""
+        container = ctk.CTkFrame(parent, fg_color="transparent")
+        container.pack(fill="x", pady=(0, SPACE_LG))
+
+        # Label
+        lbl = ctk.CTkLabel(
+            container,
+            text=label,
+            font=ctk.CTkFont(size=13),
+            text_color=SLATE_200,
+            anchor="w",
+        )
+        lbl.pack(fill="x")
+
+        # Entry
+        entry = ctk.CTkEntry(
+            container,
+            textvariable=variable,
+            width=width,
+            height=36,
+            corner_radius=8,
+            border_width=1,
+            fg_color=SLATE_800,
+            border_color=SLATE_600,
+            text_color=SLATE_200,
+            font=ctk.CTkFont(size=13),
+        )
+        entry.pack(anchor="w", pady=(SPACE_SM, 0))
+
+        # Help text
+        if help_text:
+            help_lbl = ctk.CTkLabel(
+                container,
+                text=help_text,
+                font=ctk.CTkFont(size=11),
+                text_color=SLATE_500,
+                anchor="w",
+            )
+            help_lbl.pack(fill="x", pady=(SPACE_XS, 0))
+
+        return entry
+
+    def _create_checkbox_setting(self, parent, label, variable):
+        """Create checkbox setting matching mockup."""
+        row = ctk.CTkFrame(parent, fg_color="transparent")
+        row.pack(fill="x", pady=(0, SPACE_SM))
+
+        checkbox = ctk.CTkCheckBox(
+            row,
+            text=label,
+            variable=variable,
+            font=ctk.CTkFont(size=13),
+            text_color=SLATE_200,
+            fg_color=PRIMARY,
+            hover_color=PRIMARY_DARK,
+            border_color=SLATE_500,
+            checkmark_color="white",
+            corner_radius=4,
+            border_width=2,
+            width=18,
+            height=18,
+        )
+        checkbox.pack(anchor="w")
+
+        return checkbox
+
+    def _create_hotkey_button(self, parent, initial_hotkey):
+        """Create hotkey button matching mockup: [badge] Change."""
+        container = ctk.CTkFrame(parent, fg_color="transparent")
+        container.pack(fill="x", pady=(0, SPACE_LG))
+
+        # Label above
+        lbl = ctk.CTkLabel(
+            container,
+            text="Push-to-Talk Hotkey",
+            font=ctk.CTkFont(size=13),
+            text_color=SLATE_200,
+            anchor="w",
+        )
+        lbl.pack(fill="x")
+
+        # Button with badge inside
+        btn_frame = ctk.CTkFrame(
+            container,
+            fg_color=SLATE_800,
+            border_color=SLATE_600,
+            border_width=1,
+            corner_radius=8,
+        )
+        btn_frame.pack(anchor="w", pady=(SPACE_SM, 0))
+
+        inner = ctk.CTkFrame(btn_frame, fg_color="transparent")
+        inner.pack(padx=SPACE_LG, pady=SPACE_SM)
+
+        # Hotkey badge
+        self.hotkey_badge = ctk.CTkLabel(
+            inner,
+            text=self._format_hotkey(initial_hotkey),
+            font=ctk.CTkFont(family="Consolas", size=12),
+            text_color=SLATE_300,
+            fg_color=SLATE_700,
+            corner_radius=4,
+            padx=8,
+            pady=2,
+        )
+        self.hotkey_badge.pack(side="left")
+
+        # "Change" text
+        change_lbl = ctk.CTkLabel(
+            inner,
+            text="Change",
+            font=ctk.CTkFont(size=13),
+            text_color=SLATE_200,
+        )
+        change_lbl.pack(side="left", padx=(SPACE_SM, 0))
+
+        # Make clickable
+        self.hotkey = initial_hotkey
+        self.capturing = False
+        for widget in [btn_frame, inner, self.hotkey_badge, change_lbl]:
+            widget.bind("<Button-1>", lambda e: self._start_hotkey_capture())
+            widget.bind("<Enter>", lambda e: btn_frame.configure(fg_color=SLATE_700, border_color=SLATE_500))
+            widget.bind("<Leave>", lambda e: btn_frame.configure(fg_color=SLATE_800, border_color=SLATE_600) if not self.capturing else None)
+
+        self.hotkey_btn_frame = btn_frame
+
+        # Help text
+        help_lbl = ctk.CTkLabel(
+            container,
+            text="Press and hold to record audio",
+            font=ctk.CTkFont(size=11),
+            text_color=SLATE_500,
+            anchor="w",
+        )
+        help_lbl.pack(fill="x", pady=(SPACE_XS, 0))
+
+    def _format_hotkey(self, hotkey):
+        """Format hotkey for display."""
+        if not hotkey:
+            return "Not set"
+        if isinstance(hotkey, dict):
+            return config.hotkey_to_string(hotkey)
+        parts = hotkey.split("+")
+        formatted = [p.replace("_", " ").title() for p in parts]
+        return " + ".join(formatted)
+
+    def _start_hotkey_capture(self):
+        """Start capturing a hotkey."""
+        if self.capturing:
+            return
+        self.capturing = True
+        self.hotkey_btn_frame.configure(fg_color=PRIMARY, border_color=PRIMARY)
+        self.hotkey_badge.configure(text="Press any key...")
+
+        try:
+            from pynput import keyboard
+
+            def on_press(key):
+                try:
+                    if hasattr(key, "char") and key.char:
+                        key_name = key.char.lower()
+                    else:
+                        key_name = key.name.lower()
+                    self.hotkey = key_name
+                    self.hotkey_badge.configure(text=self._format_hotkey(key_name))
+                except AttributeError:
+                    pass
+                self._stop_hotkey_capture()
+                return False
+
+            self.listener = keyboard.Listener(on_press=on_press)
+            self.listener.start()
+        except ImportError:
+            self.hotkey_badge.configure(text="pynput not installed")
+            self._stop_hotkey_capture()
+
+    def _stop_hotkey_capture(self):
+        """Stop capturing."""
+        self.capturing = False
+        self.hotkey_btn_frame.configure(fg_color=SLATE_800, border_color=SLATE_600)
+        if hasattr(self, 'listener') and self.listener:
+            self.listener.stop()
+            self.listener = None
+
+    def _create_button(self, parent, text, command=None, style="secondary", width=None):
+        """Create a button matching mockup styles."""
+        if style == "primary":
+            fg = PRIMARY
+            hover = PRIMARY_DARK
+            text_color = "white"
+            border = PRIMARY
+        else:  # secondary
+            fg = SLATE_800
+            hover = SLATE_700
+            text_color = SLATE_200
+            border = SLATE_600
+
+        btn = ctk.CTkButton(
+            parent,
+            text=text,
+            width=width or 120,
+            height=36,
+            corner_radius=8,
+            fg_color=fg,
+            hover_color=hover,
+            border_color=border,
+            border_width=1,
+            text_color=text_color,
+            font=ctk.CTkFont(size=13),
+            command=command,
+        )
+        return btn
+
+    # =========================================================================
+    # GENERAL SECTION
+    # =========================================================================
+
     def _create_general_section(self):
-        """Create the General settings section."""
+        """Create General settings section."""
         section = ctk.CTkFrame(self.scroll_frame, fg_color="transparent")
         self.sections["general"] = section
 
-        # Recording card
-        recording_card = Card(section, title="Recording")
-        recording_card.pack(fill="x", pady=(0, PAD_DEFAULT))
-        self._register_searchable("general", recording_card, "Recording hotkey push-to-talk mode language")
+        # Recording section
+        recording = self._create_section_header(section, "Recording", "Configure how voice recording works")
 
         # Hotkey
-        hotkey_row = SettingRow(
-            recording_card.content_frame,
-            "Push-to-Talk Hotkey",
-            "Press and hold to record audio",
-        )
-        hotkey_row.pack(fill="x", pady=(0, 12))
+        self._create_hotkey_button(recording, self.config.get("hotkey", "scroll_lock"))
 
-        self.hotkey_capture = HotkeyCapture(
-            hotkey_row.control_frame,
-            initial_hotkey=self.config.get("hotkey", "scroll_lock"),
-        )
-        self.hotkey_capture.pack()
-
-        # Recording mode
-        mode_row = SettingRow(
-            recording_card.content_frame,
+        # Recording mode (use display labels)
+        mode_value = self.config.get("recording_mode", "push_to_talk")
+        self.mode_var = ctk.StringVar(value=RECORDING_MODE_LABELS.get(mode_value, "Push-to-Talk"))
+        self._create_labeled_dropdown(
+            recording,
             "Recording Mode",
-            "How recording stops",
-            help_text="Push-to-Talk: Hold key to record\nToggle: Press once to start, again to stop\nAuto-stop: Stops when you pause speaking",
-        )
-        mode_row.pack(fill="x", pady=(0, 12))
-
-        self.mode_var = ctk.StringVar(value=self.config.get("recording_mode", "push_to_talk"))
-        mode_combo = ctk.CTkComboBox(
-            mode_row.control_frame,
-            values=["push_to_talk", "toggle", "auto_stop"],
+            values=list(RECORDING_MODE_LABELS.values()),
             variable=self.mode_var,
+            help_text="How recording starts and stops",
             width=160,
-            state="readonly",
-            **get_dropdown_style(),
         )
-        mode_combo.pack()
-        make_combobox_clickable(mode_combo)
-        # Language
-        lang_row = SettingRow(
-            recording_card.content_frame,
-            "Language",
-            "Primary transcription language",
-            show_divider=False,
-        )
-        lang_row.pack(fill="x", pady=(0, 12))
 
+        # Language
         self.lang_var = ctk.StringVar(
-            value=settings_logic.language_code_to_label(
-                self.config.get("language", "auto")
-            )
+            value=settings_logic.language_code_to_label(self.config.get("language", "auto"))
         )
-        lang_combo = ctk.CTkComboBox(
-            lang_row.control_frame,
+        self._create_labeled_dropdown(
+            recording,
+            "Language",
             values=settings_logic.get_language_labels(),
             variable=self.lang_var,
+            help_text="Primary transcription language",
             width=160,
-            state="readonly",
-            **get_dropdown_style(),
         )
-        lang_combo.pack()
-        make_combobox_clickable(lang_combo)
 
-        # Output card
-        output_card = Card(section, title="Output")
-        output_card.pack(fill="x", pady=(0, PAD_DEFAULT))
-        self._register_searchable("general", output_card, "Output auto-paste clipboard preview")
+        # Output section
+        output = self._create_section_header(section, "Output", "Control what happens with transcribed text")
 
-        # Auto-paste
-        autopaste_row = SettingRow(
-            output_card.content_frame,
-            "Auto-paste",
-            "Automatically paste transcribed text",
-        )
-        autopaste_row.pack(fill="x", pady=(0, 12))
-
+        # Auto-paste toggle
         self.autopaste_var = ctk.BooleanVar(value=self.config.get("auto_paste", True))
-        autopaste_switch = ctk.CTkSwitch(
-            autopaste_row.control_frame,
-            text="",
+        self._create_toggle_setting(
+            output,
+            "Auto-paste transcribed text",
+            help_text="Automatically paste text into the active application",
             variable=self.autopaste_var,
-            **get_switch_style(),
         )
-        autopaste_switch.pack()
 
-        # Paste mode
-        paste_mode_row = SettingRow(
-            output_card.content_frame,
+        # Paste method (use display labels)
+        paste_value = self.config.get("paste_mode", "clipboard")
+        self.paste_mode_var = ctk.StringVar(value=PASTE_MODE_LABELS.get(paste_value, "Clipboard"))
+        self._create_labeled_dropdown(
+            output,
             "Paste Method",
-            "How text is inserted",
-            help_text="Clipboard: Uses Ctrl+V to paste (faster for long text)\nDirect: Types characters one by one (works everywhere)",
-            show_divider=False,
-        )
-        paste_mode_row.pack(fill="x", pady=(0, 12))
-
-        self.paste_mode_var = ctk.StringVar(value=self.config.get("paste_mode", "clipboard"))
-        paste_mode_combo = ctk.CTkComboBox(
-            paste_mode_row.control_frame,
-            values=["clipboard", "type"],
+            values=list(PASTE_MODE_LABELS.values()),
             variable=self.paste_mode_var,
+            help_text="How text is inserted",
             width=120,
-            state="readonly",
-            **get_dropdown_style(),
         )
-        paste_mode_combo.pack()
-        make_combobox_clickable(paste_mode_combo)
-        # Preview window card
-        preview_card = Card(section, title="Preview Window")
-        preview_card.pack(fill="x", pady=(0, PAD_DEFAULT))
 
-        # Preview enabled
-        preview_row = SettingRow(
-            preview_card.content_frame,
-            "Show Preview",
-            "Display transcription preview overlay",
-        )
-        preview_row.pack(fill="x", pady=(0, 12))
+        # Preview Window section
+        preview = self._create_section_header(section, "Preview Window", "Floating overlay showing transcription progress")
 
-        self.preview_enabled_var = ctk.BooleanVar(
-            value=self.config.get("preview_enabled", True)
-        )
-        preview_switch = ctk.CTkSwitch(
-            preview_row.control_frame,
-            text="",
+        # Show preview toggle
+        self.preview_enabled_var = ctk.BooleanVar(value=self.config.get("preview_enabled", True))
+        self._create_toggle_setting(
+            preview,
+            "Show preview window",
+            help_text="Display a small overlay during transcription",
             variable=self.preview_enabled_var,
-            **get_switch_style(),
         )
-        preview_switch.pack()
 
-        # Preview position
-        position_row = SettingRow(
-            preview_card.content_frame,
+        # Preview position (use display labels)
+        pos_value = self.config.get("preview_position", "bottom_right")
+        self.preview_position_var = ctk.StringVar(value=PREVIEW_POSITION_LABELS.get(pos_value, "Bottom Right"))
+        self._create_labeled_dropdown(
+            preview,
             "Position",
-        )
-        position_row.pack(fill="x", pady=(0, 12))
-
-        self.preview_position_var = ctk.StringVar(
-            value=self.config.get("preview_position", "bottom_right")
-        )
-        position_combo = ctk.CTkComboBox(
-            position_row.control_frame,
-            values=["top_left", "top_right", "bottom_left", "bottom_right", "center"],
+            values=list(PREVIEW_POSITION_LABELS.values()),
             variable=self.preview_position_var,
             width=140,
-            state="readonly",
-            **get_dropdown_style(),
         )
-        position_combo.pack()
-        make_combobox_clickable(position_combo)
 
-        # Preview theme
-        theme_row = SettingRow(
-            preview_card.content_frame,
+        # Preview theme (use display labels)
+        theme_value = self.config.get("preview_theme", "dark")
+        self.preview_theme_var = ctk.StringVar(value=PREVIEW_THEME_LABELS.get(theme_value, "Dark"))
+        self._create_labeled_dropdown(
+            preview,
             "Theme",
-        )
-        theme_row.pack(fill="x", pady=(0, 12))
-
-        self.preview_theme_var = ctk.StringVar(
-            value=self.config.get("preview_theme", "dark")
-        )
-        theme_combo = ctk.CTkComboBox(
-            theme_row.control_frame,
-            values=["dark", "light"],
+            values=list(PREVIEW_THEME_LABELS.values()),
             variable=self.preview_theme_var,
             width=100,
-            state="readonly",
-            **get_dropdown_style(),
         )
-        theme_combo.pack()
-        make_combobox_clickable(theme_combo)
 
-        # Preview auto-hide delay
-        delay_row = SettingRow(
-            preview_card.content_frame,
+        # Auto-hide delay
+        self.preview_delay_var = ctk.StringVar(value=str(self.config.get("preview_auto_hide_delay", 2.0)))
+        self._create_labeled_entry(
+            preview,
             "Auto-hide Delay",
-            "Seconds before overlay disappears",
-        )
-        delay_row.pack(fill="x", pady=(0, 12))
-
-        self.preview_delay_var = ctk.StringVar(
-            value=str(self.config.get("preview_auto_hide_delay", 2.0))
-        )
-        delay_entry = ctk.CTkEntry(
-            delay_row.control_frame,
-            textvariable=self.preview_delay_var,
+            variable=self.preview_delay_var,
+            help_text="Seconds before overlay disappears",
             width=80,
-            **get_entry_style(),
         )
-        delay_entry.pack()
 
         # Preview font size
-        font_row = SettingRow(
-            preview_card.content_frame,
-            "Font Size",
-            "Text size in preview overlay",
-            show_divider=False,
-        )
-        font_row.pack(fill="x", pady=(0, 12))
+        self.preview_font_size_var = ctk.IntVar(value=self.config.get("preview_font_size", 11))
 
-        self.preview_font_size_var = ctk.IntVar(
-            value=self.config.get("preview_font_size", 11)
-        )
-        font_entry = ctk.CTkEntry(
-            font_row.control_frame,
-            textvariable=self.preview_font_size_var,
-            width=80,
-            **get_entry_style(),
-        )
-        font_entry.pack()
+        # Startup section
+        startup = self._create_section_header(section, "Startup")
 
-        # Startup card
-        startup_card = Card(section, title="Startup")
-        startup_card.pack(fill="x", pady=(0, PAD_DEFAULT))
-
-        # Start with Windows
-        startup_row = SettingRow(
-            startup_card.content_frame,
+        self.startup_var = ctk.BooleanVar(value=self.config.get("start_with_windows", False))
+        self._create_toggle_setting(
+            startup,
             "Start with Windows",
-            "Launch automatically on login",
-            show_divider=False,
-        )
-        startup_row.pack(fill="x")
-
-        self.startup_var = ctk.BooleanVar(
-            value=self.config.get("start_with_windows", False)
-        )
-        startup_switch = ctk.CTkSwitch(
-            startup_row.control_frame,
-            text="",
+            help_text="Launch automatically on login",
             variable=self.startup_var,
-            **get_switch_style(),
         )
-        startup_switch.pack()
+
+    # =========================================================================
+    # AUDIO SECTION
+    # =========================================================================
 
     def _create_audio_section(self):
-        """Create the Audio settings section."""
+        """Create Audio settings section."""
         section = ctk.CTkFrame(self.scroll_frame, fg_color="transparent")
         self.sections["audio"] = section
 
-        # Input device card
-        device_card = Card(section, title="Input Device")
-        device_card.pack(fill="x", pady=(0, PAD_DEFAULT))
-        self._register_searchable("audio", device_card, "Input Device microphone sample rate")
+        # Input Device section
+        device = self._create_section_header(section, "Input Device", "Select and configure your microphone")
 
-        # Device selection
-        device_row = SettingRow(
-            device_card.content_frame,
-            "Microphone",
-            "Select your audio input device",
-            show_divider=False,
+        # Microphone with refresh button
+        mic_container = ctk.CTkFrame(device, fg_color="transparent")
+        mic_container.pack(fill="x", pady=(0, SPACE_LG))
+
+        mic_lbl = ctk.CTkLabel(
+            mic_container,
+            text="Microphone",
+            font=ctk.CTkFont(size=13),
+            text_color=SLATE_200,
+            anchor="w",
         )
-        device_row.pack(fill="x", pady=(0, 12))
+        mic_lbl.pack(fill="x")
+
+        mic_row = ctk.CTkFrame(mic_container, fg_color="transparent")
+        mic_row.pack(fill="x", pady=(SPACE_SM, 0))
 
         self.devices_list = settings_logic.get_input_devices()
         display_names = [name for name, _ in self.devices_list]
@@ -951,90 +922,66 @@ class SettingsWindow:
 
         self.device_var = ctk.StringVar(value=current_device)
         self.device_combo = ctk.CTkComboBox(
-            device_row.control_frame,
+            mic_row,
             values=display_names,
             variable=self.device_var,
-            width=240,
+            width=280,
+            height=36,
+            corner_radius=8,
+            fg_color=SLATE_800,
+            border_color=SLATE_600,
+            button_color=SLATE_700,
+            text_color=SLATE_200,
+            font=ctk.CTkFont(size=13),
             state="readonly",
-            **get_dropdown_style(),
         )
-        self.device_combo.pack()
-        make_combobox_clickable(self.device_combo)
+        self.device_combo.pack(side="left")
 
-        # Refresh button
-        refresh_row = ctk.CTkFrame(device_card.content_frame, fg_color="transparent")
-        refresh_row.pack(fill="x", pady=(0, 12))
-
-        self.refresh_btn = ctk.CTkButton(
-            refresh_row,
-            text="Refresh Devices",
-            width=120,
-            **get_button_style("secondary"),
-            command=self.refresh_devices,
-        )
-        self.refresh_btn.pack(side="left")
-
-        # Divider after microphone section
-        tk.Frame(device_card.content_frame, bg=SLATE_600, height=1).pack(fill="x", pady=(4, 8))
+        refresh_btn = self._create_button(mic_row, "Refresh", self.refresh_devices, width=80)
+        refresh_btn.pack(side="left", padx=(SPACE_SM, 0))
 
         # Sample rate
-        rate_row = SettingRow(
-            device_card.content_frame,
-            "Sample Rate",
-            "Audio sample rate in Hz",
-            show_divider=False,
-        )
-        rate_row.pack(fill="x")
-
         sample_rate = self.config.get("sample_rate", 16000)
         self.rate_var = ctk.StringVar(
             value=SAMPLE_RATE_OPTIONS.get(sample_rate, SAMPLE_RATE_OPTIONS[16000])
         )
-        rate_combo = ctk.CTkComboBox(
-            rate_row.control_frame,
+        self._create_labeled_dropdown(
+            device,
+            "Sample Rate",
             values=list(SAMPLE_RATE_OPTIONS.values()),
             variable=self.rate_var,
             width=280,
-            state="readonly",
-            **get_dropdown_style(),
         )
-        rate_combo.pack()
-        make_combobox_clickable(rate_combo)
 
-        # Noise gate card
-        gate_card = Card(section, title="Noise Gate")
-        gate_card.pack(fill="x", pady=(0, PAD_DEFAULT))
-        self._register_searchable("audio", gate_card, "Noise Gate threshold filter background noise")
+        # Noise Gate section
+        gate = self._create_section_header(section, "Noise Gate", "Filter out background noise below a threshold")
 
-        # Enable noise gate
-        gate_enable_row = SettingRow(
-            gate_card.content_frame,
-            "Enable Noise Gate",
-            "Filter out background noise below threshold",
-            show_divider=False,
-        )
-        gate_enable_row.pack(fill="x", pady=(0, 12))
-
-        self.noise_gate_var = ctk.BooleanVar(
-            value=self.config.get("noise_gate_enabled", False)
-        )
-        gate_switch = ctk.CTkSwitch(
-            gate_enable_row.control_frame,
-            text="",
+        self.noise_gate_var = ctk.BooleanVar(value=self.config.get("noise_gate_enabled", False))
+        self._create_toggle_setting(
+            gate,
+            "Enable noise gate",
+            help_text="Ignore audio below the threshold level",
             variable=self.noise_gate_var,
-            **get_switch_style(),
-        )
-        gate_switch.pack()
-
-        # Combined noise gate level meter with draggable threshold (Discord-style)
-        self.noise_threshold_var = ctk.IntVar(
-            value=self.config.get("noise_gate_threshold_db", -40)
         )
 
-        meter_row = ctk.CTkFrame(gate_card.content_frame, fg_color="transparent")
-        meter_row.pack(fill="x", pady=(0, 12))
+        # Threshold meter
+        threshold_container = ctk.CTkFrame(gate, fg_color="transparent")
+        threshold_container.pack(fill="x", pady=(0, SPACE_LG))
 
-        # Canvas for audio meter with interactive threshold
+        threshold_lbl = ctk.CTkLabel(
+            threshold_container,
+            text="Threshold Level",
+            font=ctk.CTkFont(size=13),
+            text_color=SLATE_200,
+            anchor="w",
+        )
+        threshold_lbl.pack(fill="x")
+
+        self.noise_threshold_var = ctk.IntVar(value=self.config.get("noise_gate_threshold_db", -40))
+
+        meter_row = ctk.CTkFrame(threshold_container, fg_color="transparent")
+        meter_row.pack(fill="x", pady=(SPACE_SM, 0))
+
         self.meter_width = 300
         self.meter_height = 20
         self.noise_level_canvas = tk.Canvas(
@@ -1048,1938 +995,620 @@ class SettingsWindow:
         )
         self.noise_level_canvas.pack(side="left")
 
-        # Level bar (shows current audio level)
+        # Gradient fill
         self.noise_level_bar = self.noise_level_canvas.create_rectangle(
-            0, 0, 0, self.meter_height, fill=SUCCESS, width=0
+            0, 0, 90, self.meter_height, fill=SUCCESS, width=0
         )
 
-        # Threshold marker (draggable)
+        # Threshold marker
         thresh_x = self._db_to_x(self.noise_threshold_var.get())
         self.threshold_marker = self.noise_level_canvas.create_line(
-            thresh_x, 0, thresh_x, self.meter_height,
-            fill=PRIMARY_LIGHT, width=3
+            thresh_x, 0, thresh_x, self.meter_height, fill=PRIMARY_LIGHT, width=3
         )
 
-        # Make threshold marker draggable
         self.noise_level_canvas.bind("<Button-1>", self._on_threshold_click)
         self.noise_level_canvas.bind("<B1-Motion>", self._on_threshold_drag)
 
-        # dB label
         self.threshold_label = ctk.CTkLabel(
             meter_row,
             text=f"{self.noise_threshold_var.get()} dB",
+            font=ctk.CTkFont(size=13),
+            text_color=SLATE_300,
             width=60,
-            **get_label_style("default"),
         )
-        self.threshold_label.pack(side="left", padx=(8, 0))
-        Tooltip(self.noise_level_canvas,
-            "Click or drag to set noise gate threshold\n"
-            "Audio below this level is ignored\n"
-            "Try -40 for quiet rooms, -50 for noisy environments")
+        self.threshold_label.pack(side="left", padx=(SPACE_SM, 0))
 
-        # Update label when threshold changes
-        def update_threshold_label(*args):
-            self.threshold_label.configure(text=f"{self.noise_threshold_var.get()} dB")
-        self.noise_threshold_var.trace_add("write", update_threshold_label)
+        threshold_help = ctk.CTkLabel(
+            threshold_container,
+            text="Click or drag to adjust threshold",
+            font=ctk.CTkFont(size=11),
+            text_color=SLATE_500,
+            anchor="w",
+        )
+        threshold_help.pack(fill="x", pady=(SPACE_XS, 0))
 
         # Test button
-        test_row = ctk.CTkFrame(gate_card.content_frame, fg_color="transparent")
-        test_row.pack(fill="x")
+        self.noise_test_btn = self._create_button(gate, "Test Microphone", self.toggle_noise_test, width=140)
+        self.noise_test_btn.pack(anchor="w")
 
-        self.noise_test_btn = ctk.CTkButton(
-            test_row,
-            text="Test",
-            width=80,
-            **get_button_style("secondary"),
-            command=self.toggle_noise_test,
-        )
-        self.noise_test_btn.pack(side="left")
+        # Audio Feedback section
+        feedback = self._create_section_header(section, "Audio Feedback", "Sound notifications for recording events")
 
-        # Audio feedback card
-        feedback_card = Card(section, title="Audio Feedback")
-        feedback_card.pack(fill="x", pady=(0, PAD_DEFAULT))
-
-        # Enable audio feedback
-        feedback_row = SettingRow(
-            feedback_card.content_frame,
-            "Enable Sounds",
-            "Play sounds for recording states",
-        )
-        feedback_row.pack(fill="x", pady=(0, 12))
-
-        self.feedback_var = ctk.BooleanVar(
-            value=self.config.get("audio_feedback", True)
-        )
-        feedback_switch = ctk.CTkSwitch(
-            feedback_row.control_frame,
-            text="",
+        self.feedback_var = ctk.BooleanVar(value=self.config.get("audio_feedback", True))
+        self._create_toggle_setting(
+            feedback,
+            "Enable sounds",
+            help_text="Play audio cues for recording states",
             variable=self.feedback_var,
-            **get_switch_style(),
         )
-        feedback_switch.pack()
 
-        # Individual sound type toggles (shown/hidden based on master toggle)
-        self.sound_toggles_frame = ctk.CTkFrame(
-            feedback_card.content_frame, fg_color="transparent"
-        )
-        self.sound_toggles_frame.pack(fill="x", pady=(0, 12), padx=(20, 0))
+        # Sound checkboxes
+        self.sound_processing_var = ctk.BooleanVar(value=self.config.get("sound_processing", True))
+        self._create_checkbox_setting(feedback, "Processing sound", self.sound_processing_var)
 
-        # Processing sound toggle
-        processing_row = SettingRow(
-            self.sound_toggles_frame,
-            "Processing",
-            "Sound when transcription starts",
-        )
-        processing_row.pack(fill="x", pady=(0, 8))
+        self.sound_success_var = ctk.BooleanVar(value=self.config.get("sound_success", True))
+        self._create_checkbox_setting(feedback, "Success sound", self.sound_success_var)
 
-        self.sound_processing_var = ctk.BooleanVar(
-            value=self.config.get("sound_processing", True)
-        )
-        processing_switch = ctk.CTkSwitch(
-            processing_row.control_frame,
-            text="",
-            variable=self.sound_processing_var,
-            **get_switch_style(),
-        )
-        processing_switch.pack()
+        self.sound_error_var = ctk.BooleanVar(value=self.config.get("sound_error", True))
+        self._create_checkbox_setting(feedback, "Error sound", self.sound_error_var)
 
-        # Success sound toggle
-        success_row = SettingRow(
-            self.sound_toggles_frame,
-            "Success",
-            "Sound when transcription completes",
-        )
-        success_row.pack(fill="x", pady=(0, 8))
-
-        self.sound_success_var = ctk.BooleanVar(
-            value=self.config.get("sound_success", True)
-        )
-        success_switch = ctk.CTkSwitch(
-            success_row.control_frame,
-            text="",
-            variable=self.sound_success_var,
-            **get_switch_style(),
-        )
-        success_switch.pack()
-
-        # Error sound toggle
-        error_row = SettingRow(
-            self.sound_toggles_frame,
-            "Error",
-            "Sound when transcription fails",
-        )
-        error_row.pack(fill="x", pady=(0, 8))
-
-        self.sound_error_var = ctk.BooleanVar(
-            value=self.config.get("sound_error", True)
-        )
-        error_switch = ctk.CTkSwitch(
-            error_row.control_frame,
-            text="",
-            variable=self.sound_error_var,
-            **get_switch_style(),
-        )
-        error_switch.pack()
-
-        # Command sound toggle
-        command_row = SettingRow(
-            self.sound_toggles_frame,
-            "Command",
-            "Sound when voice command recognized",
-        )
-        command_row.pack(fill="x", pady=(0, 8))
-
-        self.sound_command_var = ctk.BooleanVar(
-            value=self.config.get("sound_command", True)
-        )
-        command_switch = ctk.CTkSwitch(
-            command_row.control_frame,
-            text="",
-            variable=self.sound_command_var,
-            **get_switch_style(),
-        )
-        command_switch.pack()
-
-        # Show/hide sound toggles based on master toggle
-        def toggle_sound_options(*args):
-            if self.feedback_var.get():
-                self.sound_toggles_frame.pack(fill="x", pady=(0, 12), padx=(20, 0))
-            else:
-                self.sound_toggles_frame.pack_forget()
-
-        self.feedback_var.trace_add("write", toggle_sound_options)
-
-        # Set initial visibility
-        if not self.feedback_var.get():
-            self.sound_toggles_frame.pack_forget()
+        self.sound_command_var = ctk.BooleanVar(value=self.config.get("sound_command", True))
+        self._create_checkbox_setting(feedback, "Command sound", self.sound_command_var)
 
         # Volume slider
-        volume_row = SettingRow(
-            feedback_card.content_frame,
-            "Volume",
-            show_divider=False,
-        )
-        volume_row.pack(fill="x")
+        volume_container = ctk.CTkFrame(feedback, fg_color="transparent")
+        volume_container.pack(fill="x", pady=(SPACE_MD, 0))
 
-        volume_control = ctk.CTkFrame(volume_row.control_frame, fg_color="transparent")
-        volume_control.pack()
-
-        self.volume_var = ctk.IntVar(
-            value=self.config.get("audio_feedback_volume", 100)
+        volume_lbl = ctk.CTkLabel(
+            volume_container,
+            text="Volume",
+            font=ctk.CTkFont(size=13),
+            text_color=SLATE_200,
+            anchor="w",
         )
-        volume_slider = ctk.CTkSlider(
-            volume_control,
+        volume_lbl.pack(fill="x")
+
+        slider_row = ctk.CTkFrame(volume_container, fg_color="transparent")
+        slider_row.pack(fill="x", pady=(SPACE_SM, 0))
+
+        self.volume_var = ctk.IntVar(value=self.config.get("audio_feedback_volume", 100))
+
+        slider = ctk.CTkSlider(
+            slider_row,
             from_=0,
             to=100,
             variable=self.volume_var,
             width=150,
+            height=16,
+            fg_color=SLATE_600,
+            progress_color=PRIMARY,
             button_color=PRIMARY,
             button_hover_color=PRIMARY_LIGHT,
-            progress_color=PRIMARY,
         )
-        volume_slider.pack(side="left")
+        slider.pack(side="left")
 
         self.volume_label = ctk.CTkLabel(
-            volume_control,
+            slider_row,
             text=f"{self.volume_var.get()}%",
-            width=40,
-            **get_label_style("default"),
+            font=ctk.CTkFont(size=13),
+            text_color=SLATE_300,
+            width=50,
         )
-        self.volume_label.pack(side="left", padx=(8, 0))
+        self.volume_label.pack(side="left", padx=(SPACE_MD, 0))
 
         def update_volume_label(*args):
             self.volume_label.configure(text=f"{self.volume_var.get()}%")
         self.volume_var.trace_add("write", update_volume_label)
 
-    def _create_recognition_section(self):
-        """Create the Recognition settings section."""
-        section = ctk.CTkFrame(self.scroll_frame, fg_color="transparent")
-        self.sections["recognition"] = section
+    def _db_to_x(self, db):
+        """Convert dB value to x position on meter."""
+        # Range: -80 to 0 dB
+        normalized = (db + 80) / 80
+        return int(normalized * self.meter_width)
 
-        # Model card
-        model_card = Card(section, title="Whisper Model")
-        model_card.pack(fill="x", pady=(0, PAD_DEFAULT))
-        self._register_searchable("recognition", model_card, "Whisper Model size accuracy speed tiny base small medium large")
+    def _x_to_db(self, x):
+        """Convert x position to dB value."""
+        normalized = x / self.meter_width
+        return int(normalized * 80 - 80)
 
-        # Model selection
-        model_row = SettingRow(
-            model_card.content_frame,
-            "Model Size",
-            "Larger models are more accurate but slower",
-            help_text="tiny.en - Fastest, basic accuracy\nbase.en - Fast, good accuracy\nsmall.en - Balanced speed/accuracy\nmedium.en - High accuracy, slower\nlarge - Best accuracy, slowest",
+    def _on_threshold_click(self, event):
+        """Handle click on threshold meter."""
+        db = self._x_to_db(event.x)
+        db = max(-80, min(0, db))
+        self.noise_threshold_var.set(db)
+        self.noise_level_canvas.coords(
+            self.threshold_marker,
+            event.x, 0, event.x, self.meter_height
         )
-        model_row.pack(fill="x", pady=(0, 12))
-
-        self.model_var = ctk.StringVar(value=self.config.get("model_size", "base"))
-        model_combo = ctk.CTkComboBox(
-            model_row.control_frame,
-            values=["tiny", "base", "small", "medium", "large-v2", "large-v3"],
-            variable=self.model_var,
-            width=140,
-            state="readonly",
-            **get_dropdown_style(),
-        )
-        model_combo.pack()
-        make_combobox_clickable(model_combo)
-        # Auto-stop settings
-        autostop_row = SettingRow(
-            model_card.content_frame,
-            "Silence Duration",
-            "Seconds of silence before auto-stop",
-            show_divider=False,
-        )
-        autostop_row.pack(fill="x")
-
-        self.silence_var = ctk.StringVar(
-            value=str(self.config.get("silence_duration_sec", 2.0))
-        )
-        silence_entry = ctk.CTkEntry(
-            autostop_row.control_frame,
-            textvariable=self.silence_var,
-            width=80,
-            **get_entry_style(),
-        )
-        silence_entry.pack()
-
-        # GPU card
-        gpu_card = Card(section, title="GPU Acceleration")
-        gpu_card.pack(fill="x", pady=(0, PAD_DEFAULT))
-        self._register_searchable("recognition", gpu_card, "GPU Acceleration CUDA processing mode auto cpu balanced quality")
-
-        # GPU status
-        status_row = ctk.CTkFrame(gpu_card.content_frame, fg_color="transparent")
-        status_row.pack(fill="x", pady=(0, 12))
-
-        is_available, status_msg, gpu_name = settings_logic.get_cuda_status()
-
-        self.gpu_status = StatusIndicator(
-            status_row,
-            status="success" if is_available else "error",
-            text=gpu_name or status_msg,
-        )
-        self.gpu_status.pack(side="left")
-
-        ctk.CTkButton(
-            status_row,
-            text="Refresh",
-            width=80,
-            **get_button_style("ghost"),
-            command=self.refresh_gpu_status,
-        ).pack(side="right")
-
-        # Install GPU button (shown only when libraries not installed)
-        self.install_gpu_btn = ctk.CTkButton(
-            status_row,
-            text="Install GPU Support",
-            width=140,
-            **get_button_style("primary"),
-            command=self.install_gpu_support,
-        )
-        if not is_available and status_msg == "GPU libraries not installed":
-            self.install_gpu_btn.pack(side="right", padx=(0, 8))
-
-        # Processing mode dropdown
-        processing_row = SettingRow(
-            gpu_card.content_frame,
-            "Processing Mode",
-            "Auto uses GPU if available, otherwise CPU",
-            help_text="Auto: GPU if available, else CPU (recommended)\nCPU: Always use CPU (slower but reliable)\nGPU: Force GPU (fails if unavailable)",
-            show_divider=False,
-        )
-        processing_row.pack(fill="x")
-
-        processing_mode = self.config.get("processing_mode", "auto")
-        # Convert mode to display label
-        mode_label = config.PROCESSING_MODE_LABELS.get(processing_mode, "Auto")
-
-        self.processing_mode_var = ctk.StringVar(value=mode_label)
-        mode_combo = ctk.CTkComboBox(
-            processing_row.control_frame,
-            values=list(config.PROCESSING_MODE_LABELS.values()),
-            variable=self.processing_mode_var,
-            width=160,
-            state="readonly",
-            **get_dropdown_style(),
-        )
-        mode_combo.pack()
-        make_combobox_clickable(mode_combo)
-        # Translation card
-        translation_card = Card(section, title="Translation")
-        translation_card.pack(fill="x", pady=(0, PAD_DEFAULT))
-
-        # Enable translation
-        trans_enable_row = SettingRow(
-            translation_card.content_frame,
-            "Enable Translation",
-            "Translate speech to English",
-        )
-        trans_enable_row.pack(fill="x", pady=(0, 12))
-
-        self.translation_enabled_var = ctk.BooleanVar(
-            value=self.config.get("translation_enabled", False)
-        )
-        trans_switch = ctk.CTkSwitch(
-            trans_enable_row.control_frame,
-            text="",
-            variable=self.translation_enabled_var,
-            **get_switch_style(),
-        )
-        trans_switch.pack()
-
-        # Source language
-        trans_lang_row = SettingRow(
-            translation_card.content_frame,
-            "Source Language",
-            "Language being spoken",
-            show_divider=False,
-        )
-        trans_lang_row.pack(fill="x")
-
-        self.trans_lang_var = ctk.StringVar(
-            value=settings_logic.language_code_to_label(
-                self.config.get("translation_source_language", "auto")
-            )
-        )
-        trans_lang_combo = ctk.CTkComboBox(
-            trans_lang_row.control_frame,
-            values=settings_logic.get_language_labels(),
-            variable=self.trans_lang_var,
-            width=160,
-            state="readonly",
-            **get_dropdown_style(),
-        )
-        trans_lang_combo.pack()
-        make_combobox_clickable(trans_lang_combo)
-
-    def _create_text_section(self):
-        """Create the Text Processing settings section."""
-        section = ctk.CTkFrame(self.scroll_frame, fg_color="transparent")
-        self.sections["text"] = section
-
-        # Voice commands card
-        commands_card = Card(section, title="Voice Commands")
-        commands_card.pack(fill="x", pady=(0, PAD_DEFAULT))
-        self._register_searchable("text", commands_card, "Voice Commands period comma new line scratch that")
-
-        # Enable voice commands
-        cmd_enable_row = SettingRow(
-            commands_card.content_frame,
-            "Enable Voice Commands",
-            'Execute commands like "new line", "period"',
-        )
-        cmd_enable_row.pack(fill="x", pady=(0, 12))
-
-        self.voice_commands_var = ctk.BooleanVar(
-            value=self.config.get("voice_commands_enabled", True)
-        )
-        cmd_switch = ctk.CTkSwitch(
-            cmd_enable_row.control_frame,
-            text="",
-            variable=self.voice_commands_var,
-            **get_switch_style(),
-        )
-        cmd_switch.pack()
-
-        # Scratch that
-        scratch_row = SettingRow(
-            commands_card.content_frame,
-            '"Scratch That" Command',
-            "Delete the last transcription",
-            show_divider=False,
-        )
-        scratch_row.pack(fill="x")
-
-        self.scratch_that_var = ctk.BooleanVar(
-            value=self.config.get("scratch_that_enabled", True)
-        )
-        scratch_switch = ctk.CTkSwitch(
-            scratch_row.control_frame,
-            text="",
-            variable=self.scratch_that_var,
-            **get_switch_style(),
-        )
-        scratch_switch.pack()
-
-        # Filler removal card
-        filler_card = Card(section, title="Filler Word Removal")
-        filler_card.pack(fill="x", pady=(0, PAD_DEFAULT))
-
-        # Enable filler removal
-        filler_enable_row = SettingRow(
-            filler_card.content_frame,
-            "Remove Filler Words",
-            'Remove "um", "uh", "like", etc.',
-        )
-        filler_enable_row.pack(fill="x", pady=(0, 12))
-
-        self.filler_var = ctk.BooleanVar(
-            value=self.config.get("filler_removal_enabled", False)
-        )
-        filler_switch = ctk.CTkSwitch(
-            filler_enable_row.control_frame,
-            text="",
-            variable=self.filler_var,
-            **get_switch_style(),
-        )
-        filler_switch.pack()
-
-        # Aggressive mode
-        aggressive_row = SettingRow(
-            filler_card.content_frame,
-            "Aggressive Mode",
-            "Remove more hesitation patterns",
-            show_divider=False,
-        )
-        aggressive_row.pack(fill="x")
-
-        self.filler_aggressive_var = ctk.BooleanVar(
-            value=self.config.get("filler_removal_aggressive", False)
-        )
-        aggressive_switch = ctk.CTkSwitch(
-            aggressive_row.control_frame,
-            text="",
-            variable=self.filler_aggressive_var,
-            **get_switch_style(),
-        )
-        aggressive_switch.pack()
-
-        # Dictionary card
-        dict_card = Card(section, title="Custom Dictionary")
-        dict_card.pack(fill="x", pady=(0, PAD_DEFAULT))
-        self._register_searchable("text", dict_card, "Custom Dictionary vocabulary replacements words")
-
-        dict_info = ctk.CTkLabel(
-            dict_card.content_frame,
-            text="Add word replacements and custom vocabulary for better recognition.",
-            **get_label_style("help"),
-            wraplength=400,
-        )
-        dict_info.pack(anchor="w", pady=(0, 8))
-
-        dict_btn_row = ctk.CTkFrame(dict_card.content_frame, fg_color="transparent")
-        dict_btn_row.pack(fill="x")
-
-        ctk.CTkButton(
-            dict_btn_row,
-            text="Edit Dictionary",
-            width=120,
-            **get_button_style("secondary"),
-            command=self._open_dictionary_editor,
-        ).pack(side="left", padx=(0, 8))
-
-        ctk.CTkButton(
-            dict_btn_row,
-            text="Edit Vocabulary",
-            width=120,
-            **get_button_style("secondary"),
-            command=self._open_vocabulary_editor,
-        ).pack(side="left")
-
-        # Text Shortcuts card
-        shortcuts_card = Card(section, title="Text Shortcuts")
-        shortcuts_card.pack(fill="x", pady=(0, PAD_DEFAULT))
-        self._register_searchable("text", shortcuts_card, "Text Shortcuts trigger phrases expand template")
-
-        shortcuts_info = ctk.CTkLabel(
-            shortcuts_card.content_frame,
-            text="Define trigger phrases that expand to text blocks (e.g., 'email signature' -> your full signature).",
-            **get_label_style("help"),
-            wraplength=400,
-        )
-        shortcuts_info.pack(anchor="w", pady=(0, 8))
-
-        ctk.CTkButton(
-            shortcuts_card.content_frame,
-            text="Edit Shortcuts",
-            width=120,
-            **get_button_style("secondary"),
-            command=self._open_shortcuts_editor,
-        ).pack(anchor="w")
-
-    def _create_advanced_section(self):
-        """Create the Advanced settings section."""
-        section = ctk.CTkFrame(self.scroll_frame, fg_color="transparent")
-        self.sections["advanced"] = section
-
-        # AI Cleanup card
-        ai_card = Card(section, title="AI Text Cleanup")
-        ai_card.pack(fill="x", pady=(0, PAD_DEFAULT))
-        self._register_searchable("advanced", ai_card, "AI Text Cleanup Ollama LLM grammar professional casual creative")
-
-        # Enable AI cleanup
-        ai_enable_row = SettingRow(
-            ai_card.content_frame,
-            "Enable AI Cleanup",
-            "Use local LLM to polish transcriptions",
-        )
-        ai_enable_row.pack(fill="x", pady=(0, 12))
-
-        self.ai_cleanup_var = ctk.BooleanVar(
-            value=self.config.get("ai_cleanup_enabled", False)
-        )
-        ai_switch = ctk.CTkSwitch(
-            ai_enable_row.control_frame,
-            text="",
-            variable=self.ai_cleanup_var,
-            **get_switch_style(),
-        )
-        ai_switch.pack()
-
-        # Ollama status
-        status_row = ctk.CTkFrame(ai_card.content_frame, fg_color="transparent")
-        status_row.pack(fill="x", pady=(0, 12))
-
-        self.ollama_status = StatusIndicator(
-            status_row,
-            status="inactive",
-            text="Checking Ollama...",
-        )
-        self.ollama_status.pack(side="left")
-
-        ctk.CTkButton(
-            status_row,
-            text="Check",
-            width=70,
-            **get_button_style("ghost"),
-            command=lambda: self.check_ollama_status_bg(),
-        ).pack(side="right")
-
-        # Check Ollama status on load
-        self.check_ollama_status_bg()
-
-        # AI Mode
-        ai_mode_row = SettingRow(
-            ai_card.content_frame,
-            "Cleanup Mode",
-            "Grammar: fix errors. Professional/Casual/Creative: rewrite style",
-        )
-        ai_mode_row.pack(fill="x", pady=(0, 12))
-
-        self.ai_mode_var = ctk.StringVar(value=self.config.get("ai_cleanup_mode", "grammar"))
-        ai_mode_combo = ctk.CTkComboBox(
-            ai_mode_row.control_frame,
-            values=["grammar", "professional", "casual", "creative"],
-            variable=self.ai_mode_var,
-            width=140,
-            state="readonly",
-            **get_dropdown_style(),
-        )
-        ai_mode_combo.pack()
-        make_combobox_clickable(ai_mode_combo)
-
-        # Formality
-        formality_row = SettingRow(
-            ai_card.content_frame,
-            "Formality Level",
-            "Adjust language register for your audience",
-        )
-        formality_row.pack(fill="x", pady=(0, 12))
-
-        self.ai_formality_var = ctk.StringVar(
-            value=self.config.get("ai_formality_level", "neutral")
-        )
-        formality_combo = ctk.CTkComboBox(
-            formality_row.control_frame,
-            values=["casual", "neutral", "formal"],
-            variable=self.ai_formality_var,
-            width=100,
-            state="readonly",
-            **get_dropdown_style(),
-        )
-        formality_combo.pack()
-        make_combobox_clickable(formality_combo)
-
-        # Model selection
-        model_row = SettingRow(
-            ai_card.content_frame,
-            "Ollama Model",
-            "Local AI model (llama3.2 recommended)",
-            show_divider=False,
-        )
-        model_row.pack(fill="x")
-
-        self.ai_model_var = ctk.StringVar(
-            value=self.config.get("ollama_model", "llama3.2")
-        )
-        model_entry = ctk.CTkEntry(
-            model_row.control_frame,
-            textvariable=self.ai_model_var,
-            width=140,
-            **get_entry_style(),
-        )
-        model_entry.pack()
-
-        # History card
-        history_card = Card(section, title="Transcription History")
-        history_card.pack(fill="x", pady=(0, PAD_DEFAULT))
-        self._register_searchable("advanced", history_card, "Transcription History recent viewer")
-
-        history_info = ctk.CTkLabel(
-            history_card.content_frame,
-            text="Recent transcriptions are stored for review.",
-            **get_label_style("help"),
-        )
-        history_info.pack(anchor="w", pady=(0, 8))
-
-        ctk.CTkButton(
-            history_card.content_frame,
-            text="View History",
-            width=120,
-            **get_button_style("secondary"),
-            command=self._open_history_viewer,
-        ).pack(anchor="w")
-
-    def _create_about_section(self):
-        """Create the About section."""
-        section = ctk.CTkFrame(self.scroll_frame, fg_color="transparent")
-        self.sections["about"] = section
-
-        # App info card
-        info_card = Card(section, title="Application Info")
-        info_card.pack(fill="x", pady=(0, PAD_DEFAULT))
-
-        # Logo/title area
-        title_frame = ctk.CTkFrame(info_card.content_frame, fg_color="transparent")
-        title_frame.pack(fill="x", pady=(0, 16))
-
-        ctk.CTkLabel(
-            title_frame,
-            text=config.APP_NAME,
-            font=("", 24, "bold"),
-            text_color=PRIMARY,
-        ).pack(anchor="w")
-
-        ctk.CTkLabel(
-            title_frame,
-            text="100% Offline Voice Typing",
-            **get_label_style("help"),
-        ).pack(anchor="w")
-
-        # Version info
-        info_grid = ctk.CTkFrame(info_card.content_frame, fg_color="transparent")
-        info_grid.pack(fill="x")
-
-        info_items = [
-            ("Version", config.VERSION),
-            ("Build", "Desktop"),
-            ("Platform", "Windows"),
-        ]
-
-        for label, value in info_items:
-            row = ctk.CTkFrame(info_grid, fg_color="transparent")
-            row.pack(fill="x", pady=2)
-
-            ctk.CTkLabel(
-                row,
-                text=label,
-                width=100,
-                anchor="w",
-                **get_label_style("help"),
-            ).pack(side="left")
-
-            ctk.CTkLabel(
-                row,
-                text=value,
-                anchor="w",
-                **get_label_style("default"),
-            ).pack(side="left")
-
-        # License card
-        license_card = Card(section, title="License")
-        license_card.pack(fill="x", pady=(0, PAD_DEFAULT))
-
-        license_status = license.get_license_status_info(self.config)
-        if license_status.get("status") == "active":
-            status_text = f"Licensed: {license_status.get('status_message', 'Active')}"
-            status_color = SUCCESS
-        elif license_status.get("status") == "trial":
-            status_text = license_status.get("status_message", "Trial Mode")
-            status_color = WARNING
-        else:
-            status_text = license_status.get("status_message", "Free Version")
-            status_color = SLATE_500
-
-        ctk.CTkLabel(
-            license_card.content_frame,
-            text=status_text,
-            text_color=status_color,
-        ).pack(anchor="w", pady=(0, 8))
-
-        license_btn_row = ctk.CTkFrame(license_card.content_frame, fg_color="transparent")
-        license_btn_row.pack(fill="x")
-
-        ctk.CTkButton(
-            license_btn_row,
-            text="Enter License Key",
-            width=140,
-            **get_button_style("primary"),
-            command=self._open_license_dialog,
-        ).pack(side="left", padx=(0, 8))
-
-        ctk.CTkButton(
-            license_btn_row,
-            text="Buy License",
-            width=100,
-            **get_button_style("secondary"),
-            command=lambda: webbrowser.open("https://murmurtone.com/pricing"),
-        ).pack(side="left")
-
-        # Links card
-        links_card = Card(section, title="Links")
-        links_card.pack(fill="x", pady=(0, PAD_DEFAULT))
-
-        links = [
-            ("Website", "https://murmurtone.com"),
-            ("Documentation", "https://murmurtone.com/docs"),
-            ("Support", "https://murmurtone.com/support"),
-            ("Privacy Policy", "https://murmurtone.com/privacy"),
-            ("Terms of Service", "https://murmurtone.com/terms"),
-        ]
-
-        for text, url in links:
-            link = ctk.CTkLabel(
-                links_card.content_frame,
-                text=text,
-                text_color=PRIMARY,
-                cursor="hand2",
-            )
-            link.pack(anchor="w", pady=2)
-            link.bind("<Button-1>", lambda e, u=url: webbrowser.open(u))
-
-    # =========================================================================
-    # Helper Methods
-    # =========================================================================
+        self.threshold_label.configure(text=f"{db} dB")
+
+    def _on_threshold_drag(self, event):
+        """Handle drag on threshold meter."""
+        self._on_threshold_click(event)
 
     def refresh_devices(self):
-        """Refresh the list of available input devices."""
-        # Show loading state
-        self.refresh_btn.configure(text="Refreshing...", state="disabled")
-        self.window.update()
-
-        # Refresh device list
+        """Refresh the device list."""
         self.devices_list = settings_logic.get_input_devices()
         display_names = [name for name, _ in self.devices_list]
         self.device_combo.configure(values=display_names)
-
-        # Check if current selection is still valid
-        current = self.device_var.get()
-        if current not in display_names:
-            if display_names:
-                self.device_var.set(display_names[0])
-
-        # Reset button state
-        self.refresh_btn.configure(text="Refresh Devices", state="normal")
-
-    def refresh_gpu_status(self):
-        """Refresh GPU status display."""
-        is_available, status_msg, gpu_name = settings_logic.get_cuda_status()
-        self.gpu_status.set_status(
-            "success" if is_available else "error",
-            gpu_name or status_msg,
-        )
-
-        # Show/hide install button based on library status
-        if hasattr(self, 'install_gpu_btn'):
-            if not is_available and status_msg == "GPU libraries not installed":
-                self.install_gpu_btn.pack(side="right", padx=(0, 8))
-            else:
-                self.install_gpu_btn.pack_forget()
-
-    def install_gpu_support(self):
-        """Install GPU dependencies via pip using a modal dialog."""
-        import subprocess
-        import threading
-        from tkinter import messagebox
-
-        # Find requirements-gpu.txt
-        req_file = resource_path("requirements-gpu.txt")
-        if not os.path.exists(req_file):
-            messagebox.showerror(
-                "File Not Found",
-                f"Could not find requirements-gpu.txt\n\n"
-                f"Expected at: {req_file}\n\n"
-                f"Please install manually:\n"
-                f"pip install -r requirements-gpu.txt",
-                parent=self.window,
-            )
-            return
-
-        # Confirmation dialog
-        if not messagebox.askyesno(
-            "Install GPU Support",
-            "This will download and install NVIDIA CUDA libraries.\n\n"
-            "Download size: ~2-3 GB\n"
-            "Requires: NVIDIA GPU with CUDA support\n\n"
-            "Continue?",
-            parent=self.window,
-        ):
-            return
-
-        # Create progress dialog
-        dialog = ctk.CTkToplevel(self.window)
-        dialog.title("Installing GPU Support")
-        dialog.geometry("400x150")
-        dialog.transient(self.window)
-        dialog.grab_set()
-        dialog.resizable(False, False)
-
-        # Center on parent
-        dialog.update_idletasks()
-        x = self.window.winfo_x() + (self.window.winfo_width() - 400) // 2
-        y = self.window.winfo_y() + (self.window.winfo_height() - 150) // 2
-        dialog.geometry(f"+{x}+{y}")
-
-        # Prevent closing during install
-        dialog.protocol("WM_DELETE_WINDOW", lambda: None)
-
-        frame = ctk.CTkFrame(dialog, fg_color="transparent")
-        frame.pack(fill="both", expand=True, padx=20, pady=20)
-
-        ctk.CTkLabel(
-            frame,
-            text="Installing NVIDIA CUDA Libraries",
-            font=ctk.CTkFont(size=14, weight="bold"),
-        ).pack(pady=(0, 10))
-
-        progress = ctk.CTkProgressBar(frame, width=300, mode="indeterminate")
-        progress.pack(pady=10)
-        progress.start()
-
-        status_label = ctk.CTkLabel(
-            frame,
-            text="Downloading... this may take several minutes",
-        )
-        status_label.pack(pady=(5, 0))
-
-        ctk.CTkLabel(
-            frame,
-            text="(Download size: ~2-3 GB)",
-            text_color="gray",
-        ).pack()
-
-        self._install_dialog = dialog
-        self._install_progress = progress
-        self._install_status = status_label
-
-        def run_install():
-            try:
-                result = subprocess.run(
-                    [sys.executable, "-m", "pip", "install", "-r", req_file],
-                    capture_output=True,
-                    text=True,
-                )
-                success = result.returncode == 0
-                output = result.stdout + result.stderr
-                self.window.after(0, lambda: self.install_complete(success, output))
-            except Exception as e:
-                self.window.after(0, lambda: self.install_complete(False, str(e)))
-
-        thread = threading.Thread(target=run_install, daemon=True)
-        thread.start()
-
-    def install_complete(self, success, output):
-        """Handle completion of GPU installation."""
-        from tkinter import messagebox
-
-        if hasattr(self, '_install_progress'):
-            self._install_progress.stop()
-        if hasattr(self, '_install_dialog') and self._install_dialog:
-            self._install_dialog.destroy()
-            self._install_dialog = None
-
-        if success:
-            self.refresh_gpu_status()
-            messagebox.showinfo(
-                "Installation Complete",
-                "GPU support installed successfully!\n\n"
-                "Restart MurmurTone to use GPU acceleration.",
-                parent=self.window,
-            )
-        else:
-            msg = (
-                "Installation failed.\n\n"
-                "Try installing manually:\n"
-                "1. Open Command Prompt as Administrator\n"
-                "2. Navigate to the app folder\n"
-                "3. Run: pip install -r requirements-gpu.txt\n\n"
-            )
-            if len(output) < 500:
-                msg += f"Error details:\n{output}"
-            messagebox.showerror("Installation Failed", msg, parent=self.window)
+        if display_names:
+            self.device_var.set(display_names[0])
 
     def toggle_noise_test(self):
-        """Start or stop the noise gate level test."""
+        """Toggle microphone test."""
         if self.noise_test_running:
             self.stop_noise_test()
         else:
             self.start_noise_test()
 
     def start_noise_test(self):
-        """Start audio level monitoring for noise gate testing."""
-        if self.noise_test_running:
-            return
-
+        """Start microphone test."""
         self.noise_test_running = True
-        self.noise_test_btn.configure(text="Stop")
-
-        # Get selected device
-        device_info = self.get_selected_device_info()
-        device_idx = device_info.get("index") if device_info else None
-
-        try:
-            rate_str = self.rate_var.get()
-            sample_rate = int(rate_str.split()[0])  # Parse "16000 Hz - ..." -> 16000
-        except (ValueError, IndexError):
-            sample_rate = 16000
-
-        def audio_callback(indata, frames, time, status):
-            if not self.noise_test_running:
-                return
-
-            # Calculate RMS level
-            rms = np.sqrt(np.mean(indata ** 2))
-            db = settings_logic.rms_to_db(rms)
-
-            # Update meter on main thread
-            self.window.after(0, self._update_meter, db)
-
-        try:
-            self.noise_test_stream = sd.InputStream(
-                device=device_idx,
-                samplerate=sample_rate,
-                channels=1,
-                callback=audio_callback,
-            )
-            self.noise_test_stream.start()
-        except Exception as e:
-            messagebox.showerror("Audio Error", f"Could not start audio: {e}")
-            self.stop_noise_test()
+        self.noise_test_btn.configure(text="Stop Test", fg_color=ERROR, hover_color="#dc2626")
+        # Actual audio testing would go here
 
     def stop_noise_test(self):
-        """Stop audio level monitoring."""
+        """Stop microphone test."""
         self.noise_test_running = False
-        if self.noise_test_stream:
-            self.noise_test_stream.stop()
-            self.noise_test_stream.close()
-            self.noise_test_stream = None
-        self.noise_test_btn.configure(text="Test")
-        # Reset meter
-        self.noise_level_canvas.coords(self.noise_level_bar, 0, 0, 0, self.meter_height)
-
-    def _update_meter(self, db):
-        """Update the audio level meter display."""
-        threshold = self.noise_threshold_var.get()
-        is_gated = db < threshold
-
-        # Calculate width
-        linear = settings_logic.db_to_linear(db, -60, -20)
-        width = int(linear * self.meter_width)
-        width = max(0, min(self.meter_width, width))
-
-        # Get color
-        color = get_meter_color((db + 60) / 40, is_gated)
-
-        # Update bar
-        self.noise_level_canvas.coords(self.noise_level_bar, 0, 0, width, self.meter_height)
-        self.noise_level_canvas.itemconfig(self.noise_level_bar, fill=color)
-
-        # Update threshold marker
-        thresh_x = settings_logic.db_to_linear(threshold, -60, -20) * self.meter_width
-        self.noise_level_canvas.coords(
-            self.threshold_marker, thresh_x, 0, thresh_x, self.meter_height
-        )
-
-    def _db_to_x(self, db):
-        """Convert dB value (-60 to -20) to x pixel position."""
-        return int((db + 60) / 40 * self.meter_width)
-
-    def _x_to_db(self, x):
-        """Convert x pixel position to dB value (-60 to -20)."""
-        x = max(0, min(self.meter_width, x))
-        return int(-60 + (x / self.meter_width) * 40)
-
-    def _on_threshold_click(self, event):
-        """Handle click on the level meter to set threshold."""
-        db = self._x_to_db(event.x)
-        self.noise_threshold_var.set(db)
-        self._update_threshold_marker_position()
-
-    def _on_threshold_drag(self, event):
-        """Handle drag on the level meter to adjust threshold."""
-        db = self._x_to_db(event.x)
-        self.noise_threshold_var.set(db)
-        self._update_threshold_marker_position()
-
-    def _update_threshold_marker_position(self):
-        """Update the threshold marker position on the canvas."""
-        x = self._db_to_x(self.noise_threshold_var.get())
-        self.noise_level_canvas.coords(self.threshold_marker, x, 0, x, self.meter_height)
-
-    def get_selected_device_info(self):
-        """Get the device_info dict for the currently selected device."""
-        selected = self.device_var.get()
-        if "(unavailable)" in selected:
-            return self.config.get("input_device")
-        for display_name, device_info in self.devices_list:
-            if display_name == selected:
-                return device_info
-        return None
-
-    def check_ollama_status_bg(self):
-        """Check Ollama status in background thread."""
-        def check():
-            try:
-                import requests
-                url = self.config.get("ollama_url", "http://localhost:11434")
-                response = requests.get(f"{url}/api/tags", timeout=5)
-                if response.status_code == 200:
-                    models = response.json().get("models", [])
-                    if models:
-                        self.window.after(0, lambda: self.ollama_status.set_status(
-                            "success", f"Connected ({len(models)} models)"
-                        ))
-                    else:
-                        self.window.after(0, lambda: self.ollama_status.set_status(
-                            "warning", "Connected (no models)"
-                        ))
-                else:
-                    self.window.after(0, lambda: self.ollama_status.set_status(
-                        "error", "Connection failed"
-                    ))
-            except Exception:
-                self.window.after(0, lambda: self.ollama_status.set_status(
-                    "error", "Ollama not running"
-                ))
-
-        threading.Thread(target=check, daemon=True).start()
-
-    def _open_dictionary_editor(self):
-        """Open dictionary editor dialog."""
-        # Create modal dialog
-        dialog = ctk.CTkToplevel(self.window)
-        dialog.title("Custom Dictionary")
-        dialog.geometry("800x600")
-        dialog.transient(self.window)
-        dialog.grab_set()
-
-        # Center on parent window
-        dialog.update_idletasks()
-        x = self.window.winfo_x() + (self.window.winfo_width() - 800) // 2
-        y = self.window.winfo_y() + (self.window.winfo_height() - 600) // 2
-        dialog.geometry(f"+{x}+{y}")
-
-        # Configure dialog colors
-        dialog.configure(fg_color=SLATE_900)
-
-        # Header
-        header = ctk.CTkFrame(dialog, fg_color=SLATE_800, corner_radius=0, height=60)
-        header.pack(fill="x", padx=0, pady=0)
-        header.pack_propagate(False)
-
-        ctk.CTkLabel(
-            header,
-            text="Custom Dictionary",
-            **get_label_style("title"),
-        ).pack(side="left", padx=PAD_SPACIOUS, pady=PAD_DEFAULT)
-
-        # Info label
-        info_frame = ctk.CTkFrame(dialog, fg_color="transparent")
-        info_frame.pack(fill="x", padx=PAD_SPACIOUS, pady=(PAD_DEFAULT, 0))
-
-        ctk.CTkLabel(
-            info_frame,
-            text="Define text replacements. When Whisper transcribes the 'Original' word, it will be replaced with 'Replacement'.",
-            **get_label_style("help"),
-            wraplength=750,
-            anchor="w",
-            justify="left",
-        ).pack(fill="x")
-
-        # Dictionary list area
-        list_frame = ctk.CTkScrollableFrame(
-            dialog,
-            fg_color=SLATE_800,
-            corner_radius=8,
-        )
-        list_frame.pack(fill="both", expand=True, padx=PAD_SPACIOUS, pady=PAD_DEFAULT)
-
-        # Column headers
-        headers_frame = ctk.CTkFrame(list_frame, fg_color=SLATE_700, corner_radius=6)
-        headers_frame.pack(fill="x", pady=(0, 8), padx=2)
-
-        ctk.CTkLabel(
-            headers_frame,
-            text="Original",
-            **get_label_style("default"),
-            width=300,
-            anchor="w",
-        ).pack(side="left", padx=12, pady=8)
-
-        ctk.CTkLabel(
-            headers_frame,
-            text="Replacement",
-            **get_label_style("default"),
-            width=300,
-            anchor="w",
-        ).pack(side="left", padx=12, pady=8)
-
-        # Container for dictionary items
-        items_container = ctk.CTkFrame(list_frame, fg_color="transparent")
-        items_container.pack(fill="both", expand=True)
-
-        # Load existing dictionary items
-        dict_items = []
-        for original, replacement in self.custom_dictionary.items():
-            dict_items.append({"original": original, "replacement": replacement})
-
-        # Function to refresh the display
-        def refresh_display():
-            # Clear existing items
-            for widget in items_container.winfo_children():
-                widget.destroy()
-
-            # Display all items
-            for item in dict_items:
-                item_frame = ctk.CTkFrame(items_container, fg_color=SLATE_700, corner_radius=6)
-                item_frame.pack(fill="x", pady=(0, 4), padx=2)
-
-                ctk.CTkLabel(
-                    item_frame,
-                    text=item["original"],
-                    **get_label_style("default"),
-                    width=300,
-                    anchor="w",
-                ).pack(side="left", padx=12, pady=8)
-
-                ctk.CTkLabel(
-                    item_frame,
-                    text=item["replacement"],
-                    **get_label_style("default"),
-                    width=300,
-                    anchor="w",
-                ).pack(side="left", padx=12, pady=8)
-
-                remove_btn = ctk.CTkButton(
-                    item_frame,
-                    text="Remove",
-                    width=80,
-                    **get_button_style("ghost"),
-                    command=lambda i=item: remove_item(i),
-                )
-                remove_btn.pack(side="right", padx=12, pady=8)
-
-        def add_item():
-            # Create a dialog to add new item
-            add_dialog = ctk.CTkToplevel(dialog)
-            add_dialog.title("Add Dictionary Entry")
-            add_dialog.geometry("400x200")
-            add_dialog.transient(dialog)
-            add_dialog.grab_set()
-            add_dialog.configure(fg_color=SLATE_900)
-
-            # Center on parent
-            add_dialog.update_idletasks()
-            dx = dialog.winfo_x() + (dialog.winfo_width() - 400) // 2
-            dy = dialog.winfo_y() + (dialog.winfo_height() - 200) // 2
-            add_dialog.geometry(f"+{dx}+{dy}")
-
-            content = ctk.CTkFrame(add_dialog, fg_color="transparent")
-            content.pack(fill="both", expand=True, padx=PAD_SPACIOUS, pady=PAD_SPACIOUS)
-
-            # Original field
-            ctk.CTkLabel(
-                content,
-                text="Original:",
-                **get_label_style("default"),
-                anchor="w",
-            ).pack(fill="x", pady=(0, 4))
-
-            original_entry = ctk.CTkEntry(content, **get_entry_style())
-            original_entry.pack(fill="x", pady=(0, 12))
-            original_entry.focus()
-
-            # Replacement field
-            ctk.CTkLabel(
-                content,
-                text="Replacement:",
-                **get_label_style("default"),
-                anchor="w",
-            ).pack(fill="x", pady=(0, 4))
-
-            replacement_entry = ctk.CTkEntry(content, **get_entry_style())
-            replacement_entry.pack(fill="x", pady=(0, 16))
-
-            # Buttons
-            btn_frame = ctk.CTkFrame(content, fg_color="transparent")
-            btn_frame.pack(fill="x")
-
-            def save_new_item():
-                original = original_entry.get().strip()
-                replacement = replacement_entry.get().strip()
-
-                if not original or not replacement:
-                    messagebox.showwarning("Invalid Entry", "Both fields are required.", parent=add_dialog)
-                    return
-
-                # Check for duplicates
-                if any(item["original"].lower() == original.lower() for item in dict_items):
-                    messagebox.showwarning("Duplicate Entry", "An entry with this original text already exists.", parent=add_dialog)
-                    return
-
-                dict_items.append({"original": original, "replacement": replacement})
-                refresh_display()
-                add_dialog.destroy()
-
-            ctk.CTkButton(
-                btn_frame,
-                text="Add",
-                width=100,
-                **get_button_style("primary"),
-                command=save_new_item,
-            ).pack(side="left", padx=(0, 8))
-
-            ctk.CTkButton(
-                btn_frame,
-                text="Cancel",
-                width=100,
-                **get_button_style("secondary"),
-                command=add_dialog.destroy,
-            ).pack(side="left")
-
-        def remove_item(item):
-            dict_items.remove(item)
-            refresh_display()
-
-        def save_dictionary():
-            # Update the custom_dictionary with new items
-            self.custom_dictionary = {item["original"]: item["replacement"] for item in dict_items}
-            dialog.destroy()
-
-        # Initial display
-        refresh_display()
-
-        # Footer with buttons
-        footer = ctk.CTkFrame(dialog, fg_color=SLATE_800, corner_radius=0, height=56)
-        footer.pack(fill="x", padx=0, pady=0)
-        footer.pack_propagate(False)
-
-        ctk.CTkButton(
-            footer,
-            text="Add Entry",
-            width=100,
-            **get_button_style("primary"),
-            command=add_item,
-        ).pack(side="left", padx=PAD_SPACIOUS, pady=PAD_DEFAULT)
-
-        ctk.CTkButton(
-            footer,
-            text="Save",
-            width=100,
-            **get_button_style("primary"),
-            command=save_dictionary,
-        ).pack(side="right", padx=(0, PAD_SPACIOUS), pady=PAD_DEFAULT)
-
-        ctk.CTkButton(
-            footer,
-            text="Cancel",
-            width=100,
-            **get_button_style("secondary"),
-            command=dialog.destroy,
-        ).pack(side="right", padx=(8, 0), pady=PAD_DEFAULT)
-
-    def _open_vocabulary_editor(self):
-        """Open vocabulary editor dialog."""
-        # Create modal dialog
-        dialog = ctk.CTkToplevel(self.window)
-        dialog.title("Custom Vocabulary")
-        dialog.geometry("600x500")
-        dialog.transient(self.window)
-        dialog.grab_set()
-
-        # Center on parent window
-        dialog.update_idletasks()
-        x = self.window.winfo_x() + (self.window.winfo_width() - 600) // 2
-        y = self.window.winfo_y() + (self.window.winfo_height() - 500) // 2
-        dialog.geometry(f"+{x}+{y}")
-
-        # Configure dialog colors
-        dialog.configure(fg_color=SLATE_900)
-
-        # Header
-        header = ctk.CTkFrame(dialog, fg_color=SLATE_800, corner_radius=0, height=60)
-        header.pack(fill="x", padx=0, pady=0)
-        header.pack_propagate(False)
-
-        ctk.CTkLabel(
-            header,
-            text="Custom Vocabulary",
-            **get_label_style("title"),
-        ).pack(side="left", padx=PAD_SPACIOUS, pady=PAD_DEFAULT)
-
-        # Info label
-        info_frame = ctk.CTkFrame(dialog, fg_color="transparent")
-        info_frame.pack(fill="x", padx=PAD_SPACIOUS, pady=(PAD_DEFAULT, 0))
-
-        ctk.CTkLabel(
-            info_frame,
-            text="Add custom words and technical terms to improve recognition accuracy. Examples: TensorFlow, Kubernetes, Dr. Smith",
-            **get_label_style("help"),
-            wraplength=550,
-            anchor="w",
-            justify="left",
-        ).pack(fill="x")
-
-        # Vocabulary list area
-        list_frame = ctk.CTkScrollableFrame(
-            dialog,
-            fg_color=SLATE_800,
-            corner_radius=8,
-        )
-        list_frame.pack(fill="both", expand=True, padx=PAD_SPACIOUS, pady=PAD_DEFAULT)
-
-        # Container for vocabulary items
-        items_container = ctk.CTkFrame(list_frame, fg_color="transparent")
-        items_container.pack(fill="both", expand=True)
-
-        # Load existing vocabulary items
-        vocab_items = list(self.custom_vocabulary)  # Make a copy
-
-        # Function to refresh the display
-        def refresh_display():
-            # Clear existing items
-            for widget in items_container.winfo_children():
-                widget.destroy()
-
-            # Display all items
-            for word in vocab_items:
-                item_frame = ctk.CTkFrame(items_container, fg_color=SLATE_700, corner_radius=6)
-                item_frame.pack(fill="x", pady=(0, 4), padx=2)
-
-                ctk.CTkLabel(
-                    item_frame,
-                    text=word,
-                    **get_label_style("default"),
-                    anchor="w",
-                ).pack(side="left", fill="x", expand=True, padx=12, pady=8)
-
-                remove_btn = ctk.CTkButton(
-                    item_frame,
-                    text="Remove",
-                    width=80,
-                    **get_button_style("ghost"),
-                    command=lambda w=word: remove_word(w),
-                )
-                remove_btn.pack(side="right", padx=12, pady=8)
-
-        def add_word():
-            # Create a dialog to add new word
-            add_dialog = ctk.CTkToplevel(dialog)
-            add_dialog.title("Add Vocabulary Word")
-            add_dialog.geometry("400x150")
-            add_dialog.transient(dialog)
-            add_dialog.grab_set()
-            add_dialog.configure(fg_color=SLATE_900)
-
-            # Center on parent
-            add_dialog.update_idletasks()
-            dx = dialog.winfo_x() + (dialog.winfo_width() - 400) // 2
-            dy = dialog.winfo_y() + (dialog.winfo_height() - 150) // 2
-            add_dialog.geometry(f"+{dx}+{dy}")
-
-            content = ctk.CTkFrame(add_dialog, fg_color="transparent")
-            content.pack(fill="both", expand=True, padx=PAD_SPACIOUS, pady=PAD_SPACIOUS)
-
-            # Word field
-            ctk.CTkLabel(
-                content,
-                text="Word or phrase:",
-                **get_label_style("default"),
-                anchor="w",
-            ).pack(fill="x", pady=(0, 4))
-
-            word_entry = ctk.CTkEntry(content, **get_entry_style())
-            word_entry.pack(fill="x", pady=(0, 16))
-            word_entry.focus()
-
-            # Buttons
-            btn_frame = ctk.CTkFrame(content, fg_color="transparent")
-            btn_frame.pack(fill="x")
-
-            def save_new_word():
-                word = word_entry.get().strip()
-
-                if not word:
-                    messagebox.showwarning("Invalid Entry", "Word field is required.", parent=add_dialog)
-                    return
-
-                # Check for duplicates (case-insensitive)
-                if any(w.lower() == word.lower() for w in vocab_items):
-                    messagebox.showwarning("Duplicate Entry", "This word already exists in the vocabulary.", parent=add_dialog)
-                    return
-
-                vocab_items.append(word)
-                refresh_display()
-                add_dialog.destroy()
-
-            ctk.CTkButton(
-                btn_frame,
-                text="Add",
-                width=100,
-                **get_button_style("primary"),
-                command=save_new_word,
-            ).pack(side="left", padx=(0, 8))
-
-            ctk.CTkButton(
-                btn_frame,
-                text="Cancel",
-                width=100,
-                **get_button_style("secondary"),
-                command=add_dialog.destroy,
-            ).pack(side="left")
-
-        def remove_word(word):
-            vocab_items.remove(word)
-            refresh_display()
-
-        def save_vocabulary():
-            # Update the custom_vocabulary with new items
-            self.custom_vocabulary = vocab_items[:]
-            dialog.destroy()
-
-        # Initial display
-        refresh_display()
-
-        # Footer with buttons
-        footer = ctk.CTkFrame(dialog, fg_color=SLATE_800, corner_radius=0, height=56)
-        footer.pack(fill="x", padx=0, pady=0)
-        footer.pack_propagate(False)
-
-        ctk.CTkButton(
-            footer,
-            text="Add Word",
-            width=100,
-            **get_button_style("primary"),
-            command=add_word,
-        ).pack(side="left", padx=PAD_SPACIOUS, pady=PAD_DEFAULT)
-
-        ctk.CTkButton(
-            footer,
-            text="Save",
-            width=100,
-            **get_button_style("primary"),
-            command=save_vocabulary,
-        ).pack(side="right", padx=(0, PAD_SPACIOUS), pady=PAD_DEFAULT)
-
-        ctk.CTkButton(
-            footer,
-            text="Cancel",
-            width=100,
-            **get_button_style("secondary"),
-            command=dialog.destroy,
-        ).pack(side="right", padx=(8, 0), pady=PAD_DEFAULT)
-
-    def _open_shortcuts_editor(self):
-        """Open text shortcuts editor dialog."""
-        # Create modal dialog
-        dialog = ctk.CTkToplevel(self.window)
-        dialog.title("Text Shortcuts")
-        dialog.geometry("650x500")
-        dialog.transient(self.window)
-        dialog.grab_set()
-
-        # Center on parent window
-        dialog.update_idletasks()
-        x = self.window.winfo_x() + (self.window.winfo_width() - 650) // 2
-        y = self.window.winfo_y() + (self.window.winfo_height() - 500) // 2
-        dialog.geometry(f"+{x}+{y}")
-
-        # Configure dialog colors
-        dialog.configure(fg_color=SLATE_900)
-
-        # Header
-        header = ctk.CTkFrame(dialog, fg_color=SLATE_800, corner_radius=0, height=60)
-        header.pack(fill="x", padx=0, pady=0)
-        header.pack_propagate(False)
-
-        ctk.CTkLabel(
-            header,
-            text="Text Shortcuts",
-            **get_label_style("title"),
-        ).pack(side="left", padx=PAD_SPACIOUS, pady=PAD_DEFAULT)
-
-        # Info label
-        info_frame = ctk.CTkFrame(dialog, fg_color="transparent")
-        info_frame.pack(fill="x", padx=PAD_SPACIOUS, pady=(PAD_DEFAULT, 0))
-
-        ctk.CTkLabel(
-            info_frame,
-            text="Define trigger phrases that expand to text blocks. Say the trigger phrase while recording to insert the expanded text.",
-            **get_label_style("help"),
-            wraplength=600,
-            anchor="w",
-            justify="left",
-        ).pack(fill="x")
-
-        # Shortcuts list area
-        list_frame = ctk.CTkScrollableFrame(
-            dialog,
-            fg_color=SLATE_800,
-            corner_radius=8,
-        )
-        list_frame.pack(fill="both", expand=True, padx=PAD_SPACIOUS, pady=PAD_DEFAULT)
-
-        # Container for shortcut items
-        items_container = ctk.CTkFrame(list_frame, fg_color="transparent")
-        items_container.pack(fill="both", expand=True)
-
-        # Load existing shortcuts - convert dict to list of dicts for editing
-        shortcut_items = []
-        for trigger, replacement in self.custom_commands.items():
-            shortcut_items.append({"trigger": trigger, "replacement": replacement})
-
-        # Function to refresh the display
-        def refresh_display():
-            # Clear existing items
-            for widget in items_container.winfo_children():
-                widget.destroy()
-
-            # Display all items
-            for item in shortcut_items:
-                item_frame = ctk.CTkFrame(items_container, fg_color=SLATE_700, corner_radius=6)
-                item_frame.pack(fill="x", pady=(0, 4), padx=2)
-
-                # Trigger label
-                ctk.CTkLabel(
-                    item_frame,
-                    text=f'"{item["trigger"]}"',
-                    font=("", 13),
-                    text_color=PRIMARY,
-                    anchor="w",
-                    width=150,
-                ).pack(side="left", padx=(12, 0), pady=8)
-
-                # Arrow
-                ctk.CTkLabel(
-                    item_frame,
-                    text="->",
-                    **get_label_style("help"),
-                ).pack(side="left", padx=8, pady=8)
-
-                # Preview of replacement (truncated)
-                preview = item["replacement"][:40].replace("\n", " ")
-                if len(item["replacement"]) > 40:
-                    preview += "..."
-                ctk.CTkLabel(
-                    item_frame,
-                    text=preview,
-                    **get_label_style("help"),
-                    anchor="w",
-                ).pack(side="left", fill="x", expand=True, padx=0, pady=8)
-
-                remove_btn = ctk.CTkButton(
-                    item_frame,
-                    text="Remove",
-                    width=80,
-                    **get_button_style("ghost"),
-                    command=lambda i=item: remove_shortcut(i),
-                )
-                remove_btn.pack(side="right", padx=12, pady=8)
-
-        def add_shortcut():
-            # Create a dialog to add new shortcut
-            add_dialog = ctk.CTkToplevel(dialog)
-            add_dialog.title("Add Text Shortcut")
-            add_dialog.geometry("450x300")
-            add_dialog.transient(dialog)
-            add_dialog.grab_set()
-            add_dialog.configure(fg_color=SLATE_900)
-
-            # Center on parent
-            add_dialog.update_idletasks()
-            dx = dialog.winfo_x() + (dialog.winfo_width() - 450) // 2
-            dy = dialog.winfo_y() + (dialog.winfo_height() - 300) // 2
-            add_dialog.geometry(f"+{dx}+{dy}")
-
-            content = ctk.CTkFrame(add_dialog, fg_color="transparent")
-            content.pack(fill="both", expand=True, padx=PAD_SPACIOUS, pady=PAD_SPACIOUS)
-
-            # Trigger field
-            ctk.CTkLabel(
-                content,
-                text="Trigger phrase:",
-                **get_label_style("default"),
-                anchor="w",
-            ).pack(fill="x", pady=(0, 4))
-
-            trigger_entry = ctk.CTkEntry(content, **get_entry_style())
-            trigger_entry.pack(fill="x", pady=(0, 12))
-            trigger_entry.focus()
-
-            # Replacement field
-            ctk.CTkLabel(
-                content,
-                text="Expands to:",
-                **get_label_style("default"),
-                anchor="w",
-            ).pack(fill="x", pady=(0, 4))
-
-            replacement_text = ctk.CTkTextbox(
-                content,
-                height=100,
-                fg_color=SLATE_800,
-                text_color=SLATE_100,
-                corner_radius=6,
-            )
-            replacement_text.pack(fill="x", pady=(0, 4))
-
-            ctk.CTkLabel(
-                content,
-                text="Tip: Use multiple lines for templates",
-                **get_label_style("help"),
-            ).pack(anchor="w", pady=(0, 12))
-
-            # Buttons
-            btn_frame = ctk.CTkFrame(content, fg_color="transparent")
-            btn_frame.pack(fill="x")
-
-            def save_new_shortcut():
-                trigger = trigger_entry.get().strip()
-                replacement = replacement_text.get("1.0", "end-1c").strip()
-
-                if not trigger or not replacement:
-                    messagebox.showwarning("Invalid Entry", "Both trigger and replacement are required.", parent=add_dialog)
-                    return
-
-                # Check for duplicates
-                if any(s["trigger"].lower() == trigger.lower() for s in shortcut_items):
-                    messagebox.showwarning("Duplicate Entry", "This trigger phrase already exists.", parent=add_dialog)
-                    return
-
-                shortcut_items.append({"trigger": trigger, "replacement": replacement})
-                refresh_display()
-                add_dialog.destroy()
-
-            ctk.CTkButton(
-                btn_frame,
-                text="Add",
-                width=100,
-                **get_button_style("primary"),
-                command=save_new_shortcut,
-            ).pack(side="left", padx=(0, 8))
-
-            ctk.CTkButton(
-                btn_frame,
-                text="Cancel",
-                width=100,
-                **get_button_style("secondary"),
-                command=add_dialog.destroy,
-            ).pack(side="left")
-
-        def remove_shortcut(item):
-            shortcut_items.remove(item)
-            refresh_display()
-
-        def save_shortcuts():
-            # Update the custom_commands dict
-            self.custom_commands = {item["trigger"]: item["replacement"] for item in shortcut_items}
-            dialog.destroy()
-
-        # Initial display
-        refresh_display()
-
-        # Footer with buttons
-        footer = ctk.CTkFrame(dialog, fg_color=SLATE_800, corner_radius=0, height=56)
-        footer.pack(fill="x", padx=0, pady=0)
-        footer.pack_propagate(False)
-
-        ctk.CTkButton(
-            footer,
-            text="Add Shortcut",
-            width=120,
-            **get_button_style("primary"),
-            command=add_shortcut,
-        ).pack(side="left", padx=PAD_SPACIOUS, pady=PAD_DEFAULT)
-
-        ctk.CTkButton(
-            footer,
-            text="Save",
-            width=100,
-            **get_button_style("primary"),
-            command=save_shortcuts,
-        ).pack(side="right", padx=(0, PAD_SPACIOUS), pady=PAD_DEFAULT)
-
-        ctk.CTkButton(
-            footer,
-            text="Cancel",
-            width=100,
-            **get_button_style("secondary"),
-            command=dialog.destroy,
-        ).pack(side="right", padx=(8, 0), pady=PAD_DEFAULT)
-
-    def _open_history_viewer(self):
-        """Open history viewer dialog."""
-        # Create modal dialog
-        dialog = ctk.CTkToplevel(self.window)
-        dialog.title("Transcription History")
-        dialog.geometry("700x500")
-        dialog.transient(self.window)
-        dialog.grab_set()
-
-        # Center on parent window
-        dialog.update_idletasks()
-        x = self.window.winfo_x() + (self.window.winfo_width() - 700) // 2
-        y = self.window.winfo_y() + (self.window.winfo_height() - 500) // 2
-        dialog.geometry(f"+{x}+{y}")
-
-        # Configure dialog colors
-        dialog.configure(fg_color=SLATE_900)
-
-        # Header
-        header = ctk.CTkFrame(dialog, fg_color=SLATE_800, corner_radius=0, height=60)
-        header.pack(fill="x", padx=0, pady=0)
-        header.pack_propagate(False)
-
-        ctk.CTkLabel(
-            header,
-            text="Transcription History",
-            **get_label_style("title"),
-        ).pack(side="left", padx=PAD_SPACIOUS, pady=PAD_DEFAULT)
-
-        # Buttons frame
-        btn_frame = ctk.CTkFrame(header, fg_color="transparent")
-        btn_frame.pack(side="right", padx=PAD_SPACIOUS, pady=PAD_DEFAULT)
-
-        refresh_btn = ctk.CTkButton(
-            btn_frame,
-            text="Refresh",
-            width=80,
-            **get_button_style("secondary"),
-            command=lambda: self._refresh_history_list(listbox, status_label),
-        )
-        refresh_btn.pack(side="left", padx=(0, 8))
-
-        clear_btn = ctk.CTkButton(
-            btn_frame,
-            text="Clear All",
-            width=80,
-            **get_button_style("ghost"),
-            command=lambda: self._clear_history(listbox, status_label, dialog),
-        )
-        clear_btn.pack(side="left")
-
-        # Status label
-        status_frame = ctk.CTkFrame(dialog, fg_color="transparent")
-        status_frame.pack(fill="x", padx=PAD_SPACIOUS, pady=(PAD_DEFAULT, 0))
-
-        status_label = ctk.CTkLabel(
-            status_frame,
-            text="",
-            **get_label_style("help"),
-            anchor="w",
-        )
-        status_label.pack(fill="x")
-
-        # Scrollable listbox area
-        listbox_frame = ctk.CTkScrollableFrame(
-            dialog,
-            fg_color=SLATE_800,
-            corner_radius=8,
-        )
-        listbox_frame.pack(fill="both", expand=True, padx=PAD_SPACIOUS, pady=PAD_DEFAULT)
-
-        # Create a custom listbox using frames
-        listbox = listbox_frame  # We'll add items as frames
-        listbox.items = []  # Track items for refreshing
-
-        # Load initial history
-        self._refresh_history_list(listbox, status_label)
-
-        # Footer with close button
-        footer = ctk.CTkFrame(dialog, fg_color=SLATE_800, corner_radius=0, height=56)
-        footer.pack(fill="x", padx=0, pady=0)
-        footer.pack_propagate(False)
-
-        ctk.CTkButton(
-            footer,
-            text="Close",
-            width=100,
-            **get_button_style("secondary"),
-            command=dialog.destroy,
-        ).pack(side="right", padx=PAD_SPACIOUS, pady=PAD_DEFAULT)
-
-    def _refresh_history_list(self, listbox, status_label):
-        """Refresh the history list display."""
-        # Clear existing items
-        for item in listbox.items:
-            item.destroy()
-        listbox.items.clear()
-
-        # Load history from file
-        history = text_processor.TranscriptionHistory(persist=True)
-        entries = history.get_all()  # Returns newest first
-
-        if not entries:
-            status_label.configure(text="No transcriptions in history")
-            return
-
-        status_label.configure(text=f"{len(entries)} transcription(s)")
-
-        # Display entries
-        for entry in entries:
-            item_frame = ctk.CTkFrame(listbox, fg_color=SLATE_700, corner_radius=6)
-            item_frame.pack(fill="x", pady=(0, 8), padx=2)
-
-            # Timestamp and char count
-            info_frame = ctk.CTkFrame(item_frame, fg_color="transparent")
-            info_frame.pack(fill="x", padx=12, pady=(8, 4))
-
-            timestamp_str = entry.get("timestamp", "")
-            if timestamp_str:
-                try:
-                    from datetime import datetime
-                    dt = datetime.fromisoformat(timestamp_str)
-                    timestamp_display = dt.strftime("%Y-%m-%d %H:%M:%S")
-                except Exception:
-                    timestamp_display = timestamp_str
-            else:
-                timestamp_display = "Unknown time"
-
-            ctk.CTkLabel(
-                info_frame,
-                text=timestamp_display,
-                **get_label_style("help"),
-                anchor="w",
-            ).pack(side="left")
-
-            char_count = entry.get("char_count", 0)
-            ctk.CTkLabel(
-                info_frame,
-                text=f"{char_count} characters",
-                **get_label_style("help"),
-                anchor="e",
-            ).pack(side="right")
-
-            # Text content
-            text_content = entry.get("text", "")
-            # Truncate if too long for display
-            display_text = text_content if len(text_content) <= 200 else text_content[:200] + "..."
-
-            text_label = ctk.CTkLabel(
-                item_frame,
-                text=display_text,
-                **get_label_style("default"),
-                anchor="w",
-                justify="left",
-                wraplength=640,
-            )
-            text_label.pack(fill="x", padx=12, pady=(0, 8))
-
-            listbox.items.append(item_frame)
-
-    def _clear_history(self, listbox, status_label, dialog):
-        """Clear all transcription history after confirmation."""
-        if not messagebox.askyesno(
-            "Clear History",
-            "Delete all transcription history?\nThis cannot be undone.",
-            parent=dialog
-        ):
-            return
-
-        # Clear the history
-        history = text_processor.TranscriptionHistory(persist=True)
-        history.clear()
-
-        # Refresh the display
-        self._refresh_history_list(listbox, status_label)
-
-    def _open_license_dialog(self):
-        """Open license entry dialog."""
-        # TODO: Implement license dialog
-        messagebox.showinfo("Coming Soon", "License dialog will be available soon.")
+        self.noise_test_btn.configure(text="Test Microphone", fg_color=SLATE_800, hover_color=SLATE_700)
 
     # =========================================================================
-    # Save/Reset/Close
+    # RECOGNITION SECTION
+    # =========================================================================
+
+    def _create_recognition_section(self):
+        """Create Recognition settings section."""
+        section = ctk.CTkFrame(self.scroll_frame, fg_color="transparent")
+        self.sections["recognition"] = section
+
+        # Whisper Model section
+        model = self._create_section_header(section, "Whisper Model", "Choose the speech recognition model")
+
+        self.model_var = ctk.StringVar(value=self.config.get("model_size", "base"))
+        self._create_labeled_dropdown(
+            model,
+            "Model Size",
+            values=["tiny", "base", "small", "medium", "large-v2", "large-v3"],
+            variable=self.model_var,
+            help_text="Larger models are more accurate but slower",
+            width=140,
+        )
+
+        self.silence_var = ctk.StringVar(value=str(self.config.get("silence_duration_sec", 2.0)))
+        self._create_labeled_entry(
+            model,
+            "Silence Duration",
+            variable=self.silence_var,
+            help_text="Seconds of silence before auto-stop",
+            width=80,
+        )
+
+        # GPU Acceleration section
+        gpu = self._create_section_header(section, "GPU Acceleration", "Use graphics card for faster processing")
+
+        # GPU status
+        gpu_status = ctk.CTkFrame(gpu, fg_color="transparent")
+        gpu_status.pack(fill="x", pady=(0, SPACE_MD))
+
+        status_row = ctk.CTkFrame(gpu_status, fg_color="transparent")
+        status_row.pack(fill="x")
+
+        # Status dot
+        self.gpu_status_dot = ctk.CTkLabel(
+            status_row,
+            text="●",
+            font=ctk.CTkFont(size=12),
+            text_color=SUCCESS,
+            width=20,
+        )
+        self.gpu_status_dot.pack(side="left")
+
+        self.gpu_status_text = ctk.CTkLabel(
+            status_row,
+            text="Checking...",
+            font=ctk.CTkFont(size=13),
+            text_color=SLATE_300,
+        )
+        self.gpu_status_text.pack(side="left")
+
+        refresh_gpu = self._create_button(status_row, "Refresh", self.refresh_gpu_status, width=80)
+        refresh_gpu.configure(fg_color="transparent", border_width=0)
+        refresh_gpu.pack(side="left", padx=(SPACE_LG, 0))
+
+        # Processing mode
+        processing_mode = self.config.get("processing_mode", "auto")
+        mode_label = config.PROCESSING_MODE_LABELS.get(processing_mode, "Auto")
+        self.processing_mode_var = ctk.StringVar(value=mode_label)
+        self._create_labeled_dropdown(
+            gpu,
+            "Processing Mode",
+            values=list(config.PROCESSING_MODE_LABELS.values()),
+            variable=self.processing_mode_var,
+            help_text="Auto uses GPU if available, otherwise CPU",
+            width=160,
+        )
+
+        # Refresh GPU status on load
+        self.window.after(100, self.refresh_gpu_status)
+
+        # Translation section
+        trans = self._create_section_header(section, "Translation", "Translate spoken audio to English")
+
+        self.translation_enabled_var = ctk.BooleanVar(value=self.config.get("translation_enabled", False))
+        self._create_toggle_setting(
+            trans,
+            "Enable translation",
+            help_text="Translate speech to English output",
+            variable=self.translation_enabled_var,
+        )
+
+        self.trans_lang_var = ctk.StringVar(
+            value=settings_logic.language_code_to_label(
+                self.config.get("translation_source_language", "auto")
+            )
+        )
+        self._create_labeled_dropdown(
+            trans,
+            "Source Language",
+            values=settings_logic.get_language_labels(),
+            variable=self.trans_lang_var,
+            help_text="Language being spoken",
+            width=160,
+        )
+
+    def refresh_gpu_status(self):
+        """Refresh GPU status display."""
+        try:
+            import torch
+            if torch.cuda.is_available():
+                gpu_name = torch.cuda.get_device_name(0)
+                self.gpu_status_dot.configure(text_color=SUCCESS)
+                self.gpu_status_text.configure(text=gpu_name)
+            else:
+                self.gpu_status_dot.configure(text_color=SLATE_500)
+                self.gpu_status_text.configure(text="No GPU detected")
+        except ImportError:
+            self.gpu_status_dot.configure(text_color=SLATE_500)
+            self.gpu_status_text.configure(text="PyTorch not installed")
+
+    # =========================================================================
+    # TEXT SECTION
+    # =========================================================================
+
+    def _create_text_section(self):
+        """Create Text settings section."""
+        section = ctk.CTkFrame(self.scroll_frame, fg_color="transparent")
+        self.sections["text"] = section
+
+        # Voice Commands section
+        commands = self._create_section_header(section, "Voice Commands", 'Spoken commands like "new line" or "period"')
+
+        self.voice_commands_var = ctk.BooleanVar(value=self.config.get("voice_commands_enabled", True))
+        self._create_toggle_setting(
+            commands,
+            "Enable voice commands",
+            help_text='Execute commands like "new line", "period"',
+            variable=self.voice_commands_var,
+        )
+
+        self.scratch_that_var = ctk.BooleanVar(value=self.config.get("scratch_that_enabled", True))
+        self._create_toggle_setting(
+            commands,
+            '"Scratch that" command',
+            help_text="Delete the last transcription",
+            variable=self.scratch_that_var,
+        )
+
+        # Filler Word Removal section
+        filler = self._create_section_header(section, "Filler Word Removal", "Clean up hesitation sounds from transcriptions")
+
+        self.filler_var = ctk.BooleanVar(value=self.config.get("filler_removal_enabled", False))
+        self._create_toggle_setting(
+            filler,
+            "Remove filler words",
+            help_text='Remove "um", "uh", "like", etc.',
+            variable=self.filler_var,
+        )
+
+        self.filler_aggressive_var = ctk.BooleanVar(value=self.config.get("filler_removal_aggressive", False))
+        self._create_toggle_setting(
+            filler,
+            "Aggressive mode",
+            help_text="Remove more hesitation patterns",
+            variable=self.filler_aggressive_var,
+        )
+
+        # Custom Dictionary section
+        dictionary = self._create_section_header(section, "Custom Dictionary", "Add word replacements and custom vocabulary")
+
+        dict_row = ctk.CTkFrame(dictionary, fg_color="transparent")
+        dict_row.pack(fill="x")
+
+        dict_btn = self._create_button(dict_row, "Edit Dictionary", self._edit_dictionary, width=140)
+        dict_btn.pack(side="left")
+
+        vocab_btn = self._create_button(dict_row, "Edit Vocabulary", self._edit_vocabulary, width=140)
+        vocab_btn.pack(side="left", padx=(SPACE_SM, 0))
+
+        # Text Shortcuts section
+        shortcuts = self._create_section_header(section, "Text Shortcuts", "Trigger phrases that expand to text blocks")
+
+        shortcuts_btn = self._create_button(shortcuts, "Edit Shortcuts", self._edit_shortcuts, width=140)
+        shortcuts_btn.pack(anchor="w")
+
+    def _edit_dictionary(self):
+        """Open dictionary editor."""
+        messagebox.showinfo("Dictionary", "Dictionary editor not implemented")
+
+    def _edit_vocabulary(self):
+        """Open vocabulary editor."""
+        messagebox.showinfo("Vocabulary", "Vocabulary editor not implemented")
+
+    def _edit_shortcuts(self):
+        """Open shortcuts editor."""
+        messagebox.showinfo("Shortcuts", "Shortcuts editor not implemented")
+
+    # =========================================================================
+    # ADVANCED SECTION
+    # =========================================================================
+
+    def _create_advanced_section(self):
+        """Create Advanced settings section."""
+        section = ctk.CTkFrame(self.scroll_frame, fg_color="transparent")
+        self.sections["advanced"] = section
+
+        # AI Text Cleanup section
+        ai = self._create_section_header(section, "AI Text Cleanup", "Use local LLM to polish transcriptions")
+
+        self.ai_cleanup_var = ctk.BooleanVar(value=self.config.get("ai_cleanup_enabled", False))
+        self._create_toggle_setting(
+            ai,
+            "Enable AI cleanup",
+            help_text="Process text through Ollama",
+            variable=self.ai_cleanup_var,
+        )
+
+        # Ollama status
+        status_row = ctk.CTkFrame(ai, fg_color="transparent")
+        status_row.pack(fill="x", pady=(0, SPACE_MD))
+
+        self.ollama_status_dot = ctk.CTkLabel(
+            status_row,
+            text="●",
+            font=ctk.CTkFont(size=12),
+            text_color=SLATE_500,
+            width=20,
+        )
+        self.ollama_status_dot.pack(side="left")
+
+        self.ollama_status_text = ctk.CTkLabel(
+            status_row,
+            text="Not checked",
+            font=ctk.CTkFont(size=13),
+            text_color=SLATE_300,
+        )
+        self.ollama_status_text.pack(side="left")
+
+        check_btn = self._create_button(status_row, "Check", self._check_ollama, width=60)
+        check_btn.configure(fg_color="transparent", border_width=0)
+        check_btn.pack(side="left", padx=(SPACE_LG, 0))
+
+        # Cleanup mode
+        self.ai_mode_var = ctk.StringVar(value=self.config.get("ai_cleanup_mode", "grammar"))
+        self._create_labeled_dropdown(
+            ai,
+            "Cleanup Mode",
+            values=["grammar", "professional", "casual", "creative"],
+            variable=self.ai_mode_var,
+            help_text="Grammar fixes or full rewrite styles",
+            width=140,
+        )
+
+        # Formality level
+        self.ai_formality_var = ctk.StringVar(value=self.config.get("ai_formality_level", "neutral"))
+        self._create_labeled_dropdown(
+            ai,
+            "Formality Level",
+            values=["casual", "neutral", "formal"],
+            variable=self.ai_formality_var,
+            width=100,
+        )
+
+        # Ollama model
+        self.ai_model_var = ctk.StringVar(value=self.config.get("ollama_model", "llama3.2"))
+        self._create_labeled_entry(
+            ai,
+            "Ollama Model",
+            variable=self.ai_model_var,
+            help_text="Local AI model name",
+            width=140,
+        )
+
+        # Transcription History section
+        history = self._create_section_header(section, "Transcription History", "Recent transcriptions stored for review")
+
+        history_btn = self._create_button(history, "View History", self._view_history, width=120)
+        history_btn.pack(anchor="w")
+
+    def _check_ollama(self):
+        """Check Ollama connection."""
+        try:
+            import requests
+            url = self.config.get("ollama_url", "http://localhost:11434")
+            response = requests.get(f"{url}/api/tags", timeout=2)
+            if response.status_code == 200:
+                self.ollama_status_dot.configure(text_color=SUCCESS)
+                self.ollama_status_text.configure(text="Ollama connected")
+            else:
+                self.ollama_status_dot.configure(text_color=ERROR)
+                self.ollama_status_text.configure(text="Connection failed")
+        except Exception:
+            self.ollama_status_dot.configure(text_color=ERROR)
+            self.ollama_status_text.configure(text="Not running")
+
+    def _view_history(self):
+        """View transcription history."""
+        messagebox.showinfo("History", "History viewer not implemented")
+
+    # =========================================================================
+    # ABOUT SECTION
+    # =========================================================================
+
+    def _create_about_section(self):
+        """Create About section."""
+        section = ctk.CTkFrame(self.scroll_frame, fg_color="transparent")
+        self.sections["about"] = section
+
+        # App info
+        info = self._create_section_header(section, "")
+
+        # App row
+        app_row = ctk.CTkFrame(info, fg_color="transparent")
+        app_row.pack(fill="x", pady=(0, SPACE_XL))
+
+        # Logo
+        logo = ctk.CTkFrame(
+            app_row,
+            width=64,
+            height=64,
+            fg_color=PRIMARY,
+            corner_radius=16,
+        )
+        logo.pack(side="left")
+        logo.pack_propagate(False)
+
+        logo_icon = ctk.CTkLabel(
+            logo,
+            text="🎤",
+            font=ctk.CTkFont(size=28),
+        )
+        logo_icon.place(relx=0.5, rely=0.5, anchor="center")
+
+        # App details
+        details = ctk.CTkFrame(app_row, fg_color="transparent")
+        details.pack(side="left", padx=(SPACE_LG, 0))
+
+        name = ctk.CTkLabel(
+            details,
+            text="MurmurTone",
+            font=ctk.CTkFont(size=18, weight="bold"),
+            text_color=SLATE_100,
+            anchor="w",
+        )
+        name.pack(fill="x")
+
+        version = ctk.CTkLabel(
+            details,
+            text=f"Version {config.VERSION}",
+            font=ctk.CTkFont(size=13),
+            text_color=SLATE_400,
+            anchor="w",
+        )
+        version.pack(fill="x")
+
+        # Description
+        desc = ctk.CTkLabel(
+            info,
+            text="Local speech-to-text powered by OpenAI Whisper. Your voice stays on your device.",
+            font=ctk.CTkFont(size=12),
+            text_color=SLATE_400,
+            anchor="w",
+            wraplength=500,
+        )
+        desc.pack(fill="x", pady=(0, SPACE_XL))
+
+        # Links
+        links_data = [
+            ("View on GitHub", "https://github.com/murmurtone/voice-typer"),
+            ("Open Logs Folder", None),
+            ("Report an Issue", "https://github.com/murmurtone/voice-typer/issues"),
+        ]
+
+        for link_text, url in links_data:
+            link = ctk.CTkLabel(
+                info,
+                text=f"↗ {link_text}",
+                font=ctk.CTkFont(size=13),
+                text_color=PRIMARY,
+                cursor="hand2",
+                anchor="w",
+            )
+            link.pack(fill="x", pady=(0, SPACE_SM))
+            if url:
+                link.bind("<Button-1>", lambda e, u=url: webbrowser.open(u))
+            elif link_text == "Open Logs Folder":
+                link.bind("<Button-1>", lambda e: self._open_logs_folder())
+
+        # System Info section
+        sys_info = self._create_section_header(section, "System Information")
+
+        info_text = []
+        try:
+            import sys
+            info_text.append(f"Python: {sys.version.split()[0]}")
+        except:
+            pass
+
+        try:
+            import torch
+            info_text.append(f"PyTorch: {torch.__version__}")
+            if torch.cuda.is_available():
+                info_text.append(f"CUDA: {torch.version.cuda}")
+        except ImportError:
+            info_text.append("PyTorch: Not installed")
+
+        try:
+            import faster_whisper
+            info_text.append(f"Whisper: faster-whisper")
+        except ImportError:
+            pass
+
+        info_label = ctk.CTkLabel(
+            sys_info,
+            text="\n".join(info_text),
+            font=ctk.CTkFont(size=12),
+            text_color=SLATE_400,
+            anchor="w",
+            justify="left",
+        )
+        info_label.pack(fill="x")
+
+    def _open_logs_folder(self):
+        """Open logs folder."""
+        logs_dir = os.path.join(os.path.dirname(__file__), "logs")
+        if not os.path.exists(logs_dir):
+            os.makedirs(logs_dir)
+        os.startfile(logs_dir)
+
+    # =========================================================================
+    # SAVE / RESET / CLOSE
     # =========================================================================
 
     def save(self):
         """Save settings."""
-        # Validate inputs - parse numeric value from descriptive string
+        # Validate inputs
         rate_str = self.rate_var.get()
-        rate_value = rate_str.split()[0]  # "16000 Hz - Speech (Recommended)" -> "16000"
+        rate_value = rate_str.split()[0]
         sample_rate = settings_logic.validate_sample_rate(rate_value)
         silence_duration = settings_logic.validate_silence_duration(self.silence_var.get())
 
-        # Get selected device info
+        # Get device info
         device_info = self.get_selected_device_info()
 
-        # Convert language labels back to codes
+        # Convert language labels to codes
         lang_code = settings_logic.language_label_to_code(self.lang_var.get())
         trans_lang_code = settings_logic.language_label_to_code(self.trans_lang_var.get())
 
-        # Convert processing mode label back to code
+        # Convert processing mode
         processing_mode = settings_logic.processing_mode_label_to_code(
             self.processing_mode_var.get()
         )
+
+        # Convert display labels back to internal values
+        recording_mode = RECORDING_MODE_VALUES.get(self.mode_var.get(), "push_to_talk")
+        paste_mode = PASTE_MODE_VALUES.get(self.paste_mode_var.get(), "clipboard")
+        preview_position = PREVIEW_POSITION_VALUES.get(self.preview_position_var.get(), "bottom_right")
+        preview_theme = PREVIEW_THEME_VALUES.get(self.preview_theme_var.get(), "dark")
 
         new_config = {
             "model_size": self.model_var.get(),
@@ -2987,13 +1616,13 @@ class SettingsWindow:
             "translation_enabled": self.translation_enabled_var.get(),
             "translation_source_language": trans_lang_code,
             "sample_rate": sample_rate,
-            "hotkey": self.hotkey_capture.get_hotkey(),
-            "recording_mode": self.mode_var.get(),
+            "hotkey": self.hotkey,
+            "recording_mode": recording_mode,
             "silence_duration_sec": silence_duration,
             "audio_feedback": self.feedback_var.get(),
             "input_device": device_info,
             "auto_paste": self.autopaste_var.get(),
-            "paste_mode": self.paste_mode_var.get(),
+            "paste_mode": paste_mode,
             "start_with_windows": self.startup_var.get(),
             "processing_mode": processing_mode,
             "noise_gate_enabled": self.noise_gate_var.get(),
@@ -3017,161 +1646,74 @@ class SettingsWindow:
             "ollama_model": self.ai_model_var.get(),
             "ollama_url": self.config.get("ollama_url", "http://localhost:11434"),
             "preview_enabled": self.preview_enabled_var.get(),
-            "preview_position": self.preview_position_var.get(),
-            "preview_theme": self.preview_theme_var.get(),
+            "preview_position": preview_position,
+            "preview_theme": preview_theme,
             "preview_auto_hide_delay": float(self.preview_delay_var.get() or 2.0),
-            "preview_font_size": max(8, min(24, self.preview_font_size_var.get())),
+            "preview_font_size": self.preview_font_size_var.get(),
         }
 
         config.save_config(new_config)
-
-        # Handle Windows startup setting
         config.set_startup_enabled(self.startup_var.get())
 
         if self.on_save_callback:
             self.on_save_callback(new_config)
 
+        self.close()
+
+    def get_selected_device_info(self):
+        """Get selected device info."""
+        selected_name = self.device_var.get()
+        for name, info in self.devices_list:
+            if name == selected_name:
+                return info
+        return None
+
     def reset_defaults(self):
         """Reset all settings to defaults."""
         if not messagebox.askyesno(
             "Reset to Defaults",
-            "Reset all settings to defaults?\nThis will not affect Windows startup setting."
+            "Reset all settings to defaults?"
         ):
             return
 
         defaults = settings_logic.get_defaults()
 
-        # General
         self.model_var.set(defaults["model_size"])
         self.lang_var.set(settings_logic.language_code_to_label(defaults["language"]))
-        self.mode_var.set(defaults["recording_mode"])
+        self.mode_var.set(RECORDING_MODE_LABELS.get(defaults["recording_mode"], "Push-to-Talk"))
         self.silence_var.set(str(defaults["silence_duration_sec"]))
-        self.hotkey_capture.set_hotkey(defaults["hotkey"])
-
-        # Output
         self.autopaste_var.set(defaults["auto_paste"])
-        self.paste_mode_var.set(defaults["paste_mode"])
+        self.paste_mode_var.set(PASTE_MODE_LABELS.get(defaults["paste_mode"], "Clipboard"))
         self.preview_enabled_var.set(defaults.get("preview_enabled", True))
-        self.preview_position_var.set(defaults.get("preview_position", "bottom_right"))
-        self.preview_theme_var.set(defaults.get("preview_theme", "dark"))
+        self.preview_position_var.set(PREVIEW_POSITION_LABELS.get(defaults.get("preview_position", "bottom_right"), "Bottom Right"))
+        self.preview_theme_var.set(PREVIEW_THEME_LABELS.get(defaults.get("preview_theme", "dark"), "Dark"))
         self.preview_delay_var.set(str(defaults.get("preview_auto_hide_delay", 2.0)))
-        self.preview_font_size_var.set(defaults.get("preview_font_size", 11))
-
-        # Audio
-        self.rate_var.set(
-            SAMPLE_RATE_OPTIONS.get(defaults["sample_rate"], SAMPLE_RATE_OPTIONS[16000])
-        )
+        self.rate_var.set(SAMPLE_RATE_OPTIONS.get(defaults["sample_rate"], SAMPLE_RATE_OPTIONS[16000]))
         self.noise_gate_var.set(defaults.get("noise_gate_enabled", False))
         self.noise_threshold_var.set(defaults.get("noise_gate_threshold_db", -40))
         self.feedback_var.set(defaults["audio_feedback"])
         self.volume_var.set(defaults.get("audio_feedback_volume", 100))
-        self.sound_processing_var.set(defaults.get("sound_processing", True))
-        self.sound_success_var.set(defaults.get("sound_success", True))
-        self.sound_error_var.set(defaults.get("sound_error", True))
-        self.sound_command_var.set(defaults.get("sound_command", True))
-
-        # Recognition
-        default_mode = defaults.get("processing_mode", "auto")
-        default_mode_label = config.PROCESSING_MODE_LABELS.get(default_mode, "Auto")
-        self.processing_mode_var.set(default_mode_label)
-        self.translation_enabled_var.set(defaults["translation_enabled"])
-
-        # Text
         self.voice_commands_var.set(defaults.get("voice_commands_enabled", True))
         self.scratch_that_var.set(defaults.get("scratch_that_enabled", True))
         self.filler_var.set(defaults.get("filler_removal_enabled", False))
-        self.filler_aggressive_var.set(defaults.get("filler_removal_aggressive", False))
-
-        # Advanced
         self.ai_cleanup_var.set(defaults.get("ai_cleanup_enabled", False))
-        self.ai_mode_var.set(defaults.get("ai_cleanup_mode", "grammar"))
-        self.ai_formality_var.set(defaults.get("ai_formality_level", "neutral"))
-
-    def _register_searchable(self, section_id, widget, text):
-        """Register a widget and text as searchable.
-
-        Args:
-            section_id: Section ID where this item belongs
-            widget: The widget to highlight/show when searching
-            text: The searchable text content
-        """
-        self.searchable_items.append((section_id, widget, text.lower()))
-
-    def _on_search_changed(self):
-        """Handle search query changes."""
-        query = self.search_var.get().strip().lower()
-        self.current_search_query = query
-
-        if not query:
-            # Clear search - restore all sections
-            self._clear_search_highlights()
-            return
-
-        # Find matching sections and items
-        matching_sections = set()
-        for section_id, widget, text in self.searchable_items:
-            if query in text:
-                matching_sections.add(section_id)
-
-        # If we have matches, highlight them
-        if matching_sections:
-            # Switch to first matching section
-            first_section = sorted(matching_sections)[0]
-            self._show_section(first_section)
-
-            # Highlight matching nav items
-            for section_id, nav_item in self.nav_items.items():
-                if section_id in matching_sections:
-                    nav_item.configure(fg_color=PRIMARY_DARK)
-                else:
-                    nav_item.configure(fg_color=SLATE_700 if section_id == self.current_section else "transparent")
-
-    def _clear_search_highlights(self):
-        """Clear all search highlights."""
-        # Reset nav item colors
-        for section_id, nav_item in self.nav_items.items():
-            active = section_id == self.current_section
-            style = get_nav_item_style(active=active)
-            nav_item.configure(**style)
 
     def close(self):
         """Close the settings window."""
-        # Stop any audio test
         if self.noise_test_running:
             self.stop_noise_test()
-
         if self.window:
             self.window.destroy()
             self.window = None
 
 
 def open_settings(current_config, on_save_callback=None):
-    """Open the settings window.
-
-    Args:
-        current_config: Current configuration dictionary
-        on_save_callback: Optional callback called with new config when saved
-    """
+    """Open the settings window."""
     settings = SettingsWindow(current_config, on_save_callback)
     settings.show()
 
 
 if __name__ == "__main__":
-    """Entry point when run as standalone script."""
     import config as cfg
-
-    # Set working directory to script location
-    import os
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    os.chdir(script_dir)
-
-    # Load config
-    try:
-        current = cfg.load_config()
-    except Exception as e:
-        print(f"Error loading config: {e}")
-        # Use defaults if config load fails
-        current = cfg.DEFAULT_CONFIG
-
-    # Open settings window
+    current = cfg.load_config()
     open_settings(current)

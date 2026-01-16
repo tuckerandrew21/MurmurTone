@@ -330,6 +330,12 @@ CARD_PAD_Y = 16
 SIDEBAR_WIDTH = 220
 NAV_ITEM_HEIGHT = 40
 
+# Section layout spacing (Settings V2)
+SECTION_MARGIN_BOTTOM = 32  # Between sections
+CONTROL_MARGIN_BOTTOM = 12  # Between controls within section
+LABEL_MARGIN_BOTTOM = 8     # Between label and control
+HELP_MARGIN_TOP = 4         # Between control and help text
+
 
 # =============================================================================
 # Font Sizes
