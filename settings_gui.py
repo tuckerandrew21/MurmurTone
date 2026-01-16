@@ -144,6 +144,750 @@ ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("dark-blue")
 
 
+# =============================================================================
+# EDITOR DIALOGS
+# =============================================================================
+
+class ListEditorDialog:
+    """Base class for list editor dialogs (Dictionary, Vocabulary, Shortcuts)."""
+
+    def __init__(self, parent, title, items, columns, on_save):
+        """
+        Args:
+            parent: Parent window
+            title: Dialog title
+            items: List of items to edit
+            columns: List of column names
+            on_save: Callback with updated items list
+        """
+        self.parent = parent
+        self.items = [item.copy() if isinstance(item, dict) else item for item in items]
+        self.columns = columns
+        self.on_save = on_save
+        self.selected_index = None
+
+        self.dialog = ctk.CTkToplevel(parent)
+        self.dialog.title(title)
+        self.dialog.geometry("500x400")
+        self.dialog.configure(fg_color=SLATE_900)
+        self.dialog.transient(parent)
+        self.dialog.grab_set()
+
+        # Center on parent
+        self.dialog.update_idletasks()
+        x = parent.winfo_x() + (parent.winfo_width() - 500) // 2
+        y = parent.winfo_y() + (parent.winfo_height() - 400) // 2
+        self.dialog.geometry(f"+{x}+{y}")
+
+        self._create_ui()
+        self._refresh_list()
+
+    def _create_ui(self):
+        """Create the dialog UI."""
+        # Main container
+        main = ctk.CTkFrame(self.dialog, fg_color="transparent")
+        main.pack(fill="both", expand=True, padx=SPACE_LG, pady=SPACE_LG)
+
+        # List frame
+        list_frame = ctk.CTkFrame(main, fg_color=SLATE_800, corner_radius=8)
+        list_frame.pack(fill="both", expand=True, pady=(0, SPACE_MD))
+
+        # Calculate column width based on dialog width and number of columns
+        # Dialog is 500px, minus padding (16*2) and list frame padding (2*2) and scrollbar (~16)
+        available_width = 500 - 32 - 4 - 16
+        self.col_width = available_width // len(self.columns)
+
+        # Header row
+        header = ctk.CTkFrame(list_frame, fg_color=SLATE_700, corner_radius=0)
+        header.pack(fill="x", padx=2, pady=(2, 0))
+
+        for i, col in enumerate(self.columns):
+            lbl = ctk.CTkLabel(
+                header,
+                text=col,
+                width=self.col_width,
+                font=ctk.CTkFont(family=FONT_FAMILY, size=12, weight="bold"),
+                text_color=SLATE_300,
+                anchor="w",
+            )
+            lbl.pack(side="left", padx=SPACE_SM, pady=SPACE_XS)
+
+        # Scrollable list
+        self.list_frame = ctk.CTkScrollableFrame(
+            list_frame,
+            fg_color="transparent",
+            scrollbar_button_color=SLATE_600,
+        )
+        self.list_frame.pack(fill="both", expand=True, padx=2, pady=2)
+
+        # Button row
+        btn_row = ctk.CTkFrame(main, fg_color="transparent")
+        btn_row.pack(fill="x")
+
+        self.add_btn = ctk.CTkButton(
+            btn_row,
+            text="Add",
+            width=80,
+            height=32,
+            fg_color=PRIMARY,
+            hover_color=PRIMARY_DARK,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+            command=self._add_item,
+        )
+        self.add_btn.pack(side="left", padx=(0, SPACE_SM))
+
+        self.edit_btn = ctk.CTkButton(
+            btn_row,
+            text="Edit",
+            width=80,
+            height=32,
+            fg_color=SLATE_700,
+            hover_color=SLATE_600,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+            command=self._edit_item,
+        )
+        self.edit_btn.pack(side="left", padx=(0, SPACE_SM))
+
+        self.delete_btn = ctk.CTkButton(
+            btn_row,
+            text="Delete",
+            width=80,
+            height=32,
+            fg_color=SLATE_700,
+            hover_color=ERROR,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+            command=self._delete_item,
+        )
+        self.delete_btn.pack(side="left")
+
+        # Save/Cancel
+        ctk.CTkButton(
+            btn_row,
+            text="Save",
+            width=80,
+            height=32,
+            fg_color=PRIMARY,
+            hover_color=PRIMARY_DARK,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+            command=self._save,
+        ).pack(side="right", padx=(SPACE_SM, 0))
+
+        ctk.CTkButton(
+            btn_row,
+            text="Cancel",
+            width=80,
+            height=32,
+            fg_color=SLATE_700,
+            hover_color=SLATE_600,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+            command=self.dialog.destroy,
+        ).pack(side="right")
+
+    def _refresh_list(self):
+        """Refresh the list display."""
+        # Clear existing
+        for widget in self.list_frame.winfo_children():
+            widget.destroy()
+
+        # Add items
+        for i, item in enumerate(self.items):
+            row = ctk.CTkFrame(
+                self.list_frame,
+                fg_color=SLATE_700 if i == self.selected_index else "transparent",
+                corner_radius=4,
+            )
+            row.pack(fill="x", pady=1)
+            row.bind("<Button-1>", lambda e, idx=i: self._select_item(idx))
+
+            values = self._get_display_values(item)
+            for val in values:
+                lbl = ctk.CTkLabel(
+                    row,
+                    text=str(val),
+                    width=self.col_width,
+                    font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+                    text_color=SLATE_200,
+                    anchor="w",
+                )
+                lbl.pack(side="left", padx=SPACE_SM, pady=SPACE_XS)
+                lbl.bind("<Button-1>", lambda e, idx=i: self._select_item(idx))
+
+    def _select_item(self, index):
+        """Select an item."""
+        self.selected_index = index
+        self._refresh_list()
+
+    def _get_display_values(self, item):
+        """Override in subclass to return display values for an item."""
+        raise NotImplementedError
+
+    def _add_item(self):
+        """Override in subclass to add a new item."""
+        raise NotImplementedError
+
+    def _edit_item(self):
+        """Override in subclass to edit selected item."""
+        raise NotImplementedError
+
+    def _delete_item(self):
+        """Delete selected item."""
+        if self.selected_index is not None and 0 <= self.selected_index < len(self.items):
+            del self.items[self.selected_index]
+            self.selected_index = None
+            self._refresh_list()
+
+    def _save(self):
+        """Save and close."""
+        self.on_save(self.items)
+        self.dialog.destroy()
+
+
+class DictionaryEditor(ListEditorDialog):
+    """Editor for custom word replacements."""
+
+    def __init__(self, parent, items, on_save):
+        super().__init__(
+            parent,
+            "Edit Dictionary",
+            items,
+            ["From", "To"],
+            on_save,
+        )
+
+    def _get_display_values(self, item):
+        if isinstance(item, dict):
+            return [item.get("from", ""), item.get("to", "")]
+        return [str(item), ""]
+
+    def _add_item(self):
+        self._show_entry_dialog(None)
+
+    def _edit_item(self):
+        if self.selected_index is not None and 0 <= self.selected_index < len(self.items):
+            self._show_entry_dialog(self.selected_index)
+
+    def _show_entry_dialog(self, edit_index):
+        """Show dialog to add/edit an entry."""
+        is_edit = edit_index is not None
+        item = self.items[edit_index] if is_edit else {"from": "", "to": ""}
+
+        dlg = ctk.CTkToplevel(self.dialog)
+        dlg.title("Edit Entry" if is_edit else "Add Entry")
+        dlg.geometry("350x220")
+        dlg.configure(fg_color=SLATE_900)
+        dlg.transient(self.dialog)
+        dlg.grab_set()
+
+        frame = ctk.CTkFrame(dlg, fg_color="transparent")
+        frame.pack(fill="both", expand=True, padx=SPACE_LG, pady=SPACE_LG)
+
+        # From field
+        ctk.CTkLabel(frame, text="From:", font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+                     text_color=SLATE_200).pack(anchor="w")
+        from_var = ctk.StringVar(value=item.get("from", ""))
+        from_entry = ctk.CTkEntry(frame, textvariable=from_var, width=300,
+                                   fg_color=SLATE_800, border_color=SLATE_600)
+        from_entry.pack(fill="x", pady=(SPACE_XS, SPACE_MD))
+
+        # To field
+        ctk.CTkLabel(frame, text="To:", font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+                     text_color=SLATE_200).pack(anchor="w")
+        to_var = ctk.StringVar(value=item.get("to", ""))
+        to_entry = ctk.CTkEntry(frame, textvariable=to_var, width=300,
+                                 fg_color=SLATE_800, border_color=SLATE_600)
+        to_entry.pack(fill="x", pady=(SPACE_XS, SPACE_MD))
+
+        def save_entry():
+            new_item = {"from": from_var.get(), "to": to_var.get(), "case_sensitive": False}
+            if from_var.get():  # Only save if "from" is not empty
+                if is_edit:
+                    self.items[edit_index] = new_item
+                else:
+                    self.items.append(new_item)
+                self._refresh_list()
+            dlg.destroy()
+
+        btn_row = ctk.CTkFrame(frame, fg_color="transparent")
+        btn_row.pack(fill="x")
+
+        ctk.CTkButton(btn_row, text="Save", width=80, fg_color=PRIMARY,
+                      hover_color=PRIMARY_DARK, command=save_entry).pack(side="right", padx=(SPACE_SM, 0))
+        ctk.CTkButton(btn_row, text="Cancel", width=80, fg_color=SLATE_700,
+                      hover_color=SLATE_600, command=dlg.destroy).pack(side="right")
+
+
+class VocabularyEditor(ListEditorDialog):
+    """Editor for custom vocabulary words."""
+
+    def __init__(self, parent, items, on_save):
+        super().__init__(
+            parent,
+            "Edit Vocabulary",
+            items,
+            ["Word/Phrase"],
+            on_save,
+        )
+
+    def _get_display_values(self, item):
+        return [str(item)]
+
+    def _add_item(self):
+        self._show_entry_dialog(None)
+
+    def _edit_item(self):
+        if self.selected_index is not None and 0 <= self.selected_index < len(self.items):
+            self._show_entry_dialog(self.selected_index)
+
+    def _show_entry_dialog(self, edit_index):
+        """Show dialog to add/edit a vocabulary word."""
+        is_edit = edit_index is not None
+        word = self.items[edit_index] if is_edit else ""
+
+        dlg = ctk.CTkToplevel(self.dialog)
+        dlg.title("Edit Word" if is_edit else "Add Word")
+        dlg.geometry("350x160")
+        dlg.configure(fg_color=SLATE_900)
+        dlg.transient(self.dialog)
+        dlg.grab_set()
+
+        frame = ctk.CTkFrame(dlg, fg_color="transparent")
+        frame.pack(fill="both", expand=True, padx=SPACE_LG, pady=SPACE_LG)
+
+        ctk.CTkLabel(frame, text="Word/Phrase:", font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+                     text_color=SLATE_200).pack(anchor="w")
+        word_var = ctk.StringVar(value=word)
+        word_entry = ctk.CTkEntry(frame, textvariable=word_var, width=300,
+                                   fg_color=SLATE_800, border_color=SLATE_600)
+        word_entry.pack(fill="x", pady=(SPACE_XS, SPACE_MD))
+
+        def save_entry():
+            if word_var.get():
+                if is_edit:
+                    self.items[edit_index] = word_var.get()
+                else:
+                    self.items.append(word_var.get())
+                self._refresh_list()
+            dlg.destroy()
+
+        btn_row = ctk.CTkFrame(frame, fg_color="transparent")
+        btn_row.pack(fill="x")
+
+        ctk.CTkButton(btn_row, text="Save", width=80, fg_color=PRIMARY,
+                      hover_color=PRIMARY_DARK, command=save_entry).pack(side="right", padx=(SPACE_SM, 0))
+        ctk.CTkButton(btn_row, text="Cancel", width=80, fg_color=SLATE_700,
+                      hover_color=SLATE_600, command=dlg.destroy).pack(side="right")
+
+
+class ShortcutsEditor(ListEditorDialog):
+    """Editor for text shortcuts (trigger -> expansion)."""
+
+    def __init__(self, parent, items, on_save):
+        super().__init__(
+            parent,
+            "Edit Shortcuts",
+            items,
+            ["Trigger", "Replacement"],
+            on_save,
+        )
+
+    def _get_display_values(self, item):
+        if isinstance(item, dict):
+            replacement = item.get("replacement", "")
+            # Truncate long replacements
+            if len(replacement) > 30:
+                replacement = replacement[:27] + "..."
+            return [item.get("trigger", ""), replacement]
+        return [str(item), ""]
+
+    def _add_item(self):
+        self._show_entry_dialog(None)
+
+    def _edit_item(self):
+        if self.selected_index is not None and 0 <= self.selected_index < len(self.items):
+            self._show_entry_dialog(self.selected_index)
+
+    def _show_entry_dialog(self, edit_index):
+        """Show dialog to add/edit a shortcut."""
+        is_edit = edit_index is not None
+        item = self.items[edit_index] if is_edit else {"trigger": "", "replacement": "", "enabled": True}
+
+        dlg = ctk.CTkToplevel(self.dialog)
+        dlg.title("Edit Shortcut" if is_edit else "Add Shortcut")
+        dlg.geometry("400x290")
+        dlg.configure(fg_color=SLATE_900)
+        dlg.transient(self.dialog)
+        dlg.grab_set()
+
+        frame = ctk.CTkFrame(dlg, fg_color="transparent")
+        frame.pack(fill="both", expand=True, padx=SPACE_LG, pady=SPACE_LG)
+
+        # Trigger field
+        ctk.CTkLabel(frame, text="Trigger phrase:", font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+                     text_color=SLATE_200).pack(anchor="w")
+        trigger_var = ctk.StringVar(value=item.get("trigger", ""))
+        trigger_entry = ctk.CTkEntry(frame, textvariable=trigger_var, width=350,
+                                      fg_color=SLATE_800, border_color=SLATE_600)
+        trigger_entry.pack(fill="x", pady=(SPACE_XS, SPACE_MD))
+
+        # Replacement field
+        ctk.CTkLabel(frame, text="Replacement text:", font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+                     text_color=SLATE_200).pack(anchor="w")
+        replacement_text = ctk.CTkTextbox(frame, width=350, height=80,
+                                           fg_color=SLATE_800, border_color=SLATE_600)
+        replacement_text.insert("1.0", item.get("replacement", ""))
+        replacement_text.pack(fill="x", pady=(SPACE_XS, SPACE_MD))
+
+        def save_entry():
+            new_item = {
+                "trigger": trigger_var.get(),
+                "replacement": replacement_text.get("1.0", "end-1c"),
+                "enabled": True,
+            }
+            if trigger_var.get():
+                if is_edit:
+                    self.items[edit_index] = new_item
+                else:
+                    self.items.append(new_item)
+                self._refresh_list()
+            dlg.destroy()
+
+        btn_row = ctk.CTkFrame(frame, fg_color="transparent")
+        btn_row.pack(fill="x")
+
+        ctk.CTkButton(btn_row, text="Save", width=80, fg_color=PRIMARY,
+                      hover_color=PRIMARY_DARK, command=save_entry).pack(side="right", padx=(SPACE_SM, 0))
+        ctk.CTkButton(btn_row, text="Cancel", width=80, fg_color=SLATE_700,
+                      hover_color=SLATE_600, command=dlg.destroy).pack(side="right")
+
+
+class HistoryViewer:
+    """Dialog for viewing transcription history."""
+
+    def __init__(self, parent):
+        """
+        Args:
+            parent: Parent window
+        """
+        import text_processor
+
+        self.parent = parent
+        self.entries = text_processor.TranscriptionHistory.load_from_disk()
+
+        self.dialog = ctk.CTkToplevel(parent)
+        self.dialog.title("Transcription History")
+        self.dialog.geometry("600x450")
+        self.dialog.configure(fg_color=SLATE_900)
+        self.dialog.transient(parent)
+        self.dialog.grab_set()
+
+        # Center on parent
+        self.dialog.update_idletasks()
+        x = parent.winfo_x() + (parent.winfo_width() - 600) // 2
+        y = parent.winfo_y() + (parent.winfo_height() - 450) // 2
+        self.dialog.geometry(f"+{x}+{y}")
+
+        self._create_ui()
+
+    def _create_ui(self):
+        """Create the dialog UI."""
+        # Main container
+        main = ctk.CTkFrame(self.dialog, fg_color="transparent")
+        main.pack(fill="both", expand=True, padx=SPACE_LG, pady=SPACE_LG)
+
+        # Title
+        title = ctk.CTkLabel(
+            main,
+            text="Recent Transcriptions",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=16, weight="bold"),
+            text_color=SLATE_100,
+        )
+        title.pack(anchor="w", pady=(0, SPACE_MD))
+
+        # List frame
+        list_frame = ctk.CTkFrame(main, fg_color=SLATE_800, corner_radius=8)
+        list_frame.pack(fill="both", expand=True, pady=(0, SPACE_MD))
+
+        # Header row
+        header = ctk.CTkFrame(list_frame, fg_color=SLATE_700, corner_radius=0)
+        header.pack(fill="x", padx=2, pady=(2, 0))
+
+        ctk.CTkLabel(
+            header,
+            text="Time",
+            width=120,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=12, weight="bold"),
+            text_color=SLATE_300,
+            anchor="w",
+        ).pack(side="left", padx=SPACE_SM, pady=SPACE_XS)
+
+        ctk.CTkLabel(
+            header,
+            text="Transcription",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=12, weight="bold"),
+            text_color=SLATE_300,
+            anchor="w",
+        ).pack(side="left", fill="x", expand=True, padx=SPACE_SM, pady=SPACE_XS)
+
+        # Scrollable list
+        self.list_frame = ctk.CTkScrollableFrame(
+            list_frame,
+            fg_color="transparent",
+            scrollbar_button_color=SLATE_600,
+        )
+        self.list_frame.pack(fill="both", expand=True, padx=2, pady=2)
+
+        self.selected_index = None
+        self.row_frames = []
+        self._populate_list()
+
+        # Button row
+        btn_row = ctk.CTkFrame(main, fg_color="transparent")
+        btn_row.pack(fill="x")
+
+        ctk.CTkButton(
+            btn_row,
+            text="Copy",
+            width=80,
+            height=32,
+            fg_color=PRIMARY,
+            hover_color=PRIMARY_DARK,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+            command=self._copy_selected,
+        ).pack(side="left", padx=(0, SPACE_SM))
+
+        ctk.CTkButton(
+            btn_row,
+            text="Export",
+            width=80,
+            height=32,
+            fg_color=SLATE_700,
+            hover_color=SLATE_600,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+            command=self._export_history,
+        ).pack(side="left", padx=(0, SPACE_SM))
+
+        ctk.CTkButton(
+            btn_row,
+            text="Clear All",
+            width=80,
+            height=32,
+            fg_color=SLATE_700,
+            hover_color=ERROR,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+            command=self._clear_history,
+        ).pack(side="left", padx=(0, SPACE_SM))
+
+        ctk.CTkButton(
+            btn_row,
+            text="Close",
+            width=80,
+            height=32,
+            fg_color=SLATE_700,
+            hover_color=SLATE_600,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+            command=self.dialog.destroy,
+        ).pack(side="right")
+
+    def _populate_list(self):
+        """Populate the history list."""
+        # Clear existing
+        for widget in self.list_frame.winfo_children():
+            widget.destroy()
+        self.row_frames = []
+
+        if not self.entries:
+            empty_label = ctk.CTkLabel(
+                self.list_frame,
+                text="No transcriptions yet",
+                font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+                text_color=SLATE_400,
+            )
+            empty_label.pack(pady=SPACE_LG)
+            return
+
+        # Show newest first
+        for i, entry in enumerate(reversed(self.entries)):
+            row = ctk.CTkFrame(self.list_frame, fg_color="transparent", height=36)
+            row.pack(fill="x", pady=1)
+            row.pack_propagate(False)
+
+            # Time column
+            timestamp = entry.get("timestamp", "")[:16]  # YYYY-MM-DD HH:MM
+            time_lbl = ctk.CTkLabel(
+                row,
+                text=timestamp,
+                width=120,
+                font=ctk.CTkFont(family=FONT_FAMILY, size=12),
+                text_color=SLATE_400,
+                anchor="w",
+            )
+            time_lbl.pack(side="left", padx=SPACE_SM)
+
+            # Text column (truncated)
+            text = entry.get("text", "").strip()
+            display_text = text[:60] + "..." if len(text) > 60 else text
+            text_lbl = ctk.CTkLabel(
+                row,
+                text=display_text,
+                font=ctk.CTkFont(family=FONT_FAMILY, size=12),
+                text_color=SLATE_200,
+                anchor="w",
+            )
+            text_lbl.pack(side="left", fill="x", expand=True, padx=SPACE_SM)
+
+            # Store index in reversed order
+            actual_index = len(self.entries) - 1 - i
+
+            # Click handler
+            def on_click(event, idx=actual_index, frame=row):
+                self._select_row(idx, frame)
+
+            row.bind("<Button-1>", on_click)
+            time_lbl.bind("<Button-1>", on_click)
+            text_lbl.bind("<Button-1>", on_click)
+
+            self.row_frames.append((row, actual_index))
+
+    def _select_row(self, index, frame):
+        """Select a row."""
+        # Reset all rows
+        for row, _ in self.row_frames:
+            row.configure(fg_color="transparent")
+
+        # Highlight selected
+        frame.configure(fg_color=SLATE_700)
+        self.selected_index = index
+
+    def _copy_selected(self):
+        """Copy selected transcription to clipboard."""
+        if self.selected_index is None:
+            messagebox.showinfo("Copy", "Please select a transcription first.")
+            return
+
+        text = self.entries[self.selected_index].get("text", "")
+        self.dialog.clipboard_clear()
+        self.dialog.clipboard_append(text)
+        self.dialog.update()
+        messagebox.showinfo("Copied", "Transcription copied to clipboard.")
+
+    def _export_history(self):
+        """Export history to file."""
+        if not self.entries:
+            messagebox.showinfo("Export", "No history to export.")
+            return
+
+        # Format selection dialog
+        format_dlg = ctk.CTkToplevel(self.dialog)
+        format_dlg.title("Export Format")
+        format_dlg.geometry("300x200")
+        format_dlg.configure(fg_color=SLATE_900)
+        format_dlg.transient(self.dialog)
+        format_dlg.grab_set()
+
+        # Center on dialog
+        format_dlg.update_idletasks()
+        x = self.dialog.winfo_x() + (self.dialog.winfo_width() - 300) // 2
+        y = self.dialog.winfo_y() + (self.dialog.winfo_height() - 200) // 2
+        format_dlg.geometry(f"+{x}+{y}")
+
+        frame = ctk.CTkFrame(format_dlg, fg_color="transparent")
+        frame.pack(fill="both", expand=True, padx=SPACE_LG, pady=SPACE_LG)
+
+        ctk.CTkLabel(
+            frame,
+            text="Select export format:",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=14, weight="bold"),
+            text_color=SLATE_100,
+        ).pack(anchor="w", pady=(0, SPACE_MD))
+
+        format_var = ctk.StringVar(value="txt")
+        ctk.CTkRadioButton(frame, text="Plain Text (.txt)", variable=format_var, value="txt",
+                           text_color=SLATE_200).pack(anchor="w", pady=2)
+        ctk.CTkRadioButton(frame, text="CSV with timestamps (.csv)", variable=format_var, value="csv",
+                           text_color=SLATE_200).pack(anchor="w", pady=2)
+        ctk.CTkRadioButton(frame, text="JSON with metadata (.json)", variable=format_var, value="json",
+                           text_color=SLATE_200).pack(anchor="w", pady=2)
+
+        result = {"format": None}
+
+        def do_export():
+            result["format"] = format_var.get()
+            format_dlg.destroy()
+
+        btn_row = ctk.CTkFrame(frame, fg_color="transparent")
+        btn_row.pack(fill="x", pady=(SPACE_MD, 0))
+
+        ctk.CTkButton(btn_row, text="Export", width=80, fg_color=PRIMARY,
+                      hover_color=PRIMARY_DARK, command=do_export).pack(side="right", padx=(SPACE_SM, 0))
+        ctk.CTkButton(btn_row, text="Cancel", width=80, fg_color=SLATE_700,
+                      hover_color=SLATE_600, command=format_dlg.destroy).pack(side="right")
+
+        format_dlg.wait_window()
+
+        if not result["format"]:
+            return
+
+        # File save dialog
+        from tkinter import filedialog
+        ext_map = {"txt": ".txt", "csv": ".csv", "json": ".json"}
+        file_types = {
+            "txt": [("Text files", "*.txt"), ("All files", "*.*")],
+            "csv": [("CSV files", "*.csv"), ("All files", "*.*")],
+            "json": [("JSON files", "*.json"), ("All files", "*.*")]
+        }
+
+        filename = filedialog.asksaveasfilename(
+            defaultextension=ext_map[result["format"]],
+            filetypes=file_types[result["format"]],
+            title="Export History"
+        )
+
+        if not filename:
+            return
+
+        try:
+            fmt = result["format"]
+            if fmt == "txt":
+                with open(filename, "w", encoding="utf-8") as f:
+                    f.write("Transcription History\n")
+                    f.write("=" * 60 + "\n\n")
+                    for entry in self.entries:
+                        ts = entry.get("timestamp", "")
+                        text = entry.get("text", "")
+                        f.write(f"[{ts}]\n{text}\n\n")
+            elif fmt == "csv":
+                import csv
+                with open(filename, "w", encoding="utf-8", newline="") as f:
+                    writer = csv.writer(f)
+                    writer.writerow(["Timestamp", "Text", "Characters"])
+                    for entry in self.entries:
+                        ts = entry.get("timestamp", "")
+                        text = entry.get("text", "")
+                        char_count = entry.get("char_count", len(text))
+                        writer.writerow([ts, text, char_count])
+            elif fmt == "json":
+                import json
+                with open(filename, "w", encoding="utf-8") as f:
+                    json.dump({"entries": self.entries}, f, indent=2, ensure_ascii=False)
+
+            messagebox.showinfo("Export Successful", f"History exported to:\n{filename}")
+        except Exception as e:
+            messagebox.showerror("Export Failed", f"Failed to export history:\n{str(e)}")
+
+    def _clear_history(self):
+        """Clear all history."""
+        if not self.entries:
+            messagebox.showinfo("Clear History", "No history to clear.")
+            return
+
+        if messagebox.askyesno("Clear History", "Delete all transcription history?\n\nThis cannot be undone."):
+            import text_processor
+            text_processor.TranscriptionHistory.clear_on_disk()
+            self.entries = []
+            self._populate_list()
+            messagebox.showinfo("Cleared", "Transcription history cleared.")
+
+
 class SettingsWindow:
     """Settings window matching the HTML mockup exactly."""
 
@@ -168,7 +912,7 @@ class SettingsWindow:
 
     def show(self):
         """Show the settings window."""
-        self.window = ctk.CTkToplevel()
+        self.window = ctk.CTk()
         self.window.title("MurmurTone Settings")
         self.window.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
         self.window.resizable(True, True)
@@ -1039,9 +1783,10 @@ class SettingsWindow:
             0, 0, anchor="nw", image=self.meter_gradient_photo
         )
 
-        # Level indicator bar (will be clipped via canvas width)
+        # Level mask - covers the gradient (fully covered when idle, reveals left portion during test)
         self.noise_level_bar = self.noise_level_canvas.create_rectangle(
-            0, 0, 90, self.meter_height, fill="", width=0, state="hidden"
+            0, 0, self.meter_width, self.meter_height,
+            fill=SLATE_800, width=0, state="normal"
         )
 
         # Threshold marker
@@ -1186,15 +1931,78 @@ class SettingsWindow:
             self.start_noise_test()
 
     def start_noise_test(self):
-        """Start microphone test."""
+        """Start microphone test with real audio monitoring."""
+        try:
+            import sounddevice as sd
+            import numpy as np
+        except ImportError:
+            messagebox.showerror("Error", "sounddevice or numpy not installed")
+            return
+
         self.noise_test_running = True
         self.noise_test_btn.configure(text="Stop Test", fg_color=ERROR, hover_color="#dc2626")
-        # Actual audio testing would go here
+
+        # Get selected device
+        device_info = self.get_selected_device_info()
+        device_index = None
+        if device_info:
+            device_index = device_info.get("index")
+
+        def audio_callback(indata, frames, time_info, status):
+            """Process audio data and update meter."""
+            if not self.noise_test_running:
+                return
+            # Calculate RMS level
+            rms = np.sqrt(np.mean(indata**2))
+            # Convert to dB (with floor at -80)
+            if rms > 0:
+                db = 20 * np.log10(rms)
+                db = max(-80, min(0, db))
+            else:
+                db = -80
+            # Schedule UI update on main thread
+            self.window.after(0, lambda: self._update_noise_meter(db))
+
+        try:
+            self.audio_stream = sd.InputStream(
+                device=device_index,
+                channels=1,
+                samplerate=16000,
+                blocksize=1024,
+                callback=audio_callback,
+            )
+            self.audio_stream.start()
+        except Exception as e:
+            self.noise_test_running = False
+            self.noise_test_btn.configure(text="Test Microphone", fg_color=SLATE_800, hover_color=SLATE_700)
+            messagebox.showerror("Error", f"Could not open audio device: {e}")
+
+    def _update_noise_meter(self, db):
+        """Update the noise meter display with current level."""
+        if not self.noise_test_running:
+            return
+        x = self._db_to_x(db)
+        # Update mask to cover inactive portion (from current level to right edge)
+        self.noise_level_canvas.coords(self.noise_level_bar, x, 0, self.meter_width, self.meter_height)
+        self.noise_level_canvas.itemconfigure(self.noise_level_bar, state="normal")
 
     def stop_noise_test(self):
         """Stop microphone test."""
         self.noise_test_running = False
         self.noise_test_btn.configure(text="Test Microphone", fg_color=SLATE_800, hover_color=SLATE_700)
+
+        # Stop audio stream
+        if hasattr(self, 'audio_stream') and self.audio_stream:
+            try:
+                self.audio_stream.stop()
+                self.audio_stream.close()
+            except Exception:
+                pass
+            self.audio_stream = None
+
+        # Reset mask to cover entire gradient (hide the meter)
+        if hasattr(self, 'noise_level_bar'):
+            self.noise_level_canvas.coords(self.noise_level_bar, 0, 0, self.meter_width, self.meter_height)
 
     # =========================================================================
     # RECOGNITION SECTION
@@ -1375,15 +2183,24 @@ class SettingsWindow:
 
     def _edit_dictionary(self):
         """Open dictionary editor."""
-        messagebox.showinfo("Dictionary", "Dictionary editor not implemented")
+        def on_save(items):
+            self.custom_dictionary = items
+
+        DictionaryEditor(self.window, self.custom_dictionary, on_save)
 
     def _edit_vocabulary(self):
         """Open vocabulary editor."""
-        messagebox.showinfo("Vocabulary", "Vocabulary editor not implemented")
+        def on_save(items):
+            self.custom_vocabulary = items
+
+        VocabularyEditor(self.window, self.custom_vocabulary, on_save)
 
     def _edit_shortcuts(self):
         """Open shortcuts editor."""
-        messagebox.showinfo("Shortcuts", "Shortcuts editor not implemented")
+        def on_save(items):
+            self.custom_commands = items
+
+        ShortcutsEditor(self.window, self.custom_commands, on_save)
 
     # =========================================================================
     # ADVANCED SECTION
@@ -1478,7 +2295,7 @@ class SettingsWindow:
 
     def _view_history(self):
         """View transcription history."""
-        messagebox.showinfo("History", "History viewer not implemented")
+        HistoryViewer(self.window)
 
     # =========================================================================
     # ABOUT SECTION
@@ -1750,13 +2567,6 @@ def open_settings(current_config, on_save_callback=None):
 
 if __name__ == "__main__":
     import config as cfg
-    import tkinter as tk
-
-    # Create standard tk root (allows tkinter-mcp inspection)
-    root = tk.Tk()
-    root.withdraw()
-
-    # tkinter-mcp agent is auto-started by patcher when using tkinter-mcp-launch
 
     current = cfg.load_config()
     open_settings(current)

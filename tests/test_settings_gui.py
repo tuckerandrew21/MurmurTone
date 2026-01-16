@@ -104,43 +104,6 @@ class TestProcessingModeValidation:
         assert len(warnings) == 0
 
 
-class TestTooltip:
-    """Tests for Tooltip widget helper class."""
-
-    def test_tooltip_stores_text(self):
-        """Tooltip should store the provided text."""
-        mock_widget = MagicMock()
-
-        import settings_gui
-        tooltip = settings_gui.Tooltip(mock_widget, "Test tooltip text")
-
-        assert tooltip.text == "Test tooltip text"
-        assert tooltip.widget == mock_widget
-
-    def test_tooltip_binds_events(self):
-        """Tooltip should bind Enter and Leave events."""
-        mock_widget = MagicMock()
-
-        import settings_gui
-        tooltip = settings_gui.Tooltip(mock_widget, "Test")
-
-        # Verify bind was called for Enter and Leave
-        calls = mock_widget.bind.call_args_list
-        events_bound = [call[0][0] for call in calls]
-
-        assert "<Enter>" in events_bound
-        assert "<Leave>" in events_bound
-
-    def test_tooltip_initially_no_popup(self):
-        """Tooltip should not have popup window initially."""
-        mock_widget = MagicMock()
-
-        import settings_gui
-        tooltip = settings_gui.Tooltip(mock_widget, "Test")
-
-        assert tooltip.tooltip is None
-
-
 class TestCheckCudaAvailable:
     """Tests for check_cuda_available() function."""
 
