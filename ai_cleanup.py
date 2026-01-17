@@ -179,13 +179,13 @@ def test_ollama_connection(model: str, url: str = "http://localhost:11434") -> t
     if not any(model_base in m for m in models):
         return False, f"Model '{model}' is not installed. Available models: {', '.join(models)}"
 
-    # Try a simple test
+    # Try a simple test (60s timeout to allow for first-time model loading)
     test_result = cleanup_text(
         "test",
         mode="grammar",
         model=model,
         url=url,
-        timeout=10
+        timeout=60
     )
 
     if test_result is not None:
