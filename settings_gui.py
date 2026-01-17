@@ -1101,21 +1101,6 @@ class SettingsWindow:
         )
         cancel_btn.pack(side="left", pady=10)
 
-        # Reset button - ghost style, right aligned
-        reset_btn = ctk.CTkButton(
-            footer,
-            text="Reset to Defaults",
-            width=140,
-            height=36,
-            corner_radius=8,
-            fg_color="transparent",
-            hover_color=SLATE_700,
-            text_color=SLATE_200,
-            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
-            command=self.reset_defaults,
-        )
-        reset_btn.pack(side="right", padx=SPACE_XL, pady=10)
-
     def _show_section(self, section_id):
         """Show a specific section."""
         # Update nav item states
@@ -2277,6 +2262,22 @@ class SettingsWindow:
         history_btn = self._create_button(history, "View History", self._view_history, width=120)
         history_btn.pack(anchor="w")
 
+        # Reset Settings section
+        reset_section = self._create_section_header(
+            section,
+            "Reset Settings",
+            "Restore all settings to factory defaults"
+        )
+
+        reset_btn = self._create_button(
+            reset_section,
+            "Reset to Defaults",
+            self.reset_defaults,
+            style="secondary",
+            width=140
+        )
+        reset_btn.pack(anchor="w")
+
     def _check_ollama(self):
         """Check Ollama connection."""
         try:
@@ -2526,9 +2527,65 @@ class SettingsWindow:
                 return info
         return None
 
+    def _show_confirm_dialog(self, title, message):
+        """Show a branded confirmation dialog. Returns True if confirmed."""
+        result = [False]
+
+        dlg = ctk.CTkToplevel(self.window)
+        dlg.title(title)
+        dlg.geometry("350x150")
+        dlg.configure(fg_color=SLATE_900)
+        dlg.transient(self.window)
+        dlg.grab_set()
+        dlg.resizable(False, False)
+
+        # Set icon
+        try:
+            icon_path = resource_path("icon.ico")
+            if os.path.exists(icon_path):
+                dlg.after(200, lambda: dlg.iconbitmap(icon_path))
+        except Exception:
+            pass
+
+        # Center on parent
+        dlg.update_idletasks()
+        x = self.window.winfo_x() + (self.window.winfo_width() - 350) // 2
+        y = self.window.winfo_y() + (self.window.winfo_height() - 150) // 2
+        dlg.geometry(f"350x150+{x}+{y}")
+
+        frame = ctk.CTkFrame(dlg, fg_color="transparent")
+        frame.pack(fill="both", expand=True, padx=SPACE_LG, pady=SPACE_LG)
+
+        ctk.CTkLabel(
+            frame,
+            text=message,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=14),
+            text_color=SLATE_200,
+            wraplength=300
+        ).pack(pady=(SPACE_MD, SPACE_LG))
+
+        def confirm():
+            result[0] = True
+            dlg.destroy()
+
+        btn_row = ctk.CTkFrame(frame, fg_color="transparent")
+        btn_row.pack(side="bottom")
+
+        ctk.CTkButton(
+            btn_row, text="Yes", width=80, fg_color=PRIMARY,
+            hover_color=PRIMARY_DARK, command=confirm
+        ).pack(side="left", padx=(0, SPACE_SM))
+        ctk.CTkButton(
+            btn_row, text="No", width=80, fg_color=SLATE_700,
+            hover_color=SLATE_600, command=dlg.destroy
+        ).pack(side="left")
+
+        dlg.wait_window()
+        return result[0]
+
     def reset_defaults(self):
         """Reset all settings to defaults."""
-        if not messagebox.askyesno(
+        if not self._show_confirm_dialog(
             "Reset to Defaults",
             "Reset all settings to defaults?"
         ):
@@ -2536,25 +2593,48 @@ class SettingsWindow:
 
         defaults = settings_logic.get_defaults()
 
-        self.model_var.set(defaults["model_size"])
-        self.lang_var.set(settings_logic.language_code_to_label(defaults["language"]))
+        # General tab
         self.mode_var.set(RECORDING_MODE_LABELS.get(defaults["recording_mode"], "Push-to-Talk"))
-        self.silence_var.set(str(defaults["silence_duration_sec"]))
+        self.lang_var.set(settings_logic.language_code_to_label(defaults["language"]))
         self.autopaste_var.set(defaults["auto_paste"])
         self.paste_mode_var.set(PASTE_MODE_LABELS.get(defaults["paste_mode"], "Clipboard"))
-        self.preview_enabled_var.set(defaults.get("preview_enabled", True))
-        self.preview_position_var.set(PREVIEW_POSITION_LABELS.get(defaults.get("preview_position", "bottom_right"), "Bottom Right"))
-        self.preview_theme_var.set(PREVIEW_THEME_LABELS.get(defaults.get("preview_theme", "dark"), "Dark"))
-        self.preview_delay_var.set(str(defaults.get("preview_auto_hide_delay", 2.0)))
-        self.rate_var.set(SAMPLE_RATE_OPTIONS.get(defaults["sample_rate"], SAMPLE_RATE_OPTIONS[16000]))
-        self.noise_gate_var.set(defaults.get("noise_gate_enabled", False))
-        self.noise_threshold_var.set(defaults.get("noise_gate_threshold_db", -40))
+        self.preview_enabled_var.set(defaults["preview_enabled"])
+        self.preview_position_var.set(PREVIEW_POSITION_LABELS.get(defaults["preview_position"], "Bottom Right"))
+        self.preview_theme_var.set(PREVIEW_THEME_LABELS.get(defaults["preview_theme"], "Dark"))
+        self.preview_delay_var.set(str(defaults["preview_auto_hide_delay"]))
+        self.preview_font_size_var.set(defaults["preview_font_size"])
+        self.startup_var.set(defaults["start_with_windows"])
+
+        # Audio tab
+        self.device_var.set("System Default")
+        self.rate_var.set(SAMPLE_RATE_OPTIONS.get(defaults["sample_rate"], "16000 Hz"))
+        self.noise_gate_var.set(defaults["noise_gate_enabled"])
+        self.noise_threshold_var.set(defaults["noise_gate_threshold_db"])
         self.feedback_var.set(defaults["audio_feedback"])
-        self.volume_var.set(defaults.get("audio_feedback_volume", 100))
-        self.voice_commands_var.set(defaults.get("voice_commands_enabled", True))
-        self.scratch_that_var.set(defaults.get("scratch_that_enabled", True))
-        self.filler_var.set(defaults.get("filler_removal_enabled", False))
-        self.ai_cleanup_var.set(defaults.get("ai_cleanup_enabled", False))
+        self.volume_var.set(int(defaults["audio_feedback_volume"] * 100))
+        self.sound_processing_var.set(defaults["sound_processing"])
+        self.sound_success_var.set(defaults["sound_success"])
+        self.sound_error_var.set(defaults["sound_error"])
+        self.sound_command_var.set(defaults["sound_command"])
+
+        # Recognition tab
+        self.model_var.set(defaults["model_size"])
+        self.silence_var.set(str(defaults["silence_duration_sec"]))
+        self.processing_mode_var.set(config.PROCESSING_MODE_LABELS.get(defaults["processing_mode"], "Auto"))
+        self.translation_enabled_var.set(defaults["translation_enabled"])
+        self.trans_lang_var.set(settings_logic.language_code_to_label(defaults["translation_source_language"]))
+
+        # Text tab
+        self.voice_commands_var.set(defaults["voice_commands_enabled"])
+        self.scratch_that_var.set(defaults["scratch_that_enabled"])
+        self.filler_var.set(defaults["filler_removal_enabled"])
+        self.filler_aggressive_var.set(defaults["filler_removal_aggressive"])
+
+        # Advanced tab
+        self.ai_cleanup_var.set(defaults["ai_cleanup_enabled"])
+        self.ai_mode_var.set(defaults["ai_cleanup_mode"])
+        self.ai_formality_var.set(defaults["ai_formality_level"])
+        self.ai_model_var.set(defaults["ollama_model"])
 
     def close(self):
         """Close the settings window."""
