@@ -12,7 +12,7 @@ VERSION = "1.0.0"
 
 # Default settings
 DEFAULTS = {
-    "model_size": "tiny.en",
+    "model_size": "tiny",
     "sample_rate": 16000,
     "language": "en",
     "hotkey": {
@@ -80,26 +80,31 @@ DEFAULTS = {
 GITHUB_REPO = "#"
 HELP_URL = "#"
 
-MODEL_OPTIONS = ["tiny.en", "base.en", "small.en", "medium.en"]
+# Multilingual models (support transcription AND translation)
+MODEL_OPTIONS = ["tiny", "base", "small", "medium", "large-v3"]
 
 # Models bundled with installer vs available for download
-BUNDLED_MODELS = ["tiny.en", "base.en"]
-DOWNLOADABLE_MODELS = ["small.en", "medium.en"]
+BUNDLED_MODELS = ["tiny", "base"]
+DOWNLOADABLE_MODELS = ["small", "medium", "large-v3"]
 
 # Model sizes in MB (approximate, for download dialogs)
 MODEL_SIZES_MB = {
-    "tiny.en": 75,
-    "base.en": 145,
-    "small.en": 484,
-    "medium.en": 1500,
+    "tiny": 75,
+    "base": 145,
+    "small": 484,
+    "medium": 1500,
+    "large-v3": 3000,
 }
 
 # Model download URLs (GitHub Releases)
-MODEL_DOWNLOAD_BASE_URL = "https://github.com/tuckerandrew21/MurmurTone/releases/download/models-v1.0.0"
+# Note: large-v3 downloads from HuggingFace (too large for GitHub's 2GB limit)
+MODEL_DOWNLOAD_BASE_URL = "https://github.com/tuckerandrew21/MurmurTone/releases/download/models-v2.0.0"
 MODEL_DOWNLOAD_URLS = {
-    "small.en": f"{MODEL_DOWNLOAD_BASE_URL}/faster-whisper-small.en.zip",
-    "medium.en": f"{MODEL_DOWNLOAD_BASE_URL}/faster-whisper-medium.en.zip",
+    "small": f"{MODEL_DOWNLOAD_BASE_URL}/faster-whisper-small.zip",
+    "medium": f"{MODEL_DOWNLOAD_BASE_URL}/faster-whisper-medium.zip",
 }
+# Models that download directly from HuggingFace (too large for GitHub)
+HUGGINGFACE_MODELS = ["large-v3"]
 
 # Language codes supported by Whisper
 LANGUAGE_OPTIONS = [

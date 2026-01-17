@@ -33,10 +33,11 @@ def find_model_in_cache(model_name="tiny.en"):
 
     # faster-whisper downloads models to cache with pattern:
     # models--Systran--faster-whisper-tiny.en/snapshots/<hash>/
+    # Use exact match to avoid "small" matching "small.en"
     pattern = f"models--Systran--faster-whisper-{model_name}"
 
     for item in cache_dir.iterdir():
-        if item.is_dir() and item.name.startswith(pattern):
+        if item.is_dir() and item.name == pattern:
             # Find the snapshots directory
             snapshots_dir = item / "snapshots"
             if snapshots_dir.exists():

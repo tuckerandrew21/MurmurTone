@@ -76,7 +76,7 @@ class TestConfigLoadSave:
 
         test_config = config.DEFAULTS.copy()
         test_config.update({
-            'model_size': 'medium.en',
+            'model_size': 'medium',
             'language': 'auto',
             'audio_feedback': False,
         })
@@ -84,7 +84,7 @@ class TestConfigLoadSave:
         config.save_config(test_config)
         loaded = config.load_config()
 
-        assert loaded['model_size'] == 'medium.en'
+        assert loaded['model_size'] == 'medium'
         assert loaded['language'] == 'auto'
         assert loaded['audio_feedback'] is False
 
@@ -94,14 +94,14 @@ class TestConfigLoadSave:
         mocker.patch('config.get_config_path', return_value=str(config_file))
 
         # Write partial config (missing most keys)
-        partial = {'model_size': 'tiny.en'}
+        partial = {'model_size': 'tiny'}
         with open(config_file, 'w') as f:
             json.dump(partial, f)
 
         loaded = config.load_config()
 
         # Should have the saved value
-        assert loaded['model_size'] == 'tiny.en'
+        assert loaded['model_size'] == 'tiny'
         # Should have defaults for missing keys
         assert loaded['language'] == config.DEFAULTS['language']
 

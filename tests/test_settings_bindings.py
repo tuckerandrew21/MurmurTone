@@ -348,14 +348,14 @@ class TestConfigPersistence:
     def test_save_and_load_preserves_values(self, mock_config_path):
         """Save then load should return same values."""
         test_config = config.DEFAULTS.copy()
-        test_config["model_size"] = "base.en"
+        test_config["model_size"] = "base"
         test_config["language"] = "es"
         test_config["audio_feedback"] = False
 
         config.save_config(test_config)
         loaded = config.load_config()
 
-        assert loaded["model_size"] == "base.en"
+        assert loaded["model_size"] == "base"
         assert loaded["language"] == "es"
         assert loaded["audio_feedback"] is False
 
@@ -369,7 +369,7 @@ class TestConfigPersistence:
 
     def test_save_to_existing_directory_works(self, mock_config_path):
         """Save should work when parent directory exists."""
-        config.save_config({"model_size": "tiny.en"})
+        config.save_config({"model_size": "tiny"})
         assert mock_config_path.exists()
 
 
@@ -419,7 +419,7 @@ class TestStringSettings:
     """Test string settings save/load correctly."""
 
     string_settings = [
-        ("model_size", "medium.en"),
+        ("model_size", "medium"),
         ("language", "fr"),
         ("recording_mode", "auto_stop"),
         ("paste_mode", "type"),
@@ -565,7 +565,7 @@ class TestSettingsBuildDict:
     def test_build_settings_dict_creates_valid_dict(self):
         """build_settings_dict should create a complete settings dict."""
         result = settings_logic.build_settings_dict(
-            model_size="base.en",
+            model_size="base",
             language="en",
             translation_enabled=False,
             translation_source_language="auto",
@@ -606,7 +606,7 @@ class TestSettingsBuildDict:
             preview_font_size=11,
         )
 
-        assert result["model_size"] == "base.en"
+        assert result["model_size"] == "base"
         assert result["language"] == "en"
         assert result["sample_rate"] == 16000
         assert result["preview_enabled"] is True

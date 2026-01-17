@@ -438,13 +438,13 @@ class TestModelSelection:
         mocker.patch('config.get_config_path', return_value=str(temp_config_file))
 
         # Create fake bundled model
-        models_dir = tmp_path / "models" / "tiny.en"
+        models_dir = tmp_path / "models" / "tiny"
         models_dir.mkdir(parents=True)
         (models_dir / "model.bin").write_text("fake")
 
         mocker.patch('dependency_check.get_app_install_dir', return_value=str(tmp_path))
 
-        is_available, path = check_model_available("tiny.en")
+        is_available, path = check_model_available("tiny")
         assert is_available is True
 
     def test_model_status_for_downloadable_model_not_installed(self, temp_config_file, mocker, tmp_path):
@@ -475,19 +475,20 @@ class TestModelSelection:
                 f"URL for {model} doesn't reference model name: {url}"
 
     def test_bundled_models_includes_tiny_and_base(self, temp_config_file, mocker):
-        """BUNDLED_MODELS should include tiny.en and base.en."""
+        """BUNDLED_MODELS should include tiny and base."""
         import config
 
         mocker.patch('config.get_config_path', return_value=str(temp_config_file))
 
-        assert "tiny.en" in config.BUNDLED_MODELS
-        assert "base.en" in config.BUNDLED_MODELS
+        assert "tiny" in config.BUNDLED_MODELS
+        assert "base" in config.BUNDLED_MODELS
 
-    def test_downloadable_models_includes_small_and_medium(self, temp_config_file, mocker):
-        """DOWNLOADABLE_MODELS should include small.en and medium.en."""
+    def test_downloadable_models_includes_small_medium_large(self, temp_config_file, mocker):
+        """DOWNLOADABLE_MODELS should include small, medium, and large-v3."""
         import config
 
         mocker.patch('config.get_config_path', return_value=str(temp_config_file))
 
-        assert "small.en" in config.DOWNLOADABLE_MODELS
-        assert "medium.en" in config.DOWNLOADABLE_MODELS
+        assert "small" in config.DOWNLOADABLE_MODELS
+        assert "medium" in config.DOWNLOADABLE_MODELS
+        assert "large-v3" in config.DOWNLOADABLE_MODELS

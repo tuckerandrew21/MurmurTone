@@ -42,13 +42,18 @@ class TestModelConstants:
             assert config.MODEL_SIZES_MB[model] > 0
 
     def test_model_download_urls_defined(self):
-        """MODEL_DOWNLOAD_URLS should be defined for downloadable models."""
+        """MODEL_DOWNLOAD_URLS should be defined for downloadable models (except HuggingFace ones)."""
         import config
         assert hasattr(config, 'MODEL_DOWNLOAD_URLS')
         assert isinstance(config.MODEL_DOWNLOAD_URLS, dict)
 
-        # All downloadable models should have URLs
+        # Get HuggingFace models (download directly, no GitHub URL)
+        hf_models = getattr(config, 'HUGGINGFACE_MODELS', [])
+
+        # All downloadable models should have URLs (except HuggingFace ones)
         for model in config.DOWNLOADABLE_MODELS:
+            if model in hf_models:
+                continue  # HuggingFace models don't need GitHub URLs
             assert model in config.MODEL_DOWNLOAD_URLS, f"URL not defined for {model}"
             assert config.MODEL_DOWNLOAD_URLS[model].startswith('https://')
 
@@ -68,6 +73,14 @@ class TestModelConstants:
         missing = all_models - options_set
         assert len(missing) == 0, f"Models not in MODEL_OPTIONS: {missing}"
 
+    def test_huggingface_models_are_downloadable(self):
+        """HUGGINGFACE_MODELS should be subset of DOWNLOADABLE_MODELS."""
+        import config
+        hf_models = getattr(config, 'HUGGINGFACE_MODELS', [])
+        for model in hf_models:
+            assert model in config.DOWNLOADABLE_MODELS, \
+                f"HuggingFace model {model} not in DOWNLOADABLE_MODELS"
+
 
 class TestCheckModelAvailable:
     """Test check_model_available function."""
@@ -77,15 +90,15 @@ class TestCheckModelAvailable:
         from dependency_check import check_model_available, get_app_install_dir
 
         # Create a fake bundled model
-        models_dir = tmp_path / "models" / "tiny.en"
+        models_dir = tmp_path / "models" / "tiny"
         models_dir.mkdir(parents=True)
         (models_dir / "model.bin").write_text("fake model")
 
         with patch('dependency_check.get_app_install_dir', return_value=str(tmp_path)):
-            is_available, path = check_model_available("tiny.en")
+            is_available, path = check_model_available("tiny")
             assert is_available is True
             assert path is not None
-            assert "tiny.en" in path
+            assert "tiny" in path
 
     def test_check_model_missing(self, tmp_path):
         """Should return False for model that doesn't exist."""
@@ -103,13 +116,13 @@ class TestCheckModelAvailable:
         from dependency_check import check_model_available
 
         # Create model directory without model.bin
-        models_dir = tmp_path / "models" / "tiny.en"
+        models_dir = tmp_path / "models" / "tiny"
         models_dir.mkdir(parents=True)
         (models_dir / "config.json").write_text("{}")  # Some other file
 
         with patch('dependency_check.get_app_install_dir', return_value=str(tmp_path)):
             with patch('pathlib.Path.home', return_value=tmp_path):
-                is_available, path = check_model_available("tiny.en")
+                is_available, path = check_model_available("tiny")
                 assert is_available is False
 
 
@@ -125,7 +138,7 @@ class TestGetSelectedModel:
 
         with patch('config.get_config_path', return_value=str(config_file)):
             model = get_selected_model()
-            assert model == "tiny.en"
+            assert model == "tiny"
 
     def test_get_selected_model_from_config(self, tmp_path):
         """Should return model from config."""
@@ -133,11 +146,11 @@ class TestGetSelectedModel:
         import json
 
         config_file = tmp_path / "config.json"
-        config_file.write_text(json.dumps({"model_size": "small.en"}))
+        config_file.write_text(json.dumps({"model_size": "small"}))
 
         with patch('config.get_config_path', return_value=str(config_file)):
             model = get_selected_model()
-            assert model == "small.en"
+            assert model == "small"
 
 
 class TestGetModelDownloadUrl:
@@ -157,28 +170,34 @@ class TestModelSizeConstants:
     """Test model size constants match expected values."""
 
     def test_tiny_model_size(self):
-        """tiny.en should be approximately 75 MB."""
+        """tiny should be approximately 75 MB."""
         import config
-        size = config.MODEL_SIZES_MB.get("tiny.en", 0)
-        assert 50 <= size <= 100, f"tiny.en size {size}MB outside expected range"
+        size = config.MODEL_SIZES_MB.get("tiny", 0)
+        assert 50 <= size <= 100, f"tiny size {size}MB outside expected range"
 
     def test_base_model_size(self):
-        """base.en should be approximately 145 MB."""
+        """base should be approximately 145 MB."""
         import config
-        size = config.MODEL_SIZES_MB.get("base.en", 0)
-        assert 100 <= size <= 200, f"base.en size {size}MB outside expected range"
+        size = config.MODEL_SIZES_MB.get("base", 0)
+        assert 100 <= size <= 200, f"base size {size}MB outside expected range"
 
     def test_small_model_size(self):
-        """small.en should be approximately 484 MB."""
+        """small should be approximately 484 MB."""
         import config
-        size = config.MODEL_SIZES_MB.get("small.en", 0)
-        assert 400 <= size <= 600, f"small.en size {size}MB outside expected range"
+        size = config.MODEL_SIZES_MB.get("small", 0)
+        assert 400 <= size <= 600, f"small size {size}MB outside expected range"
 
     def test_medium_model_size(self):
-        """medium.en should be approximately 1500 MB."""
+        """medium should be approximately 1500 MB."""
         import config
-        size = config.MODEL_SIZES_MB.get("medium.en", 0)
-        assert 1200 <= size <= 1800, f"medium.en size {size}MB outside expected range"
+        size = config.MODEL_SIZES_MB.get("medium", 0)
+        assert 1200 <= size <= 1800, f"medium size {size}MB outside expected range"
+
+    def test_large_v3_model_size(self):
+        """large-v3 should be approximately 3000 MB."""
+        import config
+        size = config.MODEL_SIZES_MB.get("large-v3", 0)
+        assert 2500 <= size <= 3500, f"large-v3 size {size}MB outside expected range"
 
 
 class TestSetFallbackModel:
@@ -190,12 +209,12 @@ class TestSetFallbackModel:
         import json
 
         config_file = tmp_path / "config.json"
-        config_file.write_text(json.dumps({"model_size": "small.en"}))
+        config_file.write_text(json.dumps({"model_size": "small"}))
 
         with patch('config.get_config_path', return_value=str(config_file)):
-            result = set_fallback_model("base.en")
+            result = set_fallback_model("base")
             assert result is True
 
             # Verify config was updated
             updated_config = json.loads(config_file.read_text())
-            assert updated_config["model_size"] == "base.en"
+            assert updated_config["model_size"] == "base"

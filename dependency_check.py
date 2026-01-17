@@ -281,7 +281,7 @@ def check_model_available(model_name):
     Checks both bundled models directory and HuggingFace cache.
 
     Args:
-        model_name: Name of the model (e.g., "tiny.en", "small.en")
+        model_name: Name of the model (e.g., "tiny", "small")
 
     Returns:
         tuple: (is_available: bool, path_or_none: str|None)
@@ -318,9 +318,9 @@ def get_selected_model():
     try:
         import config
         settings = config.load_config()
-        return settings.get("model_size", "tiny.en")
+        return settings.get("model_size", "tiny")
     except Exception:
-        return "tiny.en"
+        return "tiny"
 
 
 def show_model_download_dialog(model_name):
@@ -336,10 +336,10 @@ def show_model_download_dialog(model_name):
     try:
         from config import MODEL_SIZES_MB, BUNDLED_MODELS
         size_mb = MODEL_SIZES_MB.get(model_name, 500)
-        fallback_model = BUNDLED_MODELS[0] if BUNDLED_MODELS else "tiny.en"
+        fallback_model = BUNDLED_MODELS[0] if BUNDLED_MODELS else "tiny"
     except ImportError:
         size_mb = 500
-        fallback_model = "tiny.en"
+        fallback_model = "tiny"
 
     # Fallback to plain messagebox if customtkinter not available
     if not HAS_CTK:
@@ -469,6 +469,14 @@ def download_model(model_name):
     Returns:
         bool: True if download succeeded, False otherwise
     """
+    # Check if this model downloads from HuggingFace instead of GitHub
+    try:
+        from config import HUGGINGFACE_MODELS
+        if model_name in HUGGINGFACE_MODELS:
+            return _download_model_huggingface(model_name)
+    except ImportError:
+        pass
+
     try:
         import requests
         import zipfile
@@ -685,6 +693,94 @@ def _show_error_dialog(title, message):
     dialog.mainloop()
 
 
+def _download_model_huggingface(model_name):
+    """
+    Download a model directly from HuggingFace using faster-whisper.
+
+    Used for models too large for GitHub releases (e.g., large-v3).
+
+    Args:
+        model_name: Name of the model to download
+
+    Returns:
+        bool: True if download succeeded, False otherwise
+    """
+    try:
+        from config import MODEL_SIZES_MB
+        size_mb = MODEL_SIZES_MB.get(model_name, 3000)
+    except ImportError:
+        size_mb = 3000
+
+    # Show a simple info dialog since we can't show progress for HF downloads
+    if HAS_CTK:
+        dialog = ctk.CTk()
+        dialog.title(f"MurmurTone - Downloading {model_name}")
+        dialog.geometry("420x160")
+        dialog.resizable(False, False)
+        dialog.configure(fg_color=SLATE_800)
+
+        dialog.update_idletasks()
+        x = (dialog.winfo_screenwidth() - 420) // 2
+        y = (dialog.winfo_screenheight() - 160) // 2
+        dialog.geometry(f"+{x}+{y}")
+
+        try:
+            icon_path = resource_path("icon.ico")
+            if os.path.exists(icon_path):
+                dialog.after(200, lambda: dialog.iconbitmap(icon_path))
+        except Exception:
+            pass
+
+        frame = ctk.CTkFrame(dialog, fg_color="transparent")
+        frame.pack(fill="both", expand=True, padx=SPACE_LG, pady=SPACE_LG)
+
+        ctk.CTkLabel(
+            frame,
+            text=f"Downloading {model_name} Model",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=15, weight="bold"),
+            text_color=SLATE_100,
+        ).pack(pady=(SPACE_SM, SPACE_MD))
+
+        ctk.CTkLabel(
+            frame,
+            text=f"Downloading ~{size_mb} MB from HuggingFace...\nThis may take several minutes.",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=12),
+            text_color=SLATE_400,
+            justify="center",
+        ).pack(pady=SPACE_SM)
+
+        progress = ctk.CTkProgressBar(frame, width=380, mode="indeterminate")
+        progress.pack(pady=SPACE_SM)
+        progress.start()
+
+        dialog.update()
+    else:
+        dialog = None
+
+    try:
+        # Use faster-whisper to download the model
+        from faster_whisper import WhisperModel
+        _ = WhisperModel(model_name, device="cpu", compute_type="int8")
+
+        # Verify it's available now
+        is_available, _ = check_model_available(model_name)
+        if not is_available:
+            raise Exception("Model download completed but files not found")
+
+        if dialog:
+            dialog.destroy()
+        return True
+
+    except Exception as e:
+        if dialog:
+            dialog.destroy()
+        _show_error_dialog(
+            "Download Failed",
+            f"Failed to download model from HuggingFace:\n\n{str(e)}"
+        )
+        return False
+
+
 def _download_model_ttk(model_name, download_url):
     """Fallback download with ttk progress bar (when CTk not available)."""
     import requests
@@ -789,7 +885,7 @@ def _download_model_ttk(model_name, download_url):
     return success
 
 
-def set_fallback_model(fallback_model="base.en"):
+def set_fallback_model(fallback_model="base"):
     """Update config to use the fallback model."""
     try:
         import config
@@ -819,8 +915,8 @@ def verify_model_dependencies():
     try:
         from config import BUNDLED_MODELS, DOWNLOADABLE_MODELS
     except ImportError:
-        BUNDLED_MODELS = ["tiny.en", "base.en"]
-        DOWNLOADABLE_MODELS = ["small.en", "medium.en"]
+        BUNDLED_MODELS = ["tiny", "base"]
+        DOWNLOADABLE_MODELS = ["small", "medium", "large-v3"]
 
     if model_name in BUNDLED_MODELS:
         # Bundled model should always be present - this is an error

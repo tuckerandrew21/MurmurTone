@@ -110,7 +110,7 @@ class TestSettingsConfig:
 
         # Create custom config
         cfg = config.DEFAULTS.copy()
-        cfg["model_size"] = "base.en"
+        cfg["model_size"] = "base"
         cfg["custom_vocabulary"] = ["MurmurTone", "GitHub"]
         cfg["translation_enabled"] = True
 
@@ -122,7 +122,7 @@ class TestSettingsConfig:
         with open(config_file, "r") as f:
             loaded = json.load(f)
 
-        assert loaded["model_size"] == "base.en"
+        assert loaded["model_size"] == "base"
         assert loaded["custom_vocabulary"] == ["MurmurTone", "GitHub"]
         assert loaded["translation_enabled"] is True
 
