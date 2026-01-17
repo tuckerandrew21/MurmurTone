@@ -2116,15 +2116,62 @@ class SettingsWindow:
         # Whisper Model section (first section - no separator)
         model = self._create_section_header(section, "Whisper Model", "Choose the speech recognition model")
 
-        self.model_var = ctk.StringVar(value=self.config.get("model_size", "base"))
+        self.model_var = ctk.StringVar(value=self.config.get("model_size", "tiny.en"))
         self._create_labeled_dropdown(
             model,
             "Model Size",
-            values=["tiny", "base", "small", "medium", "large-v2", "large-v3"],
+            values=config.MODEL_OPTIONS,
             variable=self.model_var,
             help_text="Larger models are more accurate but slower",
             width=140,
+            command=self._on_model_changed,
         )
+
+        # Model status row
+        self.model_status_frame = ctk.CTkFrame(model, fg_color="transparent")
+        self.model_status_frame.pack(fill="x", pady=(0, SPACE_MD))
+
+        model_status_row = ctk.CTkFrame(self.model_status_frame, fg_color="transparent")
+        model_status_row.pack(fill="x")
+
+        # Status dot
+        self.model_status_dot = self._create_status_dot(model_status_row, SUCCESS)
+
+        self.model_status_text = ctk.CTkLabel(
+            model_status_row,
+            text="Checking...",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+            text_color=SLATE_300,
+        )
+        self.model_status_text.pack(side="left")
+
+        # Download Model button (hidden by default, shown when needed)
+        self.download_model_frame = ctk.CTkFrame(model, fg_color="transparent")
+        self.download_model_btn = ctk.CTkButton(
+            self.download_model_frame,
+            text="Download Model",
+            command=self._download_selected_model,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+            fg_color=PRIMARY,
+            hover_color=PRIMARY_DARK,
+            corner_radius=6,
+            height=32,
+        )
+        self.download_model_btn.pack(side="left")
+
+        self.download_model_size_label = ctk.CTkLabel(
+            self.download_model_frame,
+            text="",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=11),
+            text_color=SLATE_500,
+        )
+        self.download_model_size_label.pack(side="left", padx=(SPACE_SM, 0))
+
+        # Pack frame now, will be hidden/shown by refresh_model_status
+        self.download_model_frame.pack(fill="x", pady=(SPACE_SM, 0))
+
+        # Refresh model status on load
+        self.window.after(100, self.refresh_model_status)
 
         self.silence_var = ctk.StringVar(value=str(self.config.get("silence_duration_sec", 2.0)))
         self._create_labeled_entry(
@@ -2225,6 +2272,208 @@ class SettingsWindow:
             help_text="Language being spoken",
             width=160,
         )
+
+    # =========================================================================
+    # MODEL STATUS AND DOWNLOAD
+    # =========================================================================
+
+    def _on_model_changed(self, *args):
+        """Callback when model dropdown selection changes."""
+        self.refresh_model_status()
+
+    def refresh_model_status(self):
+        """Refresh model status display."""
+        model_name = self.model_var.get()
+
+        # Check if model is available
+        from dependency_check import check_model_available
+        is_available, _ = check_model_available(model_name)
+
+        if is_available:
+            # Green status - model installed
+            self.model_status_dot.configure(fg_color=SUCCESS)
+            self.model_status_text.configure(text="Installed")
+            # Hide download button
+            self.download_model_frame.pack_forget()
+        else:
+            # Check if this is a downloadable model
+            if model_name in config.DOWNLOADABLE_MODELS:
+                # Orange status - downloadable
+                self.model_status_dot.configure(fg_color=WARNING)
+                self.model_status_text.configure(text="Not installed")
+                # Show download button with size
+                size_mb = config.MODEL_SIZES_MB.get(model_name, 500)
+                if size_mb >= 1000:
+                    size_text = f"~{size_mb / 1000:.1f} GB"
+                else:
+                    size_text = f"~{size_mb} MB"
+                self.download_model_size_label.configure(text=size_text)
+                self.download_model_frame.pack(fill="x", pady=(SPACE_SM, 0), after=self.model_status_frame)
+            elif model_name in config.BUNDLED_MODELS:
+                # Red status - bundled model missing (installation error)
+                self.model_status_dot.configure(fg_color=ERROR)
+                self.model_status_text.configure(text="Missing (reinstall required)")
+                self.download_model_frame.pack_forget()
+            else:
+                # Unknown model
+                self.model_status_dot.configure(fg_color=SLATE_500)
+                self.model_status_text.configure(text="Unknown model")
+                self.download_model_frame.pack_forget()
+
+    def _download_selected_model(self):
+        """Download the currently selected model."""
+        model_name = self.model_var.get()
+
+        # Confirm download
+        if not self._show_model_download_confirm(model_name):
+            return
+
+        # Download using dependency_check
+        from dependency_check import download_model
+        success = download_model(model_name)
+
+        if success:
+            # Refresh status
+            self.refresh_model_status()
+            self._show_info_dialog(
+                "Download Complete",
+                f"The {model_name} model has been downloaded successfully!"
+            )
+
+    def _show_info_dialog(self, title, message):
+        """Show a branded info dialog."""
+        dialog = ctk.CTkToplevel(self.window)
+        dialog.title(title)
+        dialog.geometry("350x150")
+        dialog.resizable(False, False)
+        dialog.transient(self.window)
+        dialog.grab_set()
+        dialog.configure(fg_color=SLATE_800)
+
+        # Center on parent
+        dialog.update_idletasks()
+        x = self.window.winfo_x() + (self.window.winfo_width() - 350) // 2
+        y = self.window.winfo_y() + (self.window.winfo_height() - 150) // 2
+        dialog.geometry(f"+{x}+{y}")
+
+        # Set icon
+        try:
+            icon_path = resource_path("icon.ico")
+            if os.path.exists(icon_path):
+                dialog.after(200, lambda: dialog.iconbitmap(icon_path))
+        except Exception:
+            pass
+
+        frame = ctk.CTkFrame(dialog, fg_color="transparent")
+        frame.pack(fill="both", expand=True, padx=SPACE_LG, pady=SPACE_LG)
+
+        ctk.CTkLabel(
+            frame,
+            text=message,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+            text_color=SLATE_200,
+            wraplength=310,
+            justify="center",
+        ).pack(pady=(SPACE_MD, SPACE_LG))
+
+        ctk.CTkButton(
+            frame,
+            text="OK",
+            command=dialog.destroy,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+            fg_color=PRIMARY,
+            hover_color=PRIMARY_DARK,
+            width=80,
+            height=32,
+        ).pack()
+
+        dialog.wait_window()
+
+    def _show_model_download_confirm(self, model_name):
+        """Show branded confirmation dialog for model download. Returns True if confirmed."""
+        size_mb = config.MODEL_SIZES_MB.get(model_name, 500)
+        if size_mb >= 1000:
+            size_text = f"~{size_mb / 1000:.1f} GB"
+        else:
+            size_text = f"~{size_mb} MB"
+
+        result = {"confirmed": False}
+
+        dialog = ctk.CTkToplevel(self.window)
+        dialog.title("Download Model")
+        dialog.geometry("380x180")
+        dialog.resizable(False, False)
+        dialog.transient(self.window)
+        dialog.grab_set()
+        dialog.configure(fg_color=SLATE_800)
+
+        # Center on parent
+        dialog.update_idletasks()
+        x = self.window.winfo_x() + (self.window.winfo_width() - 380) // 2
+        y = self.window.winfo_y() + (self.window.winfo_height() - 180) // 2
+        dialog.geometry(f"+{x}+{y}")
+
+        # Set icon
+        try:
+            icon_path = resource_path("icon.ico")
+            if os.path.exists(icon_path):
+                dialog.after(200, lambda: dialog.iconbitmap(icon_path))
+        except Exception:
+            pass
+
+        frame = ctk.CTkFrame(dialog, fg_color="transparent")
+        frame.pack(fill="both", expand=True, padx=SPACE_LG, pady=SPACE_LG)
+
+        ctk.CTkLabel(
+            frame,
+            text=f"Download {model_name} Model?",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=15, weight="bold"),
+            text_color=SLATE_100,
+        ).pack(pady=(SPACE_SM, SPACE_SM))
+
+        ctk.CTkLabel(
+            frame,
+            text=f"Download size: {size_text}\nThis may take a few minutes.",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=12),
+            text_color=SLATE_400,
+            justify="center",
+        ).pack(pady=(0, SPACE_LG))
+
+        def on_yes():
+            result["confirmed"] = True
+            dialog.destroy()
+
+        btn_frame = ctk.CTkFrame(frame, fg_color="transparent")
+        btn_frame.pack()
+
+        ctk.CTkButton(
+            btn_frame,
+            text="Download",
+            command=on_yes,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+            fg_color=PRIMARY,
+            hover_color=PRIMARY_DARK,
+            width=100,
+            height=32,
+        ).pack(side="left", padx=SPACE_SM)
+
+        ctk.CTkButton(
+            btn_frame,
+            text="Cancel",
+            command=dialog.destroy,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+            fg_color=SLATE_700,
+            hover_color=SLATE_600,
+            width=100,
+            height=32,
+        ).pack(side="left", padx=SPACE_SM)
+
+        dialog.wait_window()
+        return result["confirmed"]
+
+    # =========================================================================
+    # GPU STATUS AND INSTALL
+    # =========================================================================
 
     def refresh_gpu_status(self):
         """Refresh GPU status display."""
