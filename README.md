@@ -138,15 +138,62 @@ While recording, say these commands:
 | "uppercase that" | UPPERCASE last word |
 | "lowercase that" | lowercase last word |
 
-### AI Text Cleanup (Ollama)
+### AI Text Cleanup (Ollama) 🌟 Killer Feature
 
-1. **Install Ollama** from [ollama.com](https://ollama.com)
-2. **Download a model**: `ollama pull llama3.2:3b`
+**The only offline voice typing tool with AI-powered text cleanup.**
+
+Transform casual speech into polished text automatically—all processing stays 100% local. No other voice typing tool (Wispr Flow, Voicy, SuperWhisper) offers AI text improvement without cloud APIs.
+
+#### Quick Start
+
+1. **Install Ollama** from [ollama.com](https://ollama.com) (free, open-source)
+2. **Download a model**: `ollama pull llama3.2:3b` (~2GB, one-time)
 3. **Enable in Settings** → AI Text Cleanup
-4. **Choose mode**: Grammar only, Formality only, or Both
-5. **Set formality level**: Casual, Professional, or Formal
+4. **Configure your preferences**:
+   - **Mode**: Grammar only, Formality only, or Both
+   - **Formality Level**: Casual, Professional, or Formal
+5. **Start transcribing** - AI cleanup happens automatically
 
-Transcriptions will be automatically cleaned up using local AI (no cloud!).
+#### What It Does
+
+**Grammar Mode** - Fixes spelling, grammar, and punctuation while preserving your voice:
+
+```text
+Input:  "hey can u help me with this thing i dunno how to do it"
+Output: "Hey, can you help me with this thing? I don't know how to do it."
+```
+
+**Formality Mode** - Adjusts tone for your audience:
+
+```text
+Input:  "hey boss can we chat about that project thing?"
+Output: "I would like to schedule a meeting to discuss the current status of our project."
+```
+
+**Combined Mode** - Grammar + Formality in one pass:
+
+```text
+Input:  "yo i aint sure bout this approach"
+Output: "I am uncertain about the appropriateness of this approach."
+```
+
+#### Performance
+
+- **Average Response**: 2.4 seconds
+- **Quality**: Excellent (see [test report](OLLAMA_INTEGRATION_TEST_REPORT.md))
+- **Privacy**: 100% offline, zero cloud API calls
+- **Cost**: Free (uses your local hardware)
+
+#### Why This Matters
+
+**Privacy-First AI**: Unlike competitors that send your transcriptions to OpenAI, Claude, or other cloud services, MurmurTone keeps everything on your machine. Perfect for:
+
+- Healthcare professionals (HIPAA compliance)
+- Legal professionals (attorney-client privilege)
+- Enterprise users (data security policies)
+- Privacy advocates (no tracking, no telemetry)
+
+**Recommended Model**: `llama3.2:3b` (fast, accurate, 2GB). Advanced users can try `llama3.1:8b` for higher quality.
 
 ### Translation Mode
 
