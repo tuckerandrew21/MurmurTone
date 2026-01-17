@@ -70,10 +70,14 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 Name: "startuprun"; Description: "Launch {#MyAppName} at Windows startup"; GroupDescription: "Startup Options:"; Flags: unchecked
+Name: "gpusupport"; Description: "Include NVIDIA GPU acceleration (adds ~1.6 GB)"; GroupDescription: "GPU Support:"; Flags: unchecked
 
 [Files]
 ; Main application files (built by PyInstaller)
 Source: "dist\MurmurTone\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+; GPU libraries (optional - only if gpusupport task selected)
+Source: "gpu_libs\*.dll"; DestDir: "{app}"; Tasks: gpusupport; Flags: ignoreversion skipifsourcedoesntexist
 
 ; Additional files
 Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion
@@ -125,6 +129,8 @@ begin
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
+var
+  ResultCode: Integer;
 begin
   if CurStep = ssPostInstall then
   begin

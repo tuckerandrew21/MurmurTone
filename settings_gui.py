@@ -2024,7 +2024,7 @@ class SettingsWindow:
         )
 
         # GPU Acceleration section
-        gpu = self._create_section_header(section, "GPU Acceleration", "Use graphics card for faster processing")
+        gpu = self._create_section_header(section, "GPU Acceleration", "Use NVIDIA graphics card for faster processing")
 
         # GPU status
         self.gpu_status_frame = ctk.CTkFrame(gpu, fg_color="transparent")
