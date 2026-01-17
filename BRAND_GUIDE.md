@@ -317,20 +317,27 @@ All text color combinations meet WCAG AA standards:
 
 ### Font Families
 
-**Primary Stack: System Fonts**
+**Primary Font: Roboto**
 
-```css
-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+The desktop application uses bundled Roboto font files for a softer, friendlier appearance.
+
+```
+Desktop App: Roboto (bundled in assets/fonts/)
 ```
 
-**Why system fonts?**
-- Fast loading (no web font download)
-- Native feel on each platform
-- Excellent readability
-- Aligns with privacy focus (no external font requests)
-- Lightweight (reduces page weight)
+**Web/Marketing Fallback Stack:**
+```css
+font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+```
 
-**Monospace** (for code examples):
+**Why Roboto?**
+- Softer, rounder letterforms than Segoe UI
+- Friendlier, less "techy" feel
+- Excellent readability at all sizes
+- Open source (Apache 2.0 license)
+- Bundled with app for consistent experience
+
+**Monospace** (for hotkeys, code):
 ```css
 font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
 ```
