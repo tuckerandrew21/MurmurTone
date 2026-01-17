@@ -164,10 +164,10 @@ def get_dropdown_style():
 
 
 def make_combobox_clickable(combobox):
-    """Make the entire CTkComboBox clickable, not just the arrow button.
+    """Make the entire CTkComboBox clickable with proper toggle behavior.
 
-    By default, readonly CTkComboBox only responds to clicks on the dropdown
-    arrow. This binds click events to the entry portion to open the dropdown.
+    Fixes CTkComboBox issue where second click to close reopens the dropdown
+    (race condition with <Unmap> event). Also sets hand cursor on all components.
 
     Args:
         combobox: A CTkComboBox widget
@@ -175,25 +175,39 @@ def make_combobox_clickable(combobox):
     Returns:
         The combobox (for chaining)
     """
-    def open_dropdown(event):
-        # Simulate clicking the dropdown button
-        combobox._open_dropdown_menu()
+    original_open = combobox._open_dropdown_menu
+    combobox._dropdown_is_open = False
 
-    # Bind click to the internal entry widget
-    if hasattr(combobox, '_entry'):
-        combobox._entry.bind("<Button-1>", open_dropdown)
-        combobox._entry.configure(cursor="hand2")
+    def on_menu_unmap(*args):
+        combobox._dropdown_is_open = False
 
-    # Set cursor on canvas (background/arrow area) widget too
-    if hasattr(combobox, '_canvas'):
-        combobox._canvas.configure(cursor="hand2")
+    def toggle_open():
+        if combobox._dropdown_is_open:
+            combobox._dropdown_menu.unpost()
+            combobox._dropdown_is_open = False
+            return
+        original_open()
+        combobox._dropdown_is_open = True
+
+    combobox._open_dropdown_menu = toggle_open
+    combobox._dropdown_menu.bind("<Unmap>", on_menu_unmap)
 
     # Disable CTkComboBox's built-in cursor manipulation (it resets to arrow on leave)
     if hasattr(combobox, '_cursor_manipulation_enabled'):
         combobox._cursor_manipulation_enabled = False
 
-    # Set cursor on the combobox frame itself
+    # Set cursor on all components
     combobox.configure(cursor="hand2")
+    if hasattr(combobox, '_canvas'):
+        combobox._canvas.configure(cursor="hand2")
+    if hasattr(combobox, '_entry'):
+        combobox._entry.configure(cursor="hand2")
+
+        def on_entry_click(e):
+            toggle_open()
+            return "break"
+
+        combobox._entry.bind("<Button-1>", on_entry_click)
 
     return combobox
 

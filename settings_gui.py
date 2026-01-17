@@ -17,6 +17,7 @@ from PIL import Image
 
 import config
 import settings_logic
+from theme import make_combobox_clickable
 
 # =============================================================================
 # COLORS - Exact match to HTML mockup CSS variables
@@ -1340,6 +1341,9 @@ class SettingsWindow:
         )
         dropdown.pack(anchor="w", pady=(SPACE_XS, 0))
 
+        # Add toggle behavior, hand cursor, and make entire combobox clickable
+        make_combobox_clickable(dropdown)
+
         # Help text
         if help_text:
             help_lbl = ctk.CTkLabel(
@@ -1492,6 +1496,7 @@ class SettingsWindow:
         self.hotkey = initial_hotkey
         self.capturing = False
         for widget in [btn_frame, inner, self.hotkey_badge, change_lbl]:
+            widget.configure(cursor="hand2")
             widget.bind("<Button-1>", lambda e: self._start_hotkey_capture())
             widget.bind("<Enter>", lambda e: btn_frame.configure(fg_color=SLATE_700, border_color=SLATE_500))
             widget.bind("<Leave>", lambda e: btn_frame.configure(fg_color=SLATE_800, border_color=SLATE_600) if not self.capturing else None)
@@ -1804,6 +1809,9 @@ class SettingsWindow:
             state="readonly",
         )
         self.device_combo.pack(side="left")
+
+        # Add toggle behavior, hand cursor, and make entire combobox clickable
+        make_combobox_clickable(self.device_combo)
 
         refresh_btn = self._create_button(mic_row, "Refresh", self.refresh_devices, width=80)
         refresh_btn.pack(side="left", padx=(SPACE_SM, 0))
