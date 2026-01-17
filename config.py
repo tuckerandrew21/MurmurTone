@@ -81,6 +81,26 @@ GITHUB_REPO = "#"
 HELP_URL = "#"
 
 MODEL_OPTIONS = ["tiny.en", "base.en", "small.en", "medium.en"]
+
+# Models bundled with installer vs available for download
+BUNDLED_MODELS = ["tiny.en", "base.en"]
+DOWNLOADABLE_MODELS = ["small.en", "medium.en"]
+
+# Model sizes in MB (approximate, for download dialogs)
+MODEL_SIZES_MB = {
+    "tiny.en": 75,
+    "base.en": 145,
+    "small.en": 484,
+    "medium.en": 1500,
+}
+
+# Model download URLs (GitHub Releases)
+MODEL_DOWNLOAD_BASE_URL = "https://github.com/tuckerandrew21/MurmurTone/releases/download/models-v1.0.0"
+MODEL_DOWNLOAD_URLS = {
+    "small.en": f"{MODEL_DOWNLOAD_BASE_URL}/faster-whisper-small.en.zip",
+    "medium.en": f"{MODEL_DOWNLOAD_BASE_URL}/faster-whisper-medium.en.zip",
+}
+
 # Language codes supported by Whisper
 LANGUAGE_OPTIONS = [
     "en", "auto", "es", "fr", "de", "it", "pt", "nl", "ru",

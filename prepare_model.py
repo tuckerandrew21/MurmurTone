@@ -1,8 +1,8 @@
 """
-Prepare tiny.en model for bundling with PyInstaller.
+Prepare bundled models (tiny.en, base.en) for PyInstaller.
 
-This script downloads the tiny.en model (if needed) and copies it to
-the models/ directory so PyInstaller can bundle it into the EXE.
+This script downloads the bundled models (if needed) and copies them to
+the models/ directory so PyInstaller can bundle them into the EXE.
 
 Usage:
     python prepare_model.py
@@ -59,11 +59,18 @@ def download_model_if_needed(model_name="tiny.en"):
     model_path = find_model_in_cache(model_name)
 
     if model_path:
-        print(f"✓ Model found in cache: {model_path}")
+        print(f"[OK] Model found in cache: {model_path}")
         return model_path
 
+    # Import size estimate from config if available
+    try:
+        from config import MODEL_SIZES_MB
+        size_mb = MODEL_SIZES_MB.get(model_name, 150)
+    except ImportError:
+        size_mb = 150
+
     print(f"Model not found in cache. Downloading {model_name}...")
-    print("This may take a few minutes (~150MB download)...")
+    print(f"This may take a few minutes (~{size_mb}MB download)...")
 
     # Import here so script doesn't fail if faster-whisper not installed
     from faster_whisper import WhisperModel
@@ -71,7 +78,7 @@ def download_model_if_needed(model_name="tiny.en"):
     # Download model (will cache automatically)
     print("Initializing WhisperModel (this triggers download)...")
     model = WhisperModel(model_name, device="cpu", compute_type="int8")
-    print("✓ Model downloaded successfully!")
+    print("[OK] Model downloaded successfully!")
 
     # Now find it in cache
     model_path = find_model_in_cache(model_name)
@@ -111,7 +118,7 @@ def prepare_bundled_model(model_name="tiny.en", target_dir="models"):
     total_size = sum(f.stat().st_size for f in model_files if f.is_file())
     size_mb = total_size / (1024 * 1024)
 
-    print(f"✓ Model prepared for bundling!")
+    print(f"[OK] Model prepared for bundling!")
     print(f"  Location: {target_path}")
     print(f"  Files: {len(model_files)}")
     print(f"  Size: {size_mb:.1f} MB")
@@ -121,16 +128,37 @@ def prepare_bundled_model(model_name="tiny.en", target_dir="models"):
 
 def main():
     """Main entry point."""
+    # Import bundled models list from config
+    try:
+        from config import BUNDLED_MODELS
+        models_to_bundle = BUNDLED_MODELS
+    except ImportError:
+        models_to_bundle = ["tiny.en", "base.en"]
+
     print("=" * 60)
     print("MurmurTone - Model Bundling Preparation")
     print("=" * 60)
     print()
+    print(f"Models to bundle: {', '.join(models_to_bundle)}")
+    print()
 
+    total_size = 0
     try:
-        prepare_bundled_model("tiny.en")
-        print()
+        for model_name in models_to_bundle:
+            print(f"--- Preparing {model_name} ---")
+            prepare_bundled_model(model_name)
+
+            # Track total size
+            model_path = Path("models") / model_name
+            if model_path.exists():
+                model_files = list(model_path.iterdir())
+                total_size += sum(f.stat().st_size for f in model_files if f.is_file())
+            print()
+
+        total_size_mb = total_size / (1024 * 1024)
         print("=" * 60)
-        print("SUCCESS: Model ready for bundling")
+        print(f"SUCCESS: All models ready for bundling")
+        print(f"Total size: {total_size_mb:.1f} MB")
         print("=" * 60)
         return 0
 

@@ -409,3 +409,85 @@ class TestConcurrentOperations:
         final = config.load_config()
         assert isinstance(final, dict)
         assert 'silence_duration' in final
+
+
+class TestModelSelection:
+    """Test model selection and download UI behavior."""
+
+    def test_model_dropdown_has_all_options(self, temp_config_file, mocker):
+        """Model dropdown should include all MODEL_OPTIONS."""
+        import config
+
+        mocker.patch('config.get_config_path', return_value=str(temp_config_file))
+
+        # Verify MODEL_OPTIONS is defined and has expected models
+        assert hasattr(config, 'MODEL_OPTIONS')
+        assert len(config.MODEL_OPTIONS) >= 4  # tiny, base, small, medium at minimum
+
+        # Verify bundled and downloadable models are included
+        for model in config.BUNDLED_MODELS:
+            assert model in config.MODEL_OPTIONS, f"Bundled model {model} not in options"
+        for model in config.DOWNLOADABLE_MODELS:
+            assert model in config.MODEL_OPTIONS, f"Downloadable model {model} not in options"
+
+    def test_model_status_for_bundled_model(self, temp_config_file, mocker, tmp_path):
+        """Bundled models should show as 'Installed' when present."""
+        import config
+        from dependency_check import check_model_available
+
+        mocker.patch('config.get_config_path', return_value=str(temp_config_file))
+
+        # Create fake bundled model
+        models_dir = tmp_path / "models" / "tiny.en"
+        models_dir.mkdir(parents=True)
+        (models_dir / "model.bin").write_text("fake")
+
+        mocker.patch('dependency_check.get_app_install_dir', return_value=str(tmp_path))
+
+        is_available, path = check_model_available("tiny.en")
+        assert is_available is True
+
+    def test_model_status_for_downloadable_model_not_installed(self, temp_config_file, mocker, tmp_path):
+        """Downloadable models should show download option when not installed."""
+        import config
+        from dependency_check import check_model_available
+
+        mocker.patch('config.get_config_path', return_value=str(temp_config_file))
+        mocker.patch('dependency_check.get_app_install_dir', return_value=str(tmp_path))
+
+        # Ensure HuggingFace cache doesn't have it either
+        mocker.patch('pathlib.Path.home', return_value=tmp_path)
+
+        # Check a downloadable model that's not installed
+        for model in config.DOWNLOADABLE_MODELS:
+            is_available, _ = check_model_available(model)
+            assert is_available is False, f"{model} should not be available"
+
+    def test_model_download_url_matches_model_name(self, temp_config_file, mocker):
+        """Download URLs should reference the correct model name."""
+        import config
+
+        mocker.patch('config.get_config_path', return_value=str(temp_config_file))
+
+        for model, url in config.MODEL_DOWNLOAD_URLS.items():
+            # URL should contain the model name somewhere
+            assert model.replace(".", "") in url or model in url, \
+                f"URL for {model} doesn't reference model name: {url}"
+
+    def test_bundled_models_includes_tiny_and_base(self, temp_config_file, mocker):
+        """BUNDLED_MODELS should include tiny.en and base.en."""
+        import config
+
+        mocker.patch('config.get_config_path', return_value=str(temp_config_file))
+
+        assert "tiny.en" in config.BUNDLED_MODELS
+        assert "base.en" in config.BUNDLED_MODELS
+
+    def test_downloadable_models_includes_small_and_medium(self, temp_config_file, mocker):
+        """DOWNLOADABLE_MODELS should include small.en and medium.en."""
+        import config
+
+        mocker.patch('config.get_config_path', return_value=str(temp_config_file))
+
+        assert "small.en" in config.DOWNLOADABLE_MODELS
+        assert "medium.en" in config.DOWNLOADABLE_MODELS
