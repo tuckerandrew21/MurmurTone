@@ -87,7 +87,7 @@ def package_model(model_name: str) -> bool:
     zip_size = zip_path.stat().st_size
     compression_ratio = (1 - zip_size / total_size) * 100 if total_size > 0 else 0
 
-    print(f"\n✓ Created: {zip_path}")
+    print(f"\n[OK] Created: {zip_path}")
     print(f"  Original size: {total_size / 1024 / 1024:.1f} MB")
     print(f"  ZIP size: {zip_size / 1024 / 1024:.1f} MB")
     print(f"  Compression: {compression_ratio:.1f}%")
