@@ -983,10 +983,6 @@ class SettingsWindow:
         self._status_label = None
         self._status_hide_id = None
 
-        # Lazy loading for About section
-        self._sys_info_label = None
-        self._sys_info_loaded = False
-
     def show(self):
         """Show the settings window."""
         self.window = ctk.CTk()
@@ -1209,10 +1205,6 @@ class SettingsWindow:
         }
         self.page_title.configure(text=titles.get(section_id, section_id.title()))
         self.current_section = section_id
-
-        # Lazy-load system info when About is first shown
-        if section_id == "about" and not self._sys_info_loaded:
-            self.window.after(10, self._populate_system_info)
 
     # =========================================================================
     # SECTION BUILDERS
@@ -2169,8 +2161,8 @@ class SettingsWindow:
         section = ctk.CTkFrame(self.scroll_frame, fg_color="transparent")
         self.sections["recognition"] = section
 
-        # Whisper Model section (first section - no separator)
-        model = self._create_section_header(section, "Whisper Model", "Recommended for most users")
+        # Recognition Model section (first section - no separator)
+        model = self._create_section_header(section, "Recognition Model", "Choose accuracy vs. speed")
 
         # Model var stores internal name (tiny, base, etc.)
         # Dropdown displays friendly names (Quick, Standard, etc.)
@@ -2614,7 +2606,7 @@ class SettingsWindow:
         # Title
         ctk.CTkLabel(
             frame,
-            text="Install NVIDIA CUDA Libraries?",
+            text="Install GPU Acceleration?",
             font=ctk.CTkFont(family=FONT_FAMILY, size=14, weight="bold"),
             text_color=SLATE_100,
         ).pack(pady=(SPACE_MD, SPACE_MD), anchor="center")
@@ -2622,7 +2614,7 @@ class SettingsWindow:
         # Info text
         ctk.CTkLabel(
             frame,
-            text="Download size: ~2-3 GB\nRequires: NVIDIA GPU with CUDA support",
+            text="Download size: ~2-3 GB\nRequires: Compatible NVIDIA graphics card",
             font=ctk.CTkFont(family=FONT_FAMILY, size=12),
             text_color=SLATE_400,
             justify="center",
@@ -2717,7 +2709,7 @@ class SettingsWindow:
         # Title
         title_label = ctk.CTkLabel(
             frame,
-            text="Installing NVIDIA CUDA Libraries",
+            text="Installing GPU Acceleration",
             font=ctk.CTkFont(family=FONT_FAMILY, size=14, weight="bold"),
             text_color=SLATE_100,
         )
@@ -3029,22 +3021,20 @@ class SettingsWindow:
         app_row.pack(fill="x", pady=(0, SPACE_XL))
 
         # Logo
-        logo = ctk.CTkFrame(
-            app_row,
-            width=64,
-            height=64,
-            fg_color=PRIMARY,
-            corner_radius=16,
-        )
-        logo.pack(side="left")
-        logo.pack_propagate(False)
+        logo_frame = ctk.CTkFrame(app_row, fg_color="transparent")
+        logo_frame.pack(side="left")
 
-        logo_icon = ctk.CTkLabel(
-            logo,
-            text="🎤",
-            font=ctk.CTkFont(family=FONT_FAMILY, size=28),
-        )
-        logo_icon.place(relx=0.5, rely=0.5, anchor="center")
+        try:
+            logo_path = resource_path(os.path.join("assets", "logo", "murmurtone-icon-transparent.png"))
+            if os.path.exists(logo_path):
+                logo_img = Image.open(logo_path)
+                logo_ctk = ctk.CTkImage(light_image=logo_img, dark_image=logo_img, size=(64, 64))
+                logo_label = ctk.CTkLabel(logo_frame, image=logo_ctk, text="")
+                logo_label.pack()
+        except Exception:
+            # Fallback to colored frame if image fails
+            logo = ctk.CTkFrame(logo_frame, width=64, height=64, fg_color=PRIMARY, corner_radius=16)
+            logo.pack()
 
         # App details
         details = ctk.CTkFrame(app_row, fg_color="transparent")
@@ -3071,7 +3061,7 @@ class SettingsWindow:
         # Description
         desc = ctk.CTkLabel(
             info,
-            text="Local speech-to-text powered by OpenAI Whisper. Your voice stays on your device.",
+            text="Your voice stays on your machine.",
             font=ctk.CTkFont(family=FONT_FAMILY, size=12),
             text_color=SLATE_400,
             anchor="w",
@@ -3081,9 +3071,9 @@ class SettingsWindow:
 
         # Links
         links_data = [
-            ("View on GitHub", "https://github.com/tuckerandrew21/MurmurTone"),
+            ("Visit Website", "https://murmurtone.com"),
             ("Open Logs Folder", None),
-            ("Report an Issue", "https://github.com/tuckerandrew21/MurmurTone/issues"),
+            ("Contact Support", "https://murmurtone.com/support/contact"),
         ]
 
         for link_text, url in links_data:
@@ -3106,18 +3096,15 @@ class SettingsWindow:
             elif link_text == "Open Logs Folder":
                 link.bind("<Button-1>", lambda e: self._open_logs_folder())
 
-        # System Info section (lazy-loaded for faster startup)
-        sys_info = self._create_section_header(section, "System Information", show_divider=True)
-
-        self._sys_info_label = ctk.CTkLabel(
-            sys_info,
-            text="Loading...",
-            font=ctk.CTkFont(family=FONT_FAMILY, size=12),
-            text_color=SLATE_400,
+        # Copyright
+        copyright_label = ctk.CTkLabel(
+            info,
+            text="© 2025 MurmurTone. All rights reserved.",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=11),
+            text_color=SLATE_500,
             anchor="w",
-            justify="left",
         )
-        self._sys_info_label.pack(fill="x")
+        copyright_label.pack(fill="x", pady=(SPACE_MD, 0))
 
     def _open_logs_folder(self):
         """Open logs folder."""
@@ -3125,35 +3112,6 @@ class SettingsWindow:
         if not os.path.exists(logs_dir):
             os.makedirs(logs_dir)
         os.startfile(logs_dir)
-
-    def _populate_system_info(self):
-        """Populate system info label (called lazily when About tab is first shown)."""
-        if self._sys_info_loaded or not self._sys_info_label:
-            return
-
-        info_text = []
-        try:
-            import sys
-            info_text.append(f"Python: {sys.version.split()[0]}")
-        except Exception:
-            pass
-
-        try:
-            import torch
-            info_text.append(f"PyTorch: {torch.__version__}")
-            if torch.cuda.is_available():
-                info_text.append(f"CUDA: {torch.version.cuda}")
-        except ImportError:
-            info_text.append("PyTorch: Not installed")
-
-        try:
-            import faster_whisper
-            info_text.append(f"Whisper: faster-whisper")
-        except ImportError:
-            pass
-
-        self._sys_info_label.configure(text="\n".join(info_text))
-        self._sys_info_loaded = True
 
     # =========================================================================
     # AUTOSAVE
