@@ -2396,6 +2396,19 @@ class SettingsWindow:
             width=160,
         )
 
+        # Learn more link
+        translation_learn_more = ctk.CTkLabel(
+            trans,
+            text="Learn more about translation",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=11),
+            text_color=PRIMARY,
+            cursor="hand2",
+            anchor="w",
+        )
+        translation_learn_more.pack(fill="x", pady=(0, SPACE_SM))
+        docs_path = os.path.join(os.path.dirname(__file__), "docs", "translation.html")
+        translation_learn_more.bind("<Button-1>", lambda e: webbrowser.open(f"file:///{docs_path.replace(os.sep, '/')}"))
+
     # =========================================================================
     # MODEL STATUS AND DOWNLOAD
     # =========================================================================

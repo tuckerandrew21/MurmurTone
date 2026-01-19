@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voice Commands - MurmurTone Documentation</title>
-    <meta name="description" content="Complete guide to MurmurTone voice commands: punctuation, navigation, editing, and case manipulation.">
+    <title>Translation Guide - MurmurTone Documentation</title>
+    <meta name="description" content="Complete guide to MurmurTone translation: convert speech from any supported language to English text output.">
     <link rel="icon" type="image/png" href="/icon.png">
     <style>
         :root {
@@ -57,11 +57,16 @@
         .callout-info { background: rgba(13, 148, 136, 0.1); border-left: 4px solid var(--primary); }
         .callout-warning { background: #fff8e6; border-left: 4px solid #f59e0b; }
         .callout strong { display: block; margin-bottom: 5px; color: var(--slate-800); }
-        .command-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-        .command-table th { background: var(--slate-800); color: var(--white); padding: 12px 15px; text-align: left; }
-        .command-table td { padding: 12px 15px; border-bottom: 1px solid var(--slate-200); }
-        .command-table tr:nth-child(even) { background: var(--slate-50); }
-        .command-table code { background: rgba(13, 148, 136, 0.1); color: var(--primary); }
+        .lang-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .lang-table th { background: var(--slate-800); color: var(--white); padding: 12px 15px; text-align: left; }
+        .lang-table td { padding: 12px 15px; border-bottom: 1px solid var(--slate-200); }
+        .lang-table tr:nth-child(even) { background: var(--slate-50); }
+        .lang-table code { background: rgba(13, 148, 136, 0.1); color: var(--primary); }
+        .comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+        .comparison-card { padding: 20px; border-radius: 8px; border: 1px solid var(--slate-200); }
+        .comparison-card h4 { color: var(--slate-800); margin-bottom: 10px; }
+        .comparison-card.transcription { border-left: 4px solid var(--slate-500); }
+        .comparison-card.translation { border-left: 4px solid var(--primary); }
         .docs-footer { padding: 30px 40px; border-top: 1px solid var(--slate-200); margin-top: 60px; display: flex; justify-content: space-between; }
         .docs-footer a { color: var(--primary); text-decoration: none; }
         .docs-footer a:hover { text-decoration: underline; }
@@ -92,7 +97,7 @@
         a:focus-visible, button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
         /* Table Scroll Wrapper */
         .table-wrapper { overflow-x: auto; margin: 0 -20px; padding: 0 20px; }
-        @media (max-width: 768px) { .nav-hamburger { display: flex; } .mobile-docs-nav { display: block; } .nav-links { display: none; } .docs-layout { grid-template-columns: 1fr; } .sidebar { display: none; } .docs-content { padding: 20px; } .docs-content h1 { font-size: 2em; } }
+        @media (max-width: 768px) { .nav-hamburger { display: flex; } .mobile-docs-nav { display: block; } .nav-links { display: none; } .docs-layout { grid-template-columns: 1fr; } .sidebar { display: none; } .docs-content { padding: 20px; } .docs-content h1 { font-size: 2em; } .comparison-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
@@ -140,9 +145,9 @@
         <div class="mobile-docs-links">
             <a href="/docs/">Introduction</a>
             <a href="/docs/model-guide.html">Model Guide</a>
-            <a href="/docs/voice-commands.html" class="active">Voice Commands</a>
+            <a href="/docs/voice-commands.html">Voice Commands</a>
             <a href="/docs/settings.html">Settings Guide</a>
-            <a href="/docs/translation.html">Translation</a>
+            <a href="/docs/translation.html" class="active">Translation</a>
             <a href="/docs/troubleshooting.html">Troubleshooting</a>
             <a href="/docs/faq.html">FAQ</a>
         </div>
@@ -154,9 +159,9 @@
             <a href="/docs/">Introduction</a>
             <a href="/docs/model-guide.html">Model Guide</a>
             <h3>Usage</h3>
-            <a href="/docs/voice-commands.html" class="active">Voice Commands</a>
+            <a href="/docs/voice-commands.html">Voice Commands</a>
             <a href="/docs/settings.html">Settings Guide</a>
-            <a href="/docs/translation.html">Translation</a>
+            <a href="/docs/translation.html" class="active">Translation</a>
             <h3>Help</h3>
             <a href="/docs/troubleshooting.html">Troubleshooting</a>
             <a href="/docs/faq.html">FAQ</a>
@@ -164,132 +169,161 @@
         </aside>
 
         <main class="docs-content">
-            <h1>Voice Commands</h1>
-            <p class="subtitle">Control punctuation, formatting, and text manipulation with your voice.</p>
+            <h1>Translation Guide</h1>
+            <p class="subtitle">Convert speech from any supported language to English text output.</p>
 
             <div class="callout callout-info">
-                <strong>How it works</strong>
-                Say these commands naturally while recording. MurmurTone will recognize them and insert the appropriate text or action.
+                <strong>Key concept</strong>
+                Translation mode converts speech in ANY supported source language into ENGLISH text output. This is different from transcription, which preserves the original language.
             </div>
 
-            <h2>Punctuation Commands</h2>
-            <p>Insert punctuation marks by saying the command name:</p>
+            <h2>What is Translation Mode?</h2>
+            <p>MurmurTone's translation feature uses Whisper's built-in translation capabilities to convert spoken audio from any of 17 supported languages directly into English text. This happens in real-time as you speak.</p>
 
-            <div class="table-wrapper">
-            <table class="command-table">
-                <thead>
-                    <tr><th>Say</th><th>Result</th><th>Example</th></tr>
-                </thead>
-                <tbody>
-                    <tr><td><code>"period"</code></td><td>.</td><td>"Hello period" → "Hello."</td></tr>
-                    <tr><td><code>"comma"</code></td><td>,</td><td>"Hi comma how are you" → "Hi, how are you"</td></tr>
-                    <tr><td><code>"question mark"</code></td><td>?</td><td>"How are you question mark" → "How are you?"</td></tr>
-                    <tr><td><code>"exclamation mark"</code></td><td>!</td><td>"Wow exclamation mark" → "Wow!"</td></tr>
-                    <tr><td><code>"colon"</code></td><td>:</td><td>"Note colon" → "Note:"</td></tr>
-                    <tr><td><code>"semicolon"</code></td><td>;</td><td>"First semicolon second" → "First; second"</td></tr>
-                    <tr><td><code>"hyphen"</code> or <code>"dash"</code></td><td>-</td><td>"Self hyphen aware" → "Self-aware"</td></tr>
-                    <tr><td><code>"open quote"</code></td><td>"</td><td>"He said open quote hello" → "He said "hello"</td></tr>
-                    <tr><td><code>"close quote"</code></td><td>"</td><td>"hello close quote" → "hello""</td></tr>
-                    <tr><td><code>"open paren"</code></td><td>(</td><td>"Note open paren" → "Note ("</td></tr>
-                    <tr><td><code>"close paren"</code></td><td>)</td><td>"details close paren" → "details)"</td></tr>
-                </tbody>
-            </table>
+            <p>Unlike separate transcription and translation services, Whisper performs speech-to-English-text in a single step, which often produces more natural results than transcribing first and then translating.</p>
+
+            <h2>Translation vs Transcription</h2>
+            <p>Choose the right mode for your use case:</p>
+
+            <div class="comparison-grid">
+                <div class="comparison-card transcription">
+                    <h4>Transcription (Default)</h4>
+                    <p>Use when you want text in the <strong>same language</strong> you're speaking.</p>
+                    <ul>
+                        <li>Speak Spanish, get Spanish text</li>
+                        <li>Speak Japanese, get Japanese text</li>
+                        <li>Preserves original language</li>
+                    </ul>
+                </div>
+                <div class="comparison-card translation">
+                    <h4>Translation</h4>
+                    <p>Use when you want <strong>English text</strong> regardless of what language you speak.</p>
+                    <ul>
+                        <li>Speak Spanish, get English text</li>
+                        <li>Speak Japanese, get English text</li>
+                        <li>Always outputs English</li>
+                    </ul>
+                </div>
             </div>
 
-            <h2>Navigation Commands</h2>
-            <p>Control text flow and cursor position:</p>
-
-            <table class="command-table">
-                <thead>
-                    <tr><th>Say</th><th>Result</th><th>Description</th></tr>
-                </thead>
-                <tbody>
-                    <tr><td><code>"new line"</code></td><td>↵</td><td>Insert a single line break</td></tr>
-                    <tr><td><code>"new paragraph"</code></td><td>↵↵</td><td>Insert two line breaks (paragraph)</td></tr>
-                    <tr><td><code>"tab"</code></td><td>→</td><td>Insert a tab character</td></tr>
-                </tbody>
-            </table>
-
-            <h2>Editing Commands</h2>
-            <p>Correct mistakes and modify your transcription:</p>
-
-            <table class="command-table">
-                <thead>
-                    <tr><th>Say</th><th>Action</th><th>Description</th></tr>
-                </thead>
-                <tbody>
-                    <tr><td><code>"scratch that"</code></td><td>Delete all</td><td>Delete the entire last transcription</td></tr>
-                    <tr><td><code>"delete last word"</code></td><td>Delete word</td><td>Delete only the last word</td></tr>
-                </tbody>
-            </table>
-
-            <div class="callout callout-warning">
-                <strong>Timing matters</strong>
-                "Scratch that" works best immediately after a transcription. If you've typed manually since the last transcription, it will still attempt to delete the previous voice input.
-            </div>
-
-            <h2>Case Manipulation</h2>
-            <p>Change the capitalization of the previous word:</p>
-
-            <table class="command-table">
-                <thead>
-                    <tr><th>Say</th><th>Action</th><th>Example</th></tr>
-                </thead>
-                <tbody>
-                    <tr><td><code>"capitalize that"</code></td><td>First letter uppercase</td><td>"hello" → "Hello"</td></tr>
-                    <tr><td><code>"uppercase that"</code></td><td>All uppercase</td><td>"hello" → "HELLO"</td></tr>
-                    <tr><td><code>"lowercase that"</code></td><td>All lowercase</td><td>"HELLO" → "hello"</td></tr>
-                </tbody>
-            </table>
-
-            <h2>Formatting Commands</h2>
-            <p>Apply text formatting (works in applications that support rich text):</p>
-
-            <table class="command-table">
-                <thead>
-                    <tr><th>Say</th><th>Action</th><th>Keyboard Shortcut Sent</th></tr>
-                </thead>
-                <tbody>
-                    <tr><td><code>"bold that"</code></td><td>Bold last word</td><td>Select + Ctrl+B</td></tr>
-                    <tr><td><code>"italic that"</code></td><td>Italicize last word</td><td>Select + Ctrl+I</td></tr>
-                    <tr><td><code>"underline that"</code></td><td>Underline last word</td><td>Select + Ctrl+U</td></tr>
-                </tbody>
-            </table>
-
-            <div class="callout callout-info">
-                <strong>Application support</strong>
-                Formatting commands work in Word, Google Docs, email clients, and most text editors. They won't work in plain text applications like Notepad.
-            </div>
-
-            <h2>Custom Commands</h2>
-            <p>You can create your own voice commands using the Custom Dictionary feature in Settings:</p>
-
-            <ol>
-                <li>Open Settings (right-click tray icon → Settings)</li>
-                <li>Go to the "Custom Dictionary" tab</li>
-                <li>Add a trigger phrase and its replacement text</li>
-                <li>Save and test your command</li>
-            </ol>
-
-            <p><strong>Examples:</strong></p>
+            <h3>Common Use Cases for Translation</h3>
             <ul>
-                <li><code>"my email"</code> → yourname@example.com</li>
-                <li><code>"my address"</code> → 123 Main Street, City, State 12345</li>
-                <li><code>"signature"</code> → Best regards, Your Name</li>
+                <li><strong>Bilingual communication:</strong> Think in your native language, produce English documents</li>
+                <li><strong>Note-taking:</strong> Take notes in your preferred language, get English output for sharing</li>
+                <li><strong>Learning English:</strong> Practice speaking and see how your words translate</li>
+                <li><strong>International teams:</strong> Contribute in your language to English-language projects</li>
             </ul>
 
-            <h2>Tips for Better Recognition</h2>
+            <h2>Supported Languages</h2>
+            <p>MurmurTone can translate from any of these languages to English:</p>
 
+            <div class="table-wrapper">
+            <table class="lang-table">
+                <thead>
+                    <tr><th>Language</th><th>Code</th><th>Notes</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Auto-detect</td><td><code>auto</code></td><td>Recommended - automatically detects your language</td></tr>
+                    <tr><td>English</td><td><code>en</code></td><td>Useful for heavy accents or non-native speakers</td></tr>
+                    <tr><td>Spanish</td><td><code>es</code></td><td>All Spanish variants supported</td></tr>
+                    <tr><td>French</td><td><code>fr</code></td><td></td></tr>
+                    <tr><td>German</td><td><code>de</code></td><td></td></tr>
+                    <tr><td>Italian</td><td><code>it</code></td><td></td></tr>
+                    <tr><td>Portuguese</td><td><code>pt</code></td><td>Brazilian and European Portuguese</td></tr>
+                    <tr><td>Dutch</td><td><code>nl</code></td><td></td></tr>
+                    <tr><td>Russian</td><td><code>ru</code></td><td></td></tr>
+                    <tr><td>Chinese</td><td><code>zh</code></td><td>Mandarin; Simplified and Traditional</td></tr>
+                    <tr><td>Japanese</td><td><code>ja</code></td><td></td></tr>
+                    <tr><td>Korean</td><td><code>ko</code></td><td></td></tr>
+                    <tr><td>Arabic</td><td><code>ar</code></td><td>Modern Standard Arabic</td></tr>
+                    <tr><td>Hindi</td><td><code>hi</code></td><td></td></tr>
+                    <tr><td>Polish</td><td><code>pl</code></td><td></td></tr>
+                    <tr><td>Turkish</td><td><code>tr</code></td><td></td></tr>
+                    <tr><td>Vietnamese</td><td><code>vi</code></td><td></td></tr>
+                    <tr><td>Thai</td><td><code>th</code></td><td></td></tr>
+                </tbody>
+            </table>
+            </div>
+
+            <div class="callout callout-info">
+                <strong>Auto-detect recommended</strong>
+                In most cases, leave the source language set to "Auto-detect". Whisper is very accurate at identifying the spoken language. Only set a specific language if you're experiencing detection issues.
+            </div>
+
+            <h2>Model Recommendations</h2>
+            <p>Translation quality varies significantly by model size. Larger models produce more accurate and natural-sounding translations.</p>
+
+            <div class="table-wrapper">
+            <table class="lang-table">
+                <thead>
+                    <tr><th>Model</th><th>Translation Quality</th><th>Best For</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Quick (tiny)</td><td>Basic</td><td>Simple phrases only; may miss nuances</td></tr>
+                    <tr><td>Standard (base)</td><td>Good</td><td>Casual use; simple sentences</td></tr>
+                    <tr><td>Recommended (small)</td><td>Very Good</td><td>Most users; good balance of speed and quality</td></tr>
+                    <tr><td>Professional (medium)</td><td>Excellent</td><td>Complex sentences; technical content</td></tr>
+                    <tr><td>Studio (large-v3)</td><td>Best</td><td>Maximum accuracy; professional translation</td></tr>
+                </tbody>
+            </table>
+            </div>
+
+            <div class="callout callout-warning">
+                <strong>For translation, bigger is better</strong>
+                If translation quality is important to you, consider using the "Professional" or "Studio" model. The quality difference is more noticeable for translation than for same-language transcription.
+            </div>
+
+            <h2>How to Enable Translation</h2>
+            <ol>
+                <li>Right-click the MurmurTone icon in your system tray</li>
+                <li>Select <strong>Settings</strong></li>
+                <li>Go to the <strong>Recognition</strong> tab</li>
+                <li>Scroll down to the <strong>Translation</strong> section</li>
+                <li>Toggle <strong>Enable translation</strong> on</li>
+                <li>Optionally set a specific source language (or leave on Auto-detect)</li>
+                <li>Click <strong>Save</strong></li>
+            </ol>
+
+            <p>Once enabled, all your voice recordings will be translated to English instead of transcribed in the original language.</p>
+
+            <h2>Troubleshooting</h2>
+
+            <h3>Wrong language detected</h3>
+            <p>If auto-detection keeps picking the wrong language:</p>
             <ul>
-                <li><strong>Speak clearly:</strong> Enunciate command words distinctly</li>
-                <li><strong>Brief pause:</strong> A slight pause before/after commands helps recognition</li>
-                <li><strong>Natural speech:</strong> Commands work best embedded in natural sentences</li>
-                <li><strong>Consistent pronunciation:</strong> Say commands the same way each time</li>
+                <li>Set the specific source language manually in settings</li>
+                <li>Speak a few words clearly at the start of each recording</li>
+                <li>Try a larger model for better detection accuracy</li>
+            </ul>
+
+            <h3>Poor translation quality</h3>
+            <p>If translations seem inaccurate or unnatural:</p>
+            <ul>
+                <li>Upgrade to a larger model (Professional or Studio)</li>
+                <li>Speak in complete sentences rather than fragments</li>
+                <li>Reduce background noise for clearer audio input</li>
+                <li>Speak at a moderate pace</li>
+            </ul>
+
+            <h3>Translation not working</h3>
+            <p>If you're still getting text in your spoken language:</p>
+            <ul>
+                <li>Verify the "Enable translation" toggle is on in Settings</li>
+                <li>Save your settings and restart MurmurTone</li>
+                <li>Check that you're not in transcription-only mode</li>
+            </ul>
+
+            <h3>Mixed language output</h3>
+            <p>If you're getting a mix of English and your source language:</p>
+            <ul>
+                <li>This can happen with code-switching (mixing languages while speaking)</li>
+                <li>Try to speak in one language at a time</li>
+                <li>Set the source language explicitly instead of using auto-detect</li>
             </ul>
 
             <div class="docs-footer">
-                <a href="/docs/">← Back to Getting Started</a>
-                <a href="/docs/settings.html">Next: Settings Guide →</a>
+                <a href="/docs/settings.html">&larr; Settings Guide</a>
+                <a href="/docs/troubleshooting.html">Troubleshooting &rarr;</a>
             </div>
         </main>
     </div>
