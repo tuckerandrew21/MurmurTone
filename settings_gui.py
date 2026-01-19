@@ -2925,18 +2925,18 @@ class SettingsWindow:
         self._create_labeled_dropdown(
             ai,
             "Cleanup Mode",
-            values=["grammar", "professional", "casual", "creative"],
+            values=["grammar", "formality", "both"],
             variable=self.ai_mode_var,
-            help_text="Grammar fixes or full rewrite styles",
+            help_text="Grammar fixes or formality adjustment",
             width=140,
         )
 
         # Formality level
-        self.ai_formality_var = ctk.StringVar(value=self.config.get("ai_formality_level", "neutral"))
+        self.ai_formality_var = ctk.StringVar(value=self.config.get("ai_formality_level", "professional"))
         self._create_labeled_dropdown(
             ai,
             "Formality Level",
-            values=["casual", "neutral", "formal"],
+            values=["casual", "professional", "formal"],
             variable=self.ai_formality_var,
             width=100,
         )
