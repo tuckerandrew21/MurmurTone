@@ -2179,19 +2179,85 @@ class SettingsWindow:
             internal_name = config.MODEL_INTERNAL_NAMES.get(display_name, display_name)
             self.model_var.set(internal_name)
             self._on_model_changed()
+            self._autosave()
 
-        self._create_labeled_dropdown(
-            model,
-            "Model Size",
+        # Build model dropdown manually (not using helper) to allow inline status
+        # Container for label, dropdown row, and help text
+        model_dropdown_container = ctk.CTkFrame(model, fg_color="transparent")
+        model_dropdown_container.pack(fill="x", pady=(0, SPACE_SM))
+
+        # Label - 13px, SLATE_200
+        model_size_label = ctk.CTkLabel(
+            model_dropdown_container,
+            text="Model Size",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+            text_color=SLATE_200,
+            anchor="w",
+        )
+        model_size_label.pack(fill="x")
+
+        # Row containing dropdown + status dot + status text (all inline)
+        dropdown_status_row = ctk.CTkFrame(model_dropdown_container, fg_color="transparent")
+        dropdown_status_row.pack(fill="x", pady=(SPACE_XS, 0))
+
+        # Dropdown - matches mockup styling
+        model_dropdown = ctk.CTkComboBox(
+            dropdown_status_row,
             values=display_names,
             variable=self._model_display_var,
-            help_text="Larger models are more accurate but slower",
-            width=160,
             command=on_model_display_changed,
+            width=160,
+            height=36,
+            corner_radius=12,
+            border_width=1,
+            fg_color=SLATE_800,
+            border_color=SLATE_600,
+            button_color=SLATE_700,
+            button_hover_color=SLATE_600,
+            dropdown_fg_color=SLATE_700,
+            dropdown_hover_color=SLATE_600,
+            dropdown_text_color=SLATE_200,
+            text_color=SLATE_200,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+            state="readonly",
         )
+        model_dropdown.pack(side="left")
+
+        # Add toggle behavior, hand cursor, and make entire combobox clickable
+        make_combobox_clickable(model_dropdown)
+
+        # Status dot (inline with dropdown)
+        self.model_status_dot = ctk.CTkFrame(
+            dropdown_status_row,
+            width=10,
+            height=10,
+            corner_radius=5,
+            fg_color=SUCCESS,
+        )
+        self.model_status_dot.pack_propagate(False)
+        self.model_status_dot.pack(side="left", padx=(SPACE_MD, SPACE_XS))
+
+        # Status text (inline with dropdown)
+        self.model_status_text = ctk.CTkLabel(
+            dropdown_status_row,
+            text="Checking...",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+            text_color=SLATE_300,
+        )
+        self.model_status_text.pack(side="left")
+
+        # Help text below dropdown row
+        model_help_label = ctk.CTkLabel(
+            model_dropdown_container,
+            text="Larger models are more accurate but slower",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=11),
+            text_color=SLATE_500,
+            anchor="w",
+        )
+        model_help_label.pack(fill="x", pady=(SPACE_XS, 0))
 
         # Learn more link (below help text)
-        learn_more_link = ctk.CTkLabel(
+        self._model_learn_more_link = ctk.CTkLabel(
             model,
             text="Learn more about models",
             font=ctk.CTkFont(family=FONT_FAMILY, size=11),
@@ -2199,26 +2265,8 @@ class SettingsWindow:
             cursor="hand2",
             anchor="w",
         )
-        learn_more_link.pack(fill="x", pady=(0, SPACE_SM))
-        learn_more_link.bind("<Button-1>", lambda e: webbrowser.open("https://murmurtone.com/docs/model-guide.html"))
-
-        # Model status row
-        self.model_status_frame = ctk.CTkFrame(model, fg_color="transparent")
-        self.model_status_frame.pack(fill="x", pady=(0, SPACE_MD))
-
-        model_status_row = ctk.CTkFrame(self.model_status_frame, fg_color="transparent")
-        model_status_row.pack(fill="x")
-
-        # Status dot
-        self.model_status_dot = self._create_status_dot(model_status_row, SUCCESS)
-
-        self.model_status_text = ctk.CTkLabel(
-            model_status_row,
-            text="Checking...",
-            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
-            text_color=SLATE_300,
-        )
-        self.model_status_text.pack(side="left")
+        self._model_learn_more_link.pack(fill="x", pady=(0, SPACE_SM))
+        self._model_learn_more_link.bind("<Button-1>", lambda e: webbrowser.open("https://murmurtone.com/docs/model-guide.html"))
 
         # Download Model button (hidden by default, shown when needed)
         self.download_model_frame = ctk.CTkFrame(model, fg_color="transparent")
@@ -2383,7 +2431,7 @@ class SettingsWindow:
                 else:
                     size_text = f"~{size_mb} MB"
                 self.download_model_size_label.configure(text=size_text)
-                self.download_model_frame.pack(fill="x", pady=(SPACE_SM, 0), after=self.model_status_frame)
+                self.download_model_frame.pack(fill="x", pady=(SPACE_SM, 0), after=self._model_learn_more_link)
             elif model_name in config.BUNDLED_MODELS:
                 # Red status - bundled model missing (installation error)
                 self.model_status_dot.configure(fg_color=ERROR)
