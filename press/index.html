@@ -87,12 +87,13 @@
         .comparison-table .negative { color: #ef4444; }
         .usage-list { margin: 15px 0; padding-left: 25px; }
         .usage-list li { margin: 8px 0; color: var(--slate-600); }
-        .footer { background: var(--slate-800); padding: 40px 20px; margin-top: 60px; }
-        .footer-content { max-width: 1000px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
-        .footer-content p { color: var(--slate-400); }
-        .footer-links { display: flex; gap: 30px; }
-        .footer-links a { color: var(--slate-400); text-decoration: none; transition: color 0.2s; }
-        .footer-links a:hover { color: var(--primary-light); }
+        .container { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
+        footer { background: var(--slate-900); color: var(--slate-400); padding: 60px 0 30px; }
+        .footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 40px; margin-bottom: 40px; }
+        .footer-column h4 { color: var(--white); margin-bottom: 16px; font-weight: 600; }
+        .footer-column a { display: block; color: var(--slate-400); text-decoration: none; margin-bottom: 10px; font-size: 0.9em; }
+        .footer-column a:hover { color: var(--primary-light); }
+        .footer-bottom { border-top: 1px solid var(--slate-700); padding-top: 30px; text-align: center; font-size: 0.9em; }
         /* Hamburger Menu */
         .nav-hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: 5px; }
         .nav-hamburger span { width: 25px; height: 3px; background: var(--slate-700); border-radius: 2px; transition: all 0.3s; }
@@ -108,7 +109,7 @@
         .mobile-menu .nav-cta { display: inline-block; margin-top: 15px; text-align: center; color: var(--white); }
         /* Focus States */
         a:focus-visible, button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
-        @media (max-width: 768px) { .nav-hamburger { display: flex; } .nav-links { display: none; } .hero h1 { font-size: 2em; } .fact-grid { grid-template-columns: 1fr; } .footer-content { flex-direction: column; text-align: center; } .footer-links { flex-wrap: wrap; justify-content: center; } .comparison-table { font-size: 0.9em; } }
+        @media (max-width: 768px) { .nav-hamburger { display: flex; } .nav-links { display: none; } .hero h1 { font-size: 2em; } .fact-grid { grid-template-columns: 1fr; } .footer-grid { grid-template-columns: repeat(2, 1fr); } .comparison-table { font-size: 0.9em; } }
     </style>
 </head>
 <body>
@@ -332,14 +333,34 @@
         </ul>
     </main>
 
-    <footer class="footer">
-        <div class="footer-content">
-            <p>&copy; 2025 MurmurTone. All rights reserved.</p>
-            <div class="footer-links">
-                <a href="/legal/privacy.html">Privacy Policy</a>
-                <a href="/legal/terms.html">Terms of Service</a>
-                <a href="/docs/">Documentation</a>
-                <a href="/support/contact.html">Contact</a>
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-column">
+                    <h4>Product</h4>
+                    <a href="/#features">Features</a>
+                    <a href="/pricing.html">Pricing</a>
+                    <a href="/install.html">Download</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Resources</h4>
+                    <a href="/docs/">Documentation</a>
+                    <a href="/docs/voice-commands.html">Voice Commands</a>
+                    <a href="/docs/troubleshooting.html">Troubleshooting</a>
+                    <a href="/docs/faq.html">FAQ</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Company</h4>
+                    <a href="/support/contact.html">Support</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Legal</h4>
+                    <a href="/legal/privacy.html">Privacy Policy</a>
+                    <a href="/legal/terms.html">Terms of Service</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                © 2025 MurmurTone. Your voice, locally.
             </div>
         </div>
     </footer>
