@@ -36,7 +36,7 @@ You've locked in $49/year pricing forever. Future customers may pay more, but yo
 NEED HELP?
 ----------
 • Documentation: https://murmurtone.com/docs
-• FAQ: https://murmurtone.com/support/faq.html
+• FAQ: https://murmurtone.com/docs/faq.html
 • Support: support@murmurtone.com (priority response)
 
 Happy transcribing!

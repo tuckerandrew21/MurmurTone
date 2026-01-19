@@ -31,7 +31,7 @@ QUICK TIPS
 NEED HELP?
 ----------
 • Documentation: https://murmurtone.com/docs
-• FAQ: https://murmurtone.com/support/faq.html
+• FAQ: https://murmurtone.com/docs/faq.html
 • Support: support@murmurtone.com
 
 Your voice, locally.
