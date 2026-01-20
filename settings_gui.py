@@ -18,7 +18,7 @@ from PIL import Image
 import config
 import settings_logic
 from theme import make_combobox_clickable
-from ai_cleanup import validate_ollama_url
+from ai_cleanup import validate_ollama_url, test_ollama_connection
 
 # =============================================================================
 # COLORS - Exact match to HTML mockup CSS variables
@@ -2961,30 +2961,57 @@ class SettingsWindow:
         ai = self._create_section_header(section, "AI Text Cleanup", "Use local LLM to polish transcriptions")
 
         self.ai_cleanup_var = ctk.BooleanVar(value=self.config.get("ai_cleanup_enabled", False))
-        self._create_toggle_setting(
+        ai_toggle = self._create_toggle_setting(
             ai,
             "Enable AI cleanup",
             help_text="Process text through Ollama",
             variable=self.ai_cleanup_var,
+            command=self._on_ai_cleanup_toggled,
         )
+        self.ai_toggle_row = ai_toggle.master  # Store reference for positioning
 
-        # Ollama status
-        status_row = ctk.CTkFrame(ai, fg_color="transparent")
-        status_row.pack(fill="x", pady=(0, SPACE_MD))
+        # Learn more link
+        ai_learn_more = ctk.CTkLabel(
+            ai,
+            text="Learn more about AI text cleanup",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=11),
+            text_color=PRIMARY,
+            cursor="hand2",
+            anchor="w",
+        )
+        ai_learn_more.pack(fill="x", pady=(0, SPACE_SM))
+        ai_learn_more.bind("<Button-1>", lambda e: webbrowser.open("https://murmurtone.com/docs/ai-cleanup.html"))
 
-        self.ollama_status_dot = self._create_status_dot(status_row, SLATE_500)
+        # Ollama status row (hidden when disabled, shown when enabled)
+        self.ollama_status_row = ctk.CTkFrame(ai, fg_color="transparent")
+        # Don't pack yet - only shown when toggle is enabled
+
+        self.ollama_status_dot = self._create_status_dot(self.ollama_status_row, SLATE_500)
 
         self.ollama_status_text = ctk.CTkLabel(
-            status_row,
-            text="Not checked",
+            self.ollama_status_row,
+            text="",
             font=ctk.CTkFont(family=FONT_FAMILY, size=13),
             text_color=SLATE_300,
         )
         self.ollama_status_text.pack(side="left")
 
-        check_btn = self._create_button(status_row, "Check", self._check_ollama, width=60)
-        check_btn.configure(fg_color="transparent", border_width=0)
-        check_btn.pack(side="left", padx=(SPACE_LG, 0))
+        # Retry button (only shown on failure)
+        self.ollama_retry_btn = self._create_button(self.ollama_status_row, "Retry", self._check_ollama_async, width=60)
+        self.ollama_retry_btn.configure(fg_color="transparent", border_width=0)
+        # Don't pack yet - will be shown on failure
+
+        # Download button (only shown on failure)
+        self.ollama_download_btn = self._create_button(
+            self.ollama_status_row, "Download", lambda: webbrowser.open("https://ollama.com/download"), width=80
+        )
+        self.ollama_download_btn.configure(fg_color="transparent", border_width=0)
+        # Don't pack yet - will be shown on failure
+
+        # Auto-check on load if AI cleanup is enabled
+        if self.ai_cleanup_var.get():
+            self.ollama_status_row.pack(fill="x", pady=(0, SPACE_MD), after=self.ai_toggle_row)
+            self.window.after(200, self._check_ollama_async)
 
         # Cleanup mode
         self.ai_mode_var = ctk.StringVar(value=self.config.get("ai_cleanup_mode", "grammar"))
@@ -2995,27 +3022,22 @@ class SettingsWindow:
             variable=self.ai_mode_var,
             help_text="Grammar fixes or formality adjustment",
             width=140,
+            command=self._on_cleanup_mode_changed,
         )
 
-        # Formality level
+        # Formality level (only shown when mode uses formality)
         self.ai_formality_var = ctk.StringVar(value=self.config.get("ai_formality_level", "professional"))
-        self._create_labeled_dropdown(
+        formality_dropdown, _ = self._create_labeled_dropdown(
             ai,
             "Formality Level",
             values=["casual", "professional", "formal"],
             variable=self.ai_formality_var,
-            width=100,
-        )
-
-        # Ollama model
-        self.ai_model_var = ctk.StringVar(value=self.config.get("ollama_model", "llama3.2"))
-        self._create_labeled_entry(
-            ai,
-            "Ollama Model",
-            variable=self.ai_model_var,
-            help_text="Local AI model name",
             width=140,
         )
+        self.ai_formality_container = formality_dropdown.master
+
+        # Set initial visibility based on current mode
+        self._on_cleanup_mode_changed(self.ai_mode_var.get())
 
         # Transcription History section
         history = self._create_section_header(section, "Transcription History", "Recent transcriptions stored for review", show_divider=True)
@@ -3040,26 +3062,60 @@ class SettingsWindow:
         )
         reset_btn.pack(anchor="w", pady=(0, SPACE_SM))
 
-    def _check_ollama(self):
-        """Check Ollama connection."""
-        try:
-            import requests
+    def _on_ai_cleanup_toggled(self):
+        """Handle AI cleanup toggle change."""
+        if self.ai_cleanup_var.get():
+            # Enabled - show status row after toggle and run async check
+            self.ollama_status_row.pack(fill="x", pady=(0, SPACE_MD), after=self.ai_toggle_row)
+            self._check_ollama_async()
+        else:
+            # Disabled - hide status row
+            self.ollama_status_row.pack_forget()
+
+    def _check_ollama_async(self):
+        """Check Ollama connection asynchronously."""
+        # Show checking state
+        self.ollama_status_dot.configure(fg_color=SLATE_500)
+        self.ollama_status_text.configure(text="Checking Ollama...")
+        self.ollama_retry_btn.pack_forget()
+        self.ollama_download_btn.pack_forget()
+
+        def do_check():
+            model = self.config.get("ollama_model", "llama3.2:3b")
             url = self.config.get("ollama_url", "http://localhost:11434")
-            # Validate URL before making request (prevents SSRF)
-            if not validate_ollama_url(url):
-                self.ollama_status_dot.configure(fg_color=ERROR)
-                self.ollama_status_text.configure(text="Invalid URL")
-                return
-            response = requests.get(f"{url}/api/tags", timeout=2)
-            if response.status_code == 200:
-                self.ollama_status_dot.configure(fg_color=SUCCESS)
-                self.ollama_status_text.configure(text="Ollama connected")
-            else:
-                self.ollama_status_dot.configure(fg_color=ERROR)
-                self.ollama_status_text.configure(text="Connection failed")
-        except Exception:
+            success, message = test_ollama_connection(model, url)
+            # Schedule UI update on main thread
+            self.window.after(0, lambda: self._update_ollama_status(success, message))
+
+        thread = threading.Thread(target=do_check, daemon=True)
+        thread.start()
+
+    def _update_ollama_status(self, success: bool, message: str):
+        """Update Ollama status display (called from main thread)."""
+        if not self.window.winfo_exists():
+            return  # Window was closed
+
+        if success:
+            self.ollama_status_dot.configure(fg_color=SUCCESS)
+            self.ollama_status_text.configure(text="Ollama ready")
+            self.ollama_retry_btn.pack_forget()
+            self.ollama_download_btn.pack_forget()
+        else:
             self.ollama_status_dot.configure(fg_color=ERROR)
-            self.ollama_status_text.configure(text="Not running")
+            # Shorten message for display
+            display_msg = message if len(message) <= 40 else message[:37] + "..."
+            self.ollama_status_text.configure(text=display_msg)
+            # Show retry and download buttons
+            self.ollama_retry_btn.pack(side="left", padx=(SPACE_LG, 0))
+            self.ollama_download_btn.pack(side="left", padx=(SPACE_SM, 0))
+
+    def _on_cleanup_mode_changed(self, mode: str):
+        """Show/hide formality level based on cleanup mode."""
+        if mode == "grammar":
+            self.ai_formality_container.pack_forget()
+        else:
+            # Re-pack to show (formality is used in "formality" and "both" modes)
+            self.ai_formality_container.pack(fill="x", pady=(0, SPACE_SM))
 
     def _view_history(self):
         """View transcription history."""
@@ -3264,7 +3320,7 @@ class SettingsWindow:
             "ai_cleanup_enabled": self.ai_cleanup_var.get(),
             "ai_cleanup_mode": self.ai_mode_var.get(),
             "ai_formality_level": self.ai_formality_var.get(),
-            "ollama_model": self.ai_model_var.get(),
+            "ollama_model": self.config.get("ollama_model", "llama3.2:3b"),
             "ollama_url": self.config.get("ollama_url", "http://localhost:11434"),
             "preview_enabled": self.preview_enabled_var.get(),
             "preview_position": preview_position,
@@ -3364,7 +3420,7 @@ class SettingsWindow:
             "ai_cleanup_enabled": self.ai_cleanup_var.get(),
             "ai_cleanup_mode": self.ai_mode_var.get(),
             "ai_formality_level": self.ai_formality_var.get(),
-            "ollama_model": self.ai_model_var.get(),
+            "ollama_model": self.config.get("ollama_model", "llama3.2:3b"),
             "ollama_url": self.config.get("ollama_url", "http://localhost:11434"),
             "preview_enabled": self.preview_enabled_var.get(),
             "preview_position": preview_position,
@@ -3499,7 +3555,8 @@ class SettingsWindow:
         self.ai_cleanup_var.set(defaults["ai_cleanup_enabled"])
         self.ai_mode_var.set(defaults["ai_cleanup_mode"])
         self.ai_formality_var.set(defaults["ai_formality_level"])
-        self.ai_model_var.set(defaults["ollama_model"])
+        # Update formality visibility based on reset mode
+        self._on_cleanup_mode_changed(defaults["ai_cleanup_mode"])
 
     def _setup_keyboard_navigation(self):
         """Setup keyboard navigation for accessibility."""
