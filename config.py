@@ -79,11 +79,13 @@ DEFAULTS = {
     "license_status": "trial",  # trial, active, expired
     "trial_started_date": None,  # ISO format timestamp when trial started
     "license_last_checked": None,  # ISO format timestamp of last online license check
+    # First-run onboarding
+    "onboarding_complete": False,  # True after user dismisses welcome banner
 }
 
-# GitHub repo for updates (TODO: update with real URLs)
-GITHUB_REPO = "#"
-HELP_URL = "#"
+# GitHub repo for updates
+GITHUB_REPO = "https://github.com/tuckerandrew21/MurmurTone"
+HELP_URL = "https://murmurtone.com/support"
 
 # Multilingual models (support transcription AND translation)
 MODEL_OPTIONS = ["tiny", "base", "small", "medium", "large-v3"]

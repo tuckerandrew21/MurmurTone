@@ -13,12 +13,85 @@ import sys
 import threading
 import subprocess
 import ctypes
+import logging
+from logging.handlers import RotatingFileHandler
 from PIL import Image
+
+# =============================================================================
+# LOGGING SETUP
+# =============================================================================
+def _setup_logging():
+    """Configure logging with file rotation for production diagnostics."""
+    logs_dir = os.path.join(os.path.dirname(__file__), "logs")
+    os.makedirs(logs_dir, exist_ok=True)
+
+    log_file = os.path.join(logs_dir, "settings_gui.log")
+
+    # Create rotating file handler (5MB max, keep 3 backups)
+    file_handler = RotatingFileHandler(
+        log_file, maxBytes=5*1024*1024, backupCount=3, encoding="utf-8"
+    )
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S"
+    ))
+
+    # Configure root logger for this module
+    logger = logging.getLogger("settings_gui")
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(file_handler)
+
+    return logger
+
+logger = _setup_logging()
 
 import config
 import settings_logic
+import license as license_module
 from theme import make_combobox_clickable
 from ai_cleanup import validate_ollama_url, test_ollama_connection
+
+# =============================================================================
+# DPI SCALING - Detect system DPI and calculate scale factor
+# =============================================================================
+def get_dpi_scale() -> float:
+    """
+    Get the system DPI scale factor.
+    Returns 1.0 for 96 DPI (100% scaling), 1.25 for 120 DPI (125%), etc.
+    """
+    try:
+        if sys.platform == "win32":
+            # Enable DPI awareness for accurate detection
+            try:
+                ctypes.windll.shcore.SetProcessDpiAwareness(1)
+            except Exception:
+                # Fall back to older API
+                ctypes.windll.user32.SetProcessDPIAware()
+
+            # Get the DPI for the primary monitor
+            hdc = ctypes.windll.user32.GetDC(0)
+            dpi = ctypes.windll.gdi32.GetDeviceCaps(hdc, 88)  # LOGPIXELSX
+            ctypes.windll.user32.ReleaseDC(0, hdc)
+            return dpi / 96.0
+        else:
+            # macOS/Linux: Tk handles DPI differently
+            return 1.0
+    except Exception as e:
+        logger.warning(f"Could not detect DPI, using 1.0: {e}")
+        return 1.0
+
+# Cache the scale factor at module load time
+DPI_SCALE = get_dpi_scale()
+logger.info(f"System DPI scale: {DPI_SCALE:.2f}x ({int(DPI_SCALE * 96)} DPI)")
+
+def scaled(value: int) -> int:
+    """Scale a pixel value based on system DPI."""
+    return int(value * DPI_SCALE)
+
+def scaled_geometry(width: int, height: int) -> str:
+    """Return a scaled geometry string like '500x400' for dialogs."""
+    return f"{scaled(width)}x{scaled(height)}"
 
 # =============================================================================
 # COLORS - Exact match to HTML mockup CSS variables
@@ -39,6 +112,7 @@ SLATE_100 = "#f1f5f9"      # Titles, bright text
 
 SUCCESS = "#10b981"
 WARNING = "#f59e0b"
+WARNING_DARK = "#ea580c"   # Darker orange for hover states
 ERROR = "#ef4444"
 ERROR_DARK = "#dc2626"     # Darker red for hover states
 
@@ -55,10 +129,19 @@ SPACE_LG = 16
 SPACE_XL = 24
 SPACE_2XL = 32
 
-# Window dimensions
-WINDOW_WIDTH = 900
-WINDOW_HEIGHT = 650
-SIDEBAR_WIDTH = 220
+# Window dimensions (base values at 100% scaling, auto-scaled for high DPI)
+WINDOW_WIDTH_BASE = 900
+WINDOW_HEIGHT_BASE = 650
+SIDEBAR_WIDTH_BASE = 220
+MIN_WIDTH_BASE = 800
+MIN_HEIGHT_BASE = 500
+
+# Scaled dimensions (applied at module load)
+WINDOW_WIDTH = scaled(WINDOW_WIDTH_BASE)
+WINDOW_HEIGHT = scaled(WINDOW_HEIGHT_BASE)
+SIDEBAR_WIDTH = scaled(SIDEBAR_WIDTH_BASE)
+MIN_WIDTH = scaled(MIN_WIDTH_BASE)
+MIN_HEIGHT = scaled(MIN_HEIGHT_BASE)
 
 # =============================================================================
 # SAMPLE RATE OPTIONS
@@ -128,10 +211,10 @@ def load_nav_icons():
                 img = Image.open(icon_path)
                 icons[name] = ctk.CTkImage(light_image=img, dark_image=img, size=ICON_SIZE)
             except Exception as e:
-                print(f"Failed to load icon {name}: {e}")
+                logger.warning(f"Failed to load icon {name}: {e}")
                 icons[name] = None
         else:
-            print(f"Icon not found: {icon_path}")
+            logger.debug(f"Icon not found: {icon_path}")
             icons[name] = None
 
     return icons
@@ -165,6 +248,85 @@ load_custom_fonts()
 # Configure CustomTkinter
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("dark-blue")
+
+
+# =============================================================================
+# TOOLTIP - Hover help for complex settings
+# =============================================================================
+
+class Tooltip:
+    """Simple hover tooltip for CustomTkinter widgets."""
+
+    def __init__(self, widget, text: str, delay: int = 500):
+        """
+        Create a tooltip that appears on hover.
+
+        Args:
+            widget: The widget to attach the tooltip to
+            text: Tooltip text to display
+            delay: Milliseconds before showing tooltip (default 500ms)
+        """
+        self.widget = widget
+        self.text = text
+        self.delay = delay
+        self.tooltip_window = None
+        self._after_id = None
+
+        widget.bind("<Enter>", self._schedule_show)
+        widget.bind("<Leave>", self._hide)
+        widget.bind("<ButtonPress>", self._hide)
+
+    def _schedule_show(self, event=None):
+        """Schedule tooltip to appear after delay."""
+        self._cancel_scheduled()
+        self._after_id = self.widget.after(self.delay, self._show)
+
+    def _cancel_scheduled(self):
+        """Cancel any scheduled tooltip."""
+        if self._after_id:
+            self.widget.after_cancel(self._after_id)
+            self._after_id = None
+
+    def _show(self):
+        """Display the tooltip."""
+        if self.tooltip_window:
+            return
+
+        # Get widget position
+        x = self.widget.winfo_rootx() + 20
+        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 5
+
+        # Create tooltip window
+        self.tooltip_window = tk.Toplevel(self.widget)
+        self.tooltip_window.wm_overrideredirect(True)
+        self.tooltip_window.wm_geometry(f"+{x}+{y}")
+
+        # Create tooltip frame with styling
+        frame = ctk.CTkFrame(
+            self.tooltip_window,
+            fg_color=SLATE_700,
+            border_color=SLATE_600,
+            border_width=1,
+            corner_radius=6,
+        )
+        frame.pack()
+
+        label = ctk.CTkLabel(
+            frame,
+            text=self.text,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=12),
+            text_color=SLATE_100,
+            wraplength=300,
+            justify="left",
+        )
+        label.pack(padx=10, pady=8)
+
+    def _hide(self, event=None):
+        """Hide and destroy the tooltip."""
+        self._cancel_scheduled()
+        if self.tooltip_window:
+            self.tooltip_window.destroy()
+            self.tooltip_window = None
 
 
 # =============================================================================
@@ -235,7 +397,7 @@ class ListEditorDialog:
 
         self.dialog = ctk.CTkToplevel(parent)
         self.dialog.title(title)
-        self.dialog.geometry("500x400")
+        self.dialog.geometry(scaled_geometry(500, 400))
         self.dialog.configure(fg_color=SLATE_900)
         self.dialog.transient(parent)
         self.dialog.grab_set()
@@ -440,7 +602,7 @@ class DictionaryEditor(ListEditorDialog):
 
         dlg = ctk.CTkToplevel(self.dialog)
         dlg.title("Edit Entry" if is_edit else "Add Entry")
-        dlg.geometry("350x220")
+        dlg.geometry(scaled_geometry(350, 220))
         dlg.configure(fg_color=SLATE_900)
         dlg.transient(self.dialog)
         dlg.grab_set()
@@ -512,7 +674,7 @@ class VocabularyEditor(ListEditorDialog):
 
         dlg = ctk.CTkToplevel(self.dialog)
         dlg.title("Edit Word" if is_edit else "Add Word")
-        dlg.geometry("350x160")
+        dlg.geometry(scaled_geometry(350, 160))
         dlg.configure(fg_color=SLATE_900)
         dlg.transient(self.dialog)
         dlg.grab_set()
@@ -580,7 +742,7 @@ class ShortcutsEditor(ListEditorDialog):
 
         dlg = ctk.CTkToplevel(self.dialog)
         dlg.title("Edit Shortcut" if is_edit else "Add Shortcut")
-        dlg.geometry("400x290")
+        dlg.geometry(scaled_geometry(400, 290))
         dlg.configure(fg_color=SLATE_900)
         dlg.transient(self.dialog)
         dlg.grab_set()
@@ -642,7 +804,7 @@ class HistoryViewer:
 
         self.dialog = ctk.CTkToplevel(parent)
         self.dialog.title("Transcription History")
-        self.dialog.geometry("600x450")
+        self.dialog.geometry(scaled_geometry(600, 450))
         self.dialog.configure(fg_color=SLATE_900)
         self.dialog.transient(parent)
         self.dialog.grab_set()
@@ -846,7 +1008,7 @@ class HistoryViewer:
         # Format selection dialog
         format_dlg = ctk.CTkToplevel(self.dialog)
         format_dlg.title("Export Format")
-        format_dlg.geometry("300x200")
+        format_dlg.geometry(scaled_geometry(300, 200))
         format_dlg.configure(fg_color=SLATE_900)
         format_dlg.transient(self.dialog)
         format_dlg.grab_set()
@@ -989,7 +1151,7 @@ class SettingsWindow:
         self.window.title("MurmurTone Settings")
         self.window.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
         self.window.resizable(True, True)
-        self.window.minsize(800, 500)
+        self.window.minsize(MIN_WIDTH, MIN_HEIGHT)
         self.window.configure(fg_color=SLATE_900)
 
         # Try to set icon
@@ -1251,7 +1413,7 @@ class SettingsWindow:
 
         return content
 
-    def _create_toggle_setting(self, parent, label, help_text=None, variable=None, command=None):
+    def _create_toggle_setting(self, parent, label, help_text=None, variable=None, command=None, tooltip=None):
         """Create toggle setting matching mockup: [toggle] [label + help on right]."""
         row = ctk.CTkFrame(parent, fg_color="transparent")
         row.pack(fill="x", pady=(0, SPACE_SM))
@@ -1295,6 +1457,10 @@ class SettingsWindow:
         )
         lbl.pack(fill="x")
 
+        # Add tooltip if provided
+        if tooltip:
+            Tooltip(lbl, tooltip)
+
         # Help text - 11px, SLATE_500, tight height
         if help_text:
             help_lbl = ctk.CTkLabel(
@@ -1309,7 +1475,7 @@ class SettingsWindow:
 
         return switch
 
-    def _create_labeled_dropdown(self, parent, label, values, variable, help_text=None, width=160, command=None):
+    def _create_labeled_dropdown(self, parent, label, values, variable, help_text=None, width=160, command=None, tooltip=None):
         """Create labeled dropdown: label above, dropdown below, help below."""
         container = ctk.CTkFrame(parent, fg_color="transparent")
         container.pack(fill="x", pady=(0, SPACE_SM))
@@ -1323,6 +1489,10 @@ class SettingsWindow:
             anchor="w",
         )
         lbl.pack(fill="x")
+
+        # Add tooltip if provided
+        if tooltip:
+            Tooltip(lbl, tooltip)
 
         # Wrap command to include autosave
         def on_dropdown_change(choice):
@@ -1676,10 +1846,80 @@ class SettingsWindow:
     # GENERAL SECTION
     # =========================================================================
 
+    def _create_welcome_banner(self, parent):
+        """Create welcome banner for first-run users."""
+        self._welcome_banner = ctk.CTkFrame(
+            parent,
+            fg_color=SLATE_800,
+            border_color=SLATE_700,
+            border_width=1,
+            corner_radius=8,
+        )
+        self._welcome_banner.pack(fill="x", padx=(0, 8), pady=(0, SPACE_LG))
+
+        content = ctk.CTkFrame(self._welcome_banner, fg_color="transparent")
+        content.pack(fill="x", padx=(16, 8), pady=14)
+
+        # Header row: title + dismiss button
+        header_row = ctk.CTkFrame(content, fg_color="transparent")
+        header_row.pack(fill="x")
+
+        ctk.CTkLabel(
+            header_row, text="Welcome to MurmurTone",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=16, weight="bold"),
+            text_color=SLATE_100,
+        ).pack(side="left")
+
+        dismiss_btn = ctk.CTkButton(
+            header_row, text="×", width=28, height=28,
+            font=ctk.CTkFont(size=16),
+            fg_color="transparent",
+            hover_color=SLATE_600,
+            text_color=SLATE_400,
+            corner_radius=6,
+            command=lambda: self._dismiss_welcome_banner(permanent=True),
+        )
+        dismiss_btn.pack(side="right")
+
+        # Subheader with muted prefix + teal link
+        link_row = ctk.CTkFrame(content, fg_color="transparent")
+        link_row.pack(anchor="w", pady=(6, 0))
+
+        ctk.CTkLabel(
+            link_row, text="Get started with the ",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+            text_color=SLATE_400,
+        ).pack(side="left")
+
+        guide_link = ctk.CTkLabel(
+            link_row, text="Quick Start Guide",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13, weight="bold"),
+            text_color=PRIMARY_LIGHT, cursor="hand2",
+        )
+        guide_link.pack(side="left")
+        guide_link.bind("<Button-1>", lambda e: webbrowser.open("https://murmurtone.com/docs/quick-start"))
+        guide_link.bind("<Enter>", lambda e: guide_link.configure(text_color=SLATE_100))
+        guide_link.bind("<Leave>", lambda e: guide_link.configure(text_color=PRIMARY_LIGHT))
+
+    def _dismiss_welcome_banner(self, permanent=False):
+        """Dismiss welcome banner. If permanent, save preference to never show again."""
+        if hasattr(self, "_welcome_banner") and self._welcome_banner:
+            self._welcome_banner.pack_forget()
+            self._welcome_banner.destroy()
+            self._welcome_banner = None
+        if permanent:
+            self.config["onboarding_complete"] = True
+            self._autosave()
+        self._autosave()
+
     def _create_general_section(self):
         """Create General settings section."""
         section = ctk.CTkFrame(self.scroll_frame, fg_color="transparent")
         self.sections["general"] = section
+
+        # Welcome banner for first-run users
+        if not self.config.get("onboarding_complete", False):
+            self._create_welcome_banner(section)
 
         # Recording section (first section - no separator)
         recording = self._create_section_header(section, "Recording", "Configure how voice recording works")
@@ -1886,7 +2126,26 @@ class SettingsWindow:
             "Enable noise gate",
             help_text="Ignore audio below the threshold level",
             variable=self.noise_gate_var,
+            tooltip="Filters out quiet sounds like keyboard clicks,\n"
+                    "fan noise, and distant background sounds.\n"
+                    "Adjust the threshold slider below to set\n"
+                    "the minimum volume level for recording.",
         )
+
+        # Learn more link
+        noise_gate_learn_more = ctk.CTkLabel(
+            gate,
+            text="Learn more about noise gate",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=11),
+            text_color=PRIMARY,
+            cursor="hand2",
+            anchor="w",
+        )
+        noise_gate_learn_more.pack(fill="x", pady=(0, SPACE_SM))
+        noise_gate_learn_more.bind("<Enter>", lambda e: noise_gate_learn_more.configure(text_color=PRIMARY_LIGHT))
+        noise_gate_learn_more.bind("<Leave>", lambda e: noise_gate_learn_more.configure(text_color=PRIMARY))
+        docs_path = os.path.join(os.path.dirname(__file__), "docs", "settings.html")
+        noise_gate_learn_more.bind("<Button-1>", lambda e, path=docs_path: webbrowser.open(f"file:///{path.replace(os.sep, '/')}#noise-gate"))
 
         # Threshold meter
         threshold_container = ctk.CTkFrame(gate, fg_color="transparent")
@@ -2195,6 +2454,11 @@ class SettingsWindow:
             anchor="w",
         )
         model_size_label.pack(fill="x")
+        Tooltip(model_size_label, "tiny: Fastest, lowest accuracy (~39 MB)\n"
+                "base: Good balance of speed and accuracy (~74 MB)\n"
+                "small: Better accuracy, slower (~244 MB)\n"
+                "medium: High accuracy, requires more RAM (~769 MB)\n"
+                "large: Highest accuracy, slowest (~1.5 GB)")
 
         # Row containing dropdown + status dot + status text (all inline)
         dropdown_status_row = ctk.CTkFrame(model_dropdown_container, fg_color="transparent")
@@ -2366,7 +2630,25 @@ class SettingsWindow:
             variable=self.processing_mode_var,
             help_text="Auto uses GPU if available, otherwise CPU",
             width=160,
+            tooltip="GPU: NVIDIA CUDA acceleration (10x faster)\n"
+                    "CPU: Works on any computer\n"
+                    "Auto: Uses GPU if available, falls back to CPU",
         )
+
+        # Learn more link
+        processing_learn_more = ctk.CTkLabel(
+            gpu,
+            text="Learn more about processing modes",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=11),
+            text_color=PRIMARY,
+            cursor="hand2",
+            anchor="w",
+        )
+        processing_learn_more.pack(fill="x", pady=(0, SPACE_SM))
+        processing_learn_more.bind("<Enter>", lambda e: processing_learn_more.configure(text_color=PRIMARY_LIGHT))
+        processing_learn_more.bind("<Leave>", lambda e: processing_learn_more.configure(text_color=PRIMARY))
+        docs_path = os.path.join(os.path.dirname(__file__), "docs", "settings.html")
+        processing_learn_more.bind("<Button-1>", lambda e, path=docs_path: webbrowser.open(f"file:///{path.replace(os.sep, '/')}#processing-mode"))
 
         # Refresh GPU status on load
         self.window.after(100, self.refresh_gpu_status)
@@ -2380,6 +2662,9 @@ class SettingsWindow:
             "Enable translation",
             help_text="Translate speech to English output",
             variable=self.translation_enabled_var,
+            tooltip="Automatically translate any spoken language\n"
+                    "to English. Works with Auto-detect or select\n"
+                    "a specific source language below.",
         )
 
         self.trans_lang_var = ctk.StringVar(
@@ -2407,7 +2692,7 @@ class SettingsWindow:
         )
         translation_learn_more.pack(fill="x", pady=(0, SPACE_SM))
         docs_path = os.path.join(os.path.dirname(__file__), "docs", "translation.html")
-        translation_learn_more.bind("<Button-1>", lambda e: webbrowser.open(f"file:///{docs_path.replace(os.sep, '/')}"))
+        translation_learn_more.bind("<Button-1>", lambda e, path=docs_path: webbrowser.open(f"file:///{path.replace(os.sep, '/')}"))
 
     # =========================================================================
     # MODEL STATUS AND DOWNLOAD
@@ -2480,7 +2765,7 @@ class SettingsWindow:
         """Show a branded info dialog."""
         dialog = ctk.CTkToplevel(self.window)
         dialog.title(title)
-        dialog.geometry("350x150")
+        dialog.geometry(scaled_geometry(350, 150))
         dialog.resizable(False, False)
         dialog.transient(self.window)
         dialog.grab_set()
@@ -2537,7 +2822,7 @@ class SettingsWindow:
 
         dialog = ctk.CTkToplevel(self.window)
         dialog.title("Download Model")
-        dialog.geometry("380x180")
+        dialog.geometry(scaled_geometry(380, 180))
         dialog.resizable(False, False)
         dialog.transient(self.window)
         dialog.grab_set()
@@ -2640,7 +2925,7 @@ class SettingsWindow:
 
         dialog = ctk.CTkToplevel(self.window)
         dialog.title("Install GPU Support")
-        dialog.geometry("420x200")
+        dialog.geometry(scaled_geometry(420, 200))
         dialog.resizable(False, False)
         dialog.transient(self.window)
         dialog.grab_set()
@@ -2728,7 +3013,7 @@ class SettingsWindow:
         # Create modal dialog
         dialog = ctk.CTkToplevel(self.window)
         dialog.title("Installing GPU Support")
-        dialog.geometry("420x260")
+        dialog.geometry(scaled_geometry(420, 260))
         dialog.resizable(False, False)
         dialog.transient(self.window)
         dialog.grab_set()
@@ -2967,20 +3252,25 @@ class SettingsWindow:
             help_text="Process text through Ollama",
             variable=self.ai_cleanup_var,
             command=self._on_ai_cleanup_toggled,
+            tooltip="Uses a local Ollama LLM to fix grammar,\n"
+                    "punctuation, and formatting in transcriptions.\n"
+                    "Requires Ollama running on your computer.",
         )
         self.ai_toggle_row = ai_toggle.master  # Store reference for positioning
 
         # Learn more link
-        ai_learn_more = ctk.CTkLabel(
+        ai_cleanup_learn_more = ctk.CTkLabel(
             ai,
-            text="Learn more about AI text cleanup",
+            text="Learn more about AI cleanup",
             font=ctk.CTkFont(family=FONT_FAMILY, size=11),
             text_color=PRIMARY,
             cursor="hand2",
             anchor="w",
         )
-        ai_learn_more.pack(fill="x", pady=(0, SPACE_SM))
-        ai_learn_more.bind("<Button-1>", lambda e: webbrowser.open("https://murmurtone.com/docs/ai-cleanup.html"))
+        ai_cleanup_learn_more.pack(fill="x", pady=(0, SPACE_SM))
+        ai_cleanup_learn_more.bind("<Enter>", lambda e: ai_cleanup_learn_more.configure(text_color=PRIMARY_LIGHT))
+        ai_cleanup_learn_more.bind("<Leave>", lambda e: ai_cleanup_learn_more.configure(text_color=PRIMARY))
+        ai_cleanup_learn_more.bind("<Button-1>", lambda e: webbrowser.open("https://murmurtone.com/docs/ai-cleanup"))
 
         # Ollama status row (hidden when disabled, shown when enabled)
         self.ollama_status_row = ctk.CTkFrame(ai, fg_color="transparent")
@@ -3186,6 +3476,9 @@ class SettingsWindow:
         )
         desc.pack(fill="x", pady=(0, SPACE_XL))
 
+        # License section
+        self._create_license_subsection(section)
+
         # Links
         links_data = [
             ("Visit Website", "https://murmurtone.com"),
@@ -3229,6 +3522,395 @@ class SettingsWindow:
         if not os.path.exists(logs_dir):
             os.makedirs(logs_dir)
         os.startfile(logs_dir)
+
+    def _create_license_subsection(self, parent):
+        """Create license management subsection in About page."""
+        license_section = self._create_section_header(parent, "License")
+
+        # Get current license status
+        license_info = license_module.get_license_status_info(self.config)
+        status = license_info["status"]
+
+        if status == license_module.LicenseStatus.ACTIVE:
+            self._create_licensed_ui(license_section, license_info)
+        elif status == license_module.LicenseStatus.TRIAL:
+            urgency = self._get_trial_urgency_state(license_info)
+
+            if urgency == "active":
+                self._create_trial_active_ui(license_section, license_info)
+            elif urgency in ["urgent", "critical"]:
+                self._create_trial_urgent_ui(license_section, license_info)
+            else:
+                self._create_trial_active_ui(license_section, license_info)
+        else:  # EXPIRED
+            self._create_trial_expired_ui(license_section, license_info)
+
+    def _get_trial_urgency_state(self, license_info):
+        """Determine urgency level for trial messaging."""
+        days = license_info.get("days_remaining")
+
+        if days is None:
+            return None
+
+        if days <= 0:
+            return "expired"
+        elif days <= 2:
+            return "critical"
+        elif days <= 6:
+            return "urgent"
+        else:
+            return "active"
+
+    def _create_trial_active_ui(self, parent, license_info):
+        """Trial state with moderate CTA emphasis (7-14 days remaining)."""
+        days = license_info.get("days_remaining", 7)
+
+        # Calculate end date
+        from datetime import datetime, timedelta
+        end_date = (datetime.now() + timedelta(days=days)).strftime("%b %d, %Y")
+
+        # Header
+        header = ctk.CTkLabel(
+            parent,
+            text="FREE TRIAL ACTIVE",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=11, weight="bold"),
+            text_color=PRIMARY_LIGHT,
+            anchor="w",
+        )
+        header.pack(fill="x", pady=(0, SPACE_XS))
+
+        # Days remaining line
+        days_line = ctk.CTkLabel(
+            parent,
+            text=f"{days} days remaining · Ends {end_date}",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=15),
+            text_color=SLATE_300,
+            anchor="w",
+        )
+        days_line.pack(fill="x", pady=(0, SPACE_MD))
+
+        # Value proposition
+        value_prop = ctk.CTkLabel(
+            parent,
+            text="Keep your transcription private and local.\nGet unlimited access for $49/year.",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+            text_color=SLATE_400,
+            anchor="w",
+            justify="left",
+        )
+        value_prop.pack(fill="x", pady=(0, SPACE_MD))
+
+        # Primary CTA button
+        upgrade_btn = ctk.CTkButton(
+            parent,
+            text="Upgrade to Full Version · $49/year",
+            height=40,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=14, weight="bold"),
+            fg_color=PRIMARY,
+            hover_color=PRIMARY_DARK,
+            command=lambda: webbrowser.open("https://murmurtone.com/buy"),
+        )
+        upgrade_btn.pack(fill="x", pady=(0, SPACE_LG))
+
+        # Secondary: License key entry (collapsed)
+        self._create_collapsed_license_entry(parent)
+
+    def _create_trial_urgent_ui(self, parent, license_info):
+        """Trial ending soon - higher urgency (1-6 days remaining)."""
+        days = license_info.get("days_remaining", 1)
+
+        from datetime import datetime, timedelta
+        end_date = (datetime.now() + timedelta(days=days)).strftime("%b %d, %Y")
+
+        # Header
+        header = ctk.CTkLabel(
+            parent,
+            text="TRIAL EXPIRES SOON",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=11, weight="bold"),
+            text_color=WARNING,
+            anchor="w",
+        )
+        header.pack(fill="x", pady=(0, SPACE_XS))
+
+        # Days remaining - LARGER and colored
+        days_text = "Only 1 day remaining" if days == 1 else f"Only {days} days remaining"
+        days_line = ctk.CTkLabel(
+            parent,
+            text=f"{days_text} · Ends {end_date}",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=16, weight="bold"),
+            text_color=WARNING,
+            anchor="w",
+        )
+        days_line.pack(fill="x", pady=(0, SPACE_MD))
+
+        # Value prop - emphasize loss aversion
+        value_prop = ctk.CTkLabel(
+            parent,
+            text="Don't lose access to private transcription.\nUpgrade now for just $49/year.",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+            text_color=SLATE_300,
+            anchor="w",
+            justify="left",
+        )
+        value_prop.pack(fill="x", pady=(0, SPACE_MD))
+
+        # Primary CTA - LARGER button with urgency
+        upgrade_btn = ctk.CTkButton(
+            parent,
+            text="Upgrade Now · $49/year",
+            height=44,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=14, weight="bold"),
+            fg_color=WARNING,
+            hover_color=WARNING_DARK,
+            command=lambda: webbrowser.open("https://murmurtone.com/buy"),
+        )
+        upgrade_btn.pack(fill="x", pady=(0, SPACE_LG))
+
+        self._create_collapsed_license_entry(parent)
+
+    def _create_trial_expired_ui(self, parent, license_info):
+        """Trial expired - clear call to action."""
+        # Header
+        header = ctk.CTkLabel(
+            parent,
+            text="TRIAL EXPIRED",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=11, weight="bold"),
+            text_color=ERROR,
+            anchor="w",
+        )
+        header.pack(fill="x", pady=(0, SPACE_XS))
+
+        # Expiration message
+        trial_start = self.config.get("trial_started_date")
+        if trial_start:
+            from datetime import datetime, timedelta
+            try:
+                start_dt = datetime.fromisoformat(trial_start)
+                end_dt = start_dt + timedelta(days=14)
+                end_date = end_dt.strftime("%b %d, %Y")
+                msg = f"Your 14-day trial ended on {end_date}"
+            except:
+                msg = "Your 14-day trial has ended"
+        else:
+            msg = "Your 14-day trial has ended"
+
+        expiry_line = ctk.CTkLabel(
+            parent,
+            text=msg,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=15),
+            text_color=ERROR,
+            anchor="w",
+        )
+        expiry_line.pack(fill="x", pady=(0, SPACE_MD))
+
+        # Value prop - direct about consequences
+        value_prop = ctk.CTkLabel(
+            parent,
+            text="Transcription is disabled until licensed.\nGet full access for $49/year.",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+            text_color=SLATE_300,
+            anchor="w",
+            justify="left",
+        )
+        value_prop.pack(fill="x", pady=(0, SPACE_MD))
+
+        # Primary CTA
+        purchase_btn = ctk.CTkButton(
+            parent,
+            text="Purchase License · $49/year",
+            height=44,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=14, weight="bold"),
+            fg_color=ERROR,
+            hover_color=ERROR_DARK,
+            command=lambda: webbrowser.open("https://murmurtone.com/buy"),
+        )
+        purchase_btn.pack(fill="x", pady=(0, SPACE_LG))
+
+        self._create_collapsed_license_entry(parent, label="Already purchased?")
+
+    def _create_licensed_ui(self, parent, license_info):
+        """Licensed state - show license key and deactivate option."""
+        # Header
+        header = ctk.CTkLabel(
+            parent,
+            text="✓ LICENSED",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=11, weight="bold"),
+            text_color=SUCCESS,
+            anchor="w",
+        )
+        header.pack(fill="x", pady=(0, SPACE_XS))
+
+        # Thank you message
+        thank_you = ctk.CTkLabel(
+            parent,
+            text="Thank you for supporting MurmurTone!",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+            text_color=SLATE_400,
+            anchor="w",
+        )
+        thank_you.pack(fill="x", pady=(0, SPACE_MD))
+
+        # License key row
+        key_row = ctk.CTkFrame(parent, fg_color="transparent")
+        key_row.pack(fill="x", pady=(0, SPACE_SM))
+
+        key_label = ctk.CTkLabel(
+            key_row,
+            text="License Key",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+            text_color=SLATE_300,
+            anchor="w",
+        )
+        key_label.pack(side="left")
+
+        # Entry and button frame
+        entry_frame = ctk.CTkFrame(key_row, fg_color="transparent")
+        entry_frame.pack(side="right")
+
+        # Show masked license key
+        license_key = self.config.get("license_key", "")
+        if license_key and len(license_key) >= 4:
+            masked_key = "XXXX-XXXX-XXXX-" + license_key[-4:]
+        else:
+            masked_key = license_key
+
+        self._license_key_var = ctk.StringVar(value=masked_key)
+        self._license_key_entry = ctk.CTkEntry(
+            entry_frame,
+            textvariable=self._license_key_var,
+            width=180,
+            height=28,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=12),
+            fg_color=SLATE_800,
+            border_color=SLATE_600,
+            text_color=SLATE_200,
+            state="disabled",
+        )
+        self._license_key_entry.pack(side="left", padx=(0, SPACE_SM))
+
+        self._license_action_btn = ctk.CTkButton(
+            entry_frame,
+            text="Deactivate",
+            width=85,
+            height=28,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=12),
+            fg_color=SLATE_700,
+            hover_color=SLATE_600,
+            command=self._deactivate_license,
+        )
+        self._license_action_btn.pack(side="left")
+
+    def _create_collapsed_license_entry(self, parent, label="Already have a license?"):
+        """Create subtle license key entry for trial users."""
+        # Separator
+        separator = ctk.CTkFrame(parent, fg_color=SLATE_700, height=1)
+        separator.pack(fill="x", pady=(0, SPACE_MD))
+
+        # Label
+        already_licensed = ctk.CTkLabel(
+            parent,
+            text=label,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=12),
+            text_color=SLATE_500,
+            anchor="w",
+        )
+        already_licensed.pack(fill="x", pady=(0, SPACE_SM))
+
+        # Entry row
+        entry_row = ctk.CTkFrame(parent, fg_color="transparent")
+        entry_row.pack(fill="x")
+
+        key_label = ctk.CTkLabel(
+            entry_row,
+            text="License Key",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=12),
+            text_color=SLATE_500,
+            anchor="w",
+        )
+        key_label.pack(side="left")
+
+        # Entry and button
+        entry_frame = ctk.CTkFrame(entry_row, fg_color="transparent")
+        entry_frame.pack(side="right")
+
+        self._license_key_var = ctk.StringVar(value=self.config.get("license_key", ""))
+        self._license_key_entry = ctk.CTkEntry(
+            entry_frame,
+            textvariable=self._license_key_var,
+            width=180,
+            height=28,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=12),
+            fg_color=SLATE_800,
+            border_color=SLATE_600,
+            text_color=SLATE_200,
+            placeholder_text="XXXX-XXXX-XXXX-XXXX",
+        )
+        self._license_key_entry.pack(side="left", padx=(0, SPACE_SM))
+
+        self._license_action_btn = ctk.CTkButton(
+            entry_frame,
+            text="Activate",
+            width=75,
+            height=28,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=12),
+            fg_color=SLATE_700,
+            hover_color=SLATE_600,
+            text_color=SLATE_200,
+            command=self._activate_license,
+        )
+        self._license_action_btn.pack(side="left")
+
+    def _activate_license(self):
+        """Activate license with entered key."""
+        key = self._license_key_var.get().strip()
+        if not key:
+            messagebox.showwarning("License", "Please enter a license key.", parent=self.window)
+            return
+
+        # Disable button during validation
+        self._license_action_btn.configure(state="disabled", text="Validating...")
+
+        def validate():
+            is_valid, error = license_module.validate_license_key(key, self.config)
+            self.window.after(0, lambda: self._handle_license_result(is_valid, error))
+
+        threading.Thread(target=validate, daemon=True).start()
+
+    def _handle_license_result(self, is_valid, error):
+        """Handle license validation result."""
+        if is_valid:
+            # Save config and refresh UI
+            self._schedule_autosave()
+            messagebox.showinfo("License", "License activated successfully!", parent=self.window)
+            self._refresh_license_ui()
+        else:
+            messagebox.showerror("License", f"Activation failed: {error}", parent=self.window)
+            self._license_action_btn.configure(state="normal", text="Activate")
+
+    def _deactivate_license(self):
+        """Deactivate current license."""
+        if not messagebox.askyesno(
+            "Deactivate License",
+            "Are you sure you want to deactivate your license?\n\n"
+            "You can reactivate on this or another machine later.",
+            parent=self.window
+        ):
+            return
+
+        license_module.deactivate_license(self.config)
+        self._license_key_var.set("")
+        self._schedule_autosave()
+        messagebox.showinfo("License", "License deactivated.", parent=self.window)
+        self._refresh_license_ui()
+
+    def _refresh_license_ui(self):
+        """Refresh the license UI section after status change."""
+        # Rebuild the about section to reflect new license status
+        if "about" in self.sections:
+            self.sections["about"].destroy()
+            self._create_about_section()
+            # Re-show the about section if it was visible
+            self._show_section("about")
 
     # =========================================================================
     # AUTOSAVE
@@ -3349,7 +4031,7 @@ class SettingsWindow:
 
         except Exception as e:
             self._show_save_status("error")
-            print(f"Autosave error: {e}")
+            logger.error(f"Autosave error: {e}", exc_info=True)
 
     # =========================================================================
     # SAVE / RESET / CLOSE (Legacy - save() kept for compatibility)
@@ -3451,7 +4133,7 @@ class SettingsWindow:
 
         dlg = ctk.CTkToplevel(self.window)
         dlg.title(title)
-        dlg.geometry("350x150")
+        dlg.geometry(scaled_geometry(350, 150))
         dlg.configure(fg_color=SLATE_900)
         dlg.transient(self.window)
         dlg.grab_set()
@@ -3563,8 +4245,38 @@ class SettingsWindow:
         # Escape key closes window
         self.window.bind("<Escape>", lambda e: self.close())
 
-        # Tab navigation is automatic in CTk widgets
-        # Additional keyboard shortcuts can be added here as needed
+        # Ctrl+W also closes window
+        self.window.bind("<Control-w>", lambda e: self.close())
+
+        # Ctrl+S forces save and shows confirmation
+        self.window.bind("<Control-s>", lambda e: self._force_save())
+
+        # Ctrl+1 through Ctrl+6 switch tabs
+        tab_keys = [
+            ("<Control-Key-1>", "general"),
+            ("<Control-Key-2>", "audio"),
+            ("<Control-Key-3>", "recognition"),
+            ("<Control-Key-4>", "text"),
+            ("<Control-Key-5>", "advanced"),
+            ("<Control-Key-6>", "about"),
+        ]
+        for key, section in tab_keys:
+            self.window.bind(key, lambda e, s=section: self._show_section(s))
+
+        # F1 opens documentation
+        self.window.bind("<F1>", lambda e: webbrowser.open(
+            f"file:///{os.path.join(os.path.dirname(__file__), 'docs', 'settings.html').replace(os.sep, '/')}"
+        ))
+
+    def _force_save(self):
+        """Force immediate save of all pending changes (Ctrl+S handler)."""
+        # Flush any pending debounced saves
+        if self._text_debounce:
+            self._text_debounce.flush()
+        if self._slider_debounce:
+            self._slider_debounce.flush()
+        # Trigger autosave to ensure everything is written
+        self._autosave()
 
     def close(self):
         """Close the settings window."""
