@@ -39,6 +39,7 @@
     --space-lg: 16px;
     --space-xl: 24px;
     --space-2xl: 32px;
+    --space-3xl: 48px;
 
     /* Typography */
     --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
@@ -232,7 +233,7 @@ body {
 
 /* Custom scrollbar */
 .content-body::-webkit-scrollbar {
-    width: 8px;
+    width: var(--space-sm);
 }
 
 .content-body::-webkit-scrollbar-track {
@@ -808,8 +809,8 @@ body {
 }
 
 .status-indicator {
-    width: 8px;
-    height: 8px;
+    width: var(--space-sm);
+    height: var(--space-sm);
     border-radius: 50%;
     background: var(--slate-500);
 }
@@ -1489,7 +1490,7 @@ body {
 .welcome-features {
     display: flex;
     flex-direction: column;
-    gap: var(--space-md);
+    gap: var(--space-sm);
     margin-bottom: var(--space-xl);
     text-align: left;
 }
@@ -1498,7 +1499,7 @@ body {
     display: flex;
     align-items: center;
     gap: var(--space-md);
-    padding: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
     background: var(--slate-700);
     border-radius: var(--radius-md);
     color: var(--text-secondary);
