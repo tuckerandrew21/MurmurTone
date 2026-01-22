@@ -381,6 +381,21 @@ body {
     margin-top: var(--space-xs);
 }
 
+.learn-more-link {
+    font-size: var(--font-size-sm);
+    color: var(--primary);
+    text-decoration: none;
+    cursor: pointer;
+    display: inline-block;
+    margin-top: var(--space-sm);
+    transition: color var(--transition-fast);
+}
+
+.learn-more-link:hover {
+    color: var(--primary-light);
+    text-decoration: underline;
+}
+
 .coming-soon {
     padding: var(--space-xl);
     background: var(--slate-800);

@@ -413,6 +413,42 @@ function setupFormListeners() {
         });
     }
 
+    // Noise gate learn more link
+    const noiseGateLearnMore = document.getElementById('noise-gate-learn-more');
+    if (noiseGateLearnMore) {
+        noiseGateLearnMore.addEventListener('click', (e) => {
+            e.preventDefault();
+            pywebview.api.open_url('https://murmurtone.com/docs/noise-gate');
+        });
+    }
+
+    // Model learn more link
+    const modelLearnMore = document.getElementById('model-learn-more');
+    if (modelLearnMore) {
+        modelLearnMore.addEventListener('click', (e) => {
+            e.preventDefault();
+            pywebview.api.open_url('https://murmurtone.com/docs/model-guide');
+        });
+    }
+
+    // Processing mode learn more link
+    const processingModeLearnMore = document.getElementById('processing-mode-learn-more');
+    if (processingModeLearnMore) {
+        processingModeLearnMore.addEventListener('click', (e) => {
+            e.preventDefault();
+            pywebview.api.open_url('https://murmurtone.com/docs/processing-mode');
+        });
+    }
+
+    // AI cleanup learn more link
+    const aiCleanupLearnMore = document.getElementById('ai-cleanup-learn-more');
+    if (aiCleanupLearnMore) {
+        aiCleanupLearnMore.addEventListener('click', (e) => {
+            e.preventDefault();
+            pywebview.api.open_url('https://murmurtone.com/docs/ai-cleanup');
+        });
+    }
+
     // Vocabulary list
     const addVocabBtn = document.getElementById('add-vocabulary-btn');
     const vocabInput = document.getElementById('vocabulary-input');
