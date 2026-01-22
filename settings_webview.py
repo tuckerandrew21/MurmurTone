@@ -7,8 +7,13 @@ import threading
 import os
 import sys
 import json
+import math
+
+import sounddevice as sd
+import numpy as np
 
 import config
+import settings_logic
 
 # Get the directory containing this script
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -24,6 +29,9 @@ class SettingsAPI:
     def __init__(self):
         self._config = config.load_config()
         self._window = None
+        # Audio test state
+        self._audio_test_running = False
+        self._audio_test_stream = None
 
     def set_window(self, window):
         """Store reference to window for evaluate_js calls."""
@@ -53,12 +61,41 @@ class SettingsAPI:
         except Exception as e:
             return {"success": False, "error": str(e)}
 
+    # Validators for settings that need input validation
+    _VALIDATORS = {
+        "sample_rate": settings_logic.validate_sample_rate,
+        "silence_duration_sec": settings_logic.validate_silence_duration,
+        "noise_gate_threshold_db": settings_logic.validate_noise_threshold,
+        "audio_feedback_volume": settings_logic.validate_volume,
+        "preview_auto_hide_delay": settings_logic.validate_preview_delay,
+    }
+
     def save_setting(self, key, value):
         """
         Save a single setting.
         Supports nested keys like "hotkey.ctrl" using dot notation.
         """
         try:
+            # Apply validation if validator exists for this key
+            if key in self._VALIDATORS:
+                value = self._VALIDATORS[key](value)
+
+            # Validate URL fields
+            if key == "ollama_url":
+                value = settings_logic.validate_url(value, "http://localhost:11434")
+
+            # Special handling for specific keys
+            if key == "start_with_windows":
+                # Update Windows registry for startup
+                config.set_startup_enabled(value)
+
+            if key == "input_device":
+                # Normalize device format: None for system default, dict for specific device
+                if value:
+                    value = {"name": value}  # Convert string ID to expected dict format
+                else:
+                    value = None  # Empty string means system default
+
             # Handle nested keys (e.g., "hotkey.ctrl")
             if "." in key:
                 parts = key.split(".")
@@ -119,6 +156,28 @@ class SettingsAPI:
         except Exception as e:
             return {"success": False, "error": str(e)}
 
+    def get_language_options(self):
+        """Return available language options from config."""
+        try:
+            # LANGUAGE_LABELS is a dict: {"auto": "Auto-detect", "en": "English", ...}
+            options = []
+            for code, label in config.LANGUAGE_LABELS.items():
+                options.append({"code": code, "label": label})
+            return {"success": True, "data": options}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def get_processing_mode_options(self):
+        """Return available processing mode options from config."""
+        try:
+            # PROCESSING_MODE_LABELS is a dict: {"auto": "Auto", "cpu": "CPU Only", ...}
+            options = []
+            for code, label in config.PROCESSING_MODE_LABELS.items():
+                options.append({"code": code, "label": label})
+            return {"success": True, "data": options}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
     # =========================================================================
     # Audio Devices
     # =========================================================================
@@ -149,15 +208,16 @@ class SettingsAPI:
     def get_available_models(self):
         """Return list of available Whisper models with download status."""
         try:
+            from dependency_check import check_model_available
+
             models = []
             for model_name in config.MODEL_OPTIONS:
                 display_name = config.MODEL_DISPLAY_NAMES.get(model_name, model_name)
                 size_mb = config.MODEL_SIZES_MB.get(model_name, 0)
 
-                # Check if model is downloaded (simplified check)
                 is_bundled = model_name in config.BUNDLED_MODELS
-                # TODO: Add actual download status check
-                is_downloaded = is_bundled
+                # Check actual download status (bundled dir or HuggingFace cache)
+                is_downloaded, model_path = check_model_available(model_name)
 
                 models.append({
                     "name": model_name,
@@ -307,31 +367,14 @@ class SettingsAPI:
     def get_gpu_status(self):
         """Check if GPU/CUDA is available for processing."""
         try:
-            # Try to detect CUDA availability
-            cuda_available = False
-            gpu_name = None
-
-            try:
-                import torch
-                cuda_available = torch.cuda.is_available()
-                if cuda_available:
-                    gpu_name = torch.cuda.get_device_name(0)
-            except ImportError:
-                # torch not installed, try ctranslate2
-                try:
-                    import ctranslate2
-                    # ctranslate2.get_supported_compute_types requires device parameter
-                    supported = ctranslate2.get_supported_compute_types("cuda")
-                    cuda_available = len(supported) > 0
-                except (ImportError, RuntimeError):
-                    # CUDA not available or ctranslate2 not installed
-                    pass
-
+            # Use settings_logic for consistent detection with Tkinter version
+            is_available, status_msg, gpu_name = settings_logic.get_cuda_status()
             return {
                 "success": True,
                 "data": {
-                    "available": cuda_available,
-                    "name": gpu_name
+                    "available": is_available,
+                    "name": gpu_name,
+                    "status": status_msg
                 }
             }
         except Exception as e:
@@ -379,6 +422,60 @@ class SettingsAPI:
                 "success": False,
                 "message": f"Installation failed: {str(e)}"
             }
+
+    # =========================================================================
+    # Microphone Test
+    # =========================================================================
+
+    def start_microphone_test(self):
+        """Start audio level monitoring for noise gate calibration."""
+        if self._audio_test_running:
+            return {"success": False, "error": "Already running"}
+
+        try:
+            self._audio_test_running = True
+            device_idx = config.get_device_index(self._config.get("input_device"))
+            sample_rate = self._config.get("sample_rate", 16000)
+
+            def audio_callback(indata, frames, time_info, status):
+                if not self._audio_test_running:
+                    raise sd.CallbackAbort()
+                # Calculate RMS level in dB
+                rms = np.sqrt(np.mean(indata**2))
+                if rms > 0:
+                    db = 20 * math.log10(rms)
+                else:
+                    db = -60
+                # Clamp to meter range
+                db = max(-60, min(-20, db))
+                # Send to frontend
+                if self._window:
+                    self._window.evaluate_js(f'window.onAudioLevel && window.onAudioLevel({db:.1f})')
+
+            self._audio_test_stream = sd.InputStream(
+                device=device_idx,
+                channels=1,
+                samplerate=sample_rate,
+                callback=audio_callback,
+                blocksize=1024
+            )
+            self._audio_test_stream.start()
+            return {"success": True}
+        except Exception as e:
+            self._audio_test_running = False
+            return {"success": False, "error": str(e)}
+
+    def stop_microphone_test(self):
+        """Stop audio level monitoring."""
+        self._audio_test_running = False
+        if self._audio_test_stream:
+            try:
+                self._audio_test_stream.stop()
+                self._audio_test_stream.close()
+            except Exception:
+                pass
+            self._audio_test_stream = None
+        return {"success": True}
 
     # =========================================================================
     # License (Status Only - Key Stays in Python)

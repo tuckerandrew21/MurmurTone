@@ -65,6 +65,88 @@ window.onModelDownloadError = function(error) {
 };
 
 // ============================================
+// Microphone Test Callbacks (called from Python)
+// ============================================
+
+let isMicTesting = false;
+
+window.onAudioLevel = function(db) {
+    const fill = document.getElementById('audio-level-fill');
+    const threshold = document.getElementById('noise-gate-threshold');
+
+    if (fill) {
+        // Map -60 to -20 dB to 0-100%
+        const percent = Math.max(0, Math.min(100, ((db + 60) / 40) * 100));
+        fill.style.width = `${percent}%`;
+
+        // Color based on threshold
+        const thresholdDb = parseInt(threshold?.value || -40);
+        if (db > thresholdDb) {
+            fill.style.background = 'linear-gradient(to right, var(--green-500), var(--green-400))';
+        } else {
+            fill.style.background = 'linear-gradient(to right, var(--slate-500), var(--slate-400))';
+        }
+    }
+};
+
+/**
+ * Update threshold marker position when threshold slider changes
+ */
+function updateThresholdMarker() {
+    const threshold = document.getElementById('noise-gate-threshold');
+    const marker = document.getElementById('threshold-marker');
+
+    if (threshold && marker) {
+        // Map threshold value (-60 to -20) to percentage (0 to 100)
+        const thresholdDb = parseInt(threshold.value || -40);
+        const percent = ((thresholdDb + 60) / 40) * 100;
+        marker.style.left = `${percent}%`;
+    }
+}
+
+/**
+ * Toggle microphone test on/off
+ */
+async function toggleMicTest() {
+    const btn = document.getElementById('mic-test-btn');
+    const fill = document.getElementById('audio-level-fill');
+
+    if (isMicTesting) {
+        // Stop test
+        try {
+            await pywebview.api.stop_microphone_test();
+        } catch (e) {
+            console.error('Error stopping mic test:', e);
+        }
+        isMicTesting = false;
+        if (btn) {
+            btn.textContent = 'Test Microphone';
+            btn.classList.remove('testing');
+        }
+        if (fill) {
+            fill.style.width = '0%';
+        }
+    } else {
+        // Start test
+        try {
+            const result = await pywebview.api.start_microphone_test();
+            if (result.success) {
+                isMicTesting = true;
+                if (btn) {
+                    btn.textContent = 'Stop Test';
+                    btn.classList.add('testing');
+                }
+            } else {
+                showToast(`Microphone test failed: ${result.error}`, 'error');
+            }
+        } catch (e) {
+            console.error('Error starting mic test:', e);
+            showToast('Failed to start microphone test', 'error');
+        }
+    }
+}
+
+// ============================================
 // Initialization
 // ============================================
 
@@ -297,17 +379,28 @@ function populateForm() {
     // Update conditional visibility
     updateNoiseGateVisibility();
 
+    // Update threshold marker position
+    updateThresholdMarker();
+
     // Load audio devices
     loadAudioDevices();
 
+    // Load dropdown options from backend (async, with fallback to hardcoded)
+    // loadLanguageOptions updates both language and translation-source-language dropdowns
+    loadLanguageOptions().then(() => {
+        setDropdown('language', settings.language ?? 'en');
+        setDropdown('translation-source-language', settings.translation_source_language ?? 'auto');
+    });
+    loadProcessingModeOptions().then(() => {
+        setDropdown('processing-mode', settings.processing_mode ?? 'auto');
+    });
+
     // Recognition settings
     setDropdown('model-size', settings.model_size ?? 'tiny');
-    setDropdown('processing-mode', settings.processing_mode ?? 'auto');
     setSlider('silence-duration', settings.silence_duration_sec ?? 2.0, 's');
 
     // Translation settings
     setCheckbox('translation-enabled', settings.translation_enabled ?? false);
-    setDropdown('translation-source-language', settings.translation_source_language ?? 'auto');
     updateTranslationVisibility();
 
     // Load vocabulary list
@@ -379,12 +472,24 @@ function setupFormListeners() {
         saveSetting('noise_gate_enabled', checked);
         updateNoiseGateVisibility();
     });
-    addSliderListener('noise-gate-threshold', (value) => saveSetting('noise_gate_threshold_db', parseInt(value)), 'dB');
+    addSliderListener('noise-gate-threshold', (value) => {
+        saveSetting('noise_gate_threshold_db', parseInt(value));
+        updateThresholdMarker();
+    }, 'dB');
     addSliderListener('feedback-volume', (value) => saveSetting('audio_feedback_volume', parseInt(value)), '%');
     addCheckboxListener('sound-processing', (checked) => saveSetting('sound_processing', checked));
     addCheckboxListener('sound-success', (checked) => saveSetting('sound_success', checked));
     addCheckboxListener('sound-error', (checked) => saveSetting('sound_error', checked));
     addCheckboxListener('sound-command', (checked) => saveSetting('sound_command', checked));
+
+    // Microphone test button
+    const micTestBtn = document.getElementById('mic-test-btn');
+    if (micTestBtn) {
+        micTestBtn.addEventListener('click', toggleMicTest);
+    }
+
+    // Update threshold marker on load
+    updateThresholdMarker();
 
     // Refresh devices button
     const refreshBtn = document.getElementById('refresh-devices-btn');
@@ -798,6 +903,80 @@ async function loadAudioDevices() {
             refreshBtn.disabled = false;
             refreshBtn.classList.remove('loading');
         }
+    }
+}
+
+/**
+ * Load language options from backend
+ */
+async function loadLanguageOptions() {
+    const languageDropdown = document.getElementById('language');
+    const translationDropdown = document.getElementById('translation-source-language');
+
+    try {
+        const result = await pywebview.api.get_language_options();
+        if (result.success && result.data) {
+            const currentLanguage = languageDropdown?.value;
+            const currentTranslation = translationDropdown?.value;
+
+            // Update language dropdown
+            if (languageDropdown) {
+                languageDropdown.innerHTML = '';
+                result.data.forEach(opt => {
+                    const option = document.createElement('option');
+                    option.value = opt.code;
+                    option.textContent = opt.label;
+                    languageDropdown.appendChild(option);
+                });
+                if (currentLanguage) languageDropdown.value = currentLanguage;
+            }
+
+            // Update translation source dropdown (same options)
+            if (translationDropdown) {
+                translationDropdown.innerHTML = '';
+                result.data.forEach(opt => {
+                    const option = document.createElement('option');
+                    option.value = opt.code;
+                    option.textContent = opt.label;
+                    translationDropdown.appendChild(option);
+                });
+                if (currentTranslation) translationDropdown.value = currentTranslation;
+            }
+        }
+    } catch (error) {
+        console.error('Error loading language options:', error);
+        // Keep existing hardcoded options as fallback
+    }
+}
+
+/**
+ * Load processing mode options from backend
+ */
+async function loadProcessingModeOptions() {
+    const dropdown = document.getElementById('processing-mode');
+    if (!dropdown) return;
+
+    try {
+        const result = await pywebview.api.get_processing_mode_options();
+        if (result.success && result.data) {
+            const currentValue = dropdown.value;
+
+            dropdown.innerHTML = '';
+            result.data.forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt.code;
+                option.textContent = opt.label;
+                if (opt.code === 'auto') {
+                    option.textContent += ' (Recommended)';
+                }
+                dropdown.appendChild(option);
+            });
+
+            if (currentValue) dropdown.value = currentValue;
+        }
+    } catch (error) {
+        console.error('Error loading processing mode options:', error);
+        // Keep existing hardcoded options as fallback
     }
 }
 
