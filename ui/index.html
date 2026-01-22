@@ -136,6 +136,92 @@
                         </div>
                     </div>
 
+                    <!-- Output Section -->
+                    <div class="settings-section">
+                        <h3 class="section-title">Output</h3>
+                        <p class="section-description">How transcribed text is delivered to your applications.</p>
+
+                        <div class="setting-row toggle-row">
+                            <div class="setting-info">
+                                <label class="setting-label">Auto-paste</label>
+                                <p class="setting-help">Automatically paste transcribed text into the active application.</p>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="auto-paste" aria-label="Auto-paste" data-testid="auto-paste">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-row">
+                            <label class="setting-label">Paste Mode</label>
+                            <select id="paste-mode" class="dropdown" aria-label="Paste mode" data-testid="paste-mode">
+                                <option value="clipboard">Clipboard (Ctrl+V)</option>
+                                <option value="direct">Direct Typing</option>
+                            </select>
+                            <p class="setting-help" id="paste-mode-help">Copies text to clipboard and pastes with Ctrl+V</p>
+                        </div>
+                    </div>
+
+                    <!-- Preview Window Section -->
+                    <div class="settings-section">
+                        <h3 class="section-title">Preview Window</h3>
+                        <p class="section-description">Show a floating preview of transcriptions before pasting.</p>
+
+                        <div class="setting-row toggle-row">
+                            <div class="setting-info">
+                                <label class="setting-label">Enable Preview</label>
+                                <p class="setting-help">Display transcription in a small overlay window.</p>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="preview-enabled" aria-label="Preview enabled" data-testid="preview-enabled">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="nested-setting" id="preview-options">
+                            <div class="setting-row">
+                                <label class="setting-label">Position</label>
+                                <select id="preview-position" class="dropdown" aria-label="Preview position" data-testid="preview-position">
+                                    <option value="bottom_right">Bottom Right</option>
+                                    <option value="bottom_left">Bottom Left</option>
+                                    <option value="top_right">Top Right</option>
+                                    <option value="top_left">Top Left</option>
+                                    <option value="center">Center</option>
+                                </select>
+                            </div>
+
+                            <div class="setting-row">
+                                <label class="setting-label">Auto-hide Delay</label>
+                                <div class="slider-row">
+                                    <input type="range" id="preview-auto-hide" class="slider"
+                                        min="1" max="10" step="0.5" value="2"
+                                        aria-label="Preview auto-hide delay"
+                                        data-testid="preview-auto-hide">
+                                    <span class="slider-value" id="preview-auto-hide-value">2.0s</span>
+                                </div>
+                            </div>
+
+                            <div class="setting-row">
+                                <label class="setting-label">Theme</label>
+                                <select id="preview-theme" class="dropdown" aria-label="Preview theme" data-testid="preview-theme">
+                                    <option value="dark">Dark</option>
+                                    <option value="light">Light</option>
+                                </select>
+                            </div>
+
+                            <div class="setting-row">
+                                <label class="setting-label">Font Size</label>
+                                <div class="slider-row">
+                                    <input type="range" id="preview-font-size" class="slider"
+                                        min="8" max="18" step="1" value="11"
+                                        aria-label="Preview font size"
+                                        data-testid="preview-font-size">
+                                    <span class="slider-value" id="preview-font-size-value">11pt</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Startup Section -->
                     <div class="settings-section">
                         <h3 class="section-title">Startup</h3>
@@ -451,31 +537,6 @@
 
                 <!-- Text Page -->
                 <section class="page" id="page-text">
-                    <!-- Output Mode Section -->
-                    <div class="settings-section">
-                        <h3 class="section-title">Text Output</h3>
-                        <p class="section-description">How transcribed text is delivered to your applications.</p>
-
-                        <div class="setting-row toggle-row">
-                            <div class="setting-info">
-                                <label class="setting-label">Auto-paste</label>
-                                <p class="setting-help">Automatically paste transcribed text into the active application.</p>
-                            </div>
-                            <label class="toggle">
-                                <input type="checkbox" id="auto-paste" aria-label="Auto-paste" data-testid="auto-paste">
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
-
-                        <div class="setting-row">
-                            <label class="setting-label">Paste Mode</label>
-                            <select id="paste-mode" class="dropdown" aria-label="Paste mode" data-testid="paste-mode">
-                                <option value="clipboard">Clipboard (Ctrl+V)</option>
-                                <option value="direct">Direct Typing</option>
-                            </select>
-                        </div>
-                    </div>
-
                     <!-- Voice Commands Section -->
                     <div class="settings-section">
                         <h3 class="section-title">Voice Commands</h3>
@@ -656,55 +717,6 @@
                         </div>
 
                         <a href="#" class="learn-more-link" id="ai-cleanup-learn-more">Learn more about AI cleanup</a>
-                    </div>
-
-                    <!-- Preview Window Section -->
-                    <div class="settings-section">
-                        <h3 class="section-title">Preview Window</h3>
-                        <p class="section-description">Show a floating preview of transcriptions before pasting.</p>
-
-                        <div class="setting-row toggle-row">
-                            <div class="setting-info">
-                                <label class="setting-label">Enable Preview</label>
-                                <p class="setting-help">Display transcription in a small overlay window.</p>
-                            </div>
-                            <label class="toggle">
-                                <input type="checkbox" id="preview-enabled" aria-label="Preview enabled" data-testid="preview-enabled">
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
-
-                        <div class="nested-setting" id="preview-options">
-                            <div class="setting-row">
-                                <label class="setting-label">Position</label>
-                                <select id="preview-position" class="dropdown" aria-label="Preview position" data-testid="preview-position">
-                                    <option value="bottom_right">Bottom Right</option>
-                                    <option value="bottom_left">Bottom Left</option>
-                                    <option value="top_right">Top Right</option>
-                                    <option value="top_left">Top Left</option>
-                                    <option value="center">Center</option>
-                                </select>
-                            </div>
-
-                            <div class="setting-row">
-                                <label class="setting-label">Auto-hide Delay</label>
-                                <div class="slider-row">
-                                    <input type="range" id="preview-auto-hide" class="slider"
-                                        min="1" max="10" step="0.5" value="2"
-                                        aria-label="Preview auto-hide delay"
-                                        data-testid="preview-auto-hide">
-                                    <span class="slider-value" id="preview-auto-hide-value">2.0s</span>
-                                </div>
-                            </div>
-
-                            <div class="setting-row">
-                                <label class="setting-label">Theme</label>
-                                <select id="preview-theme" class="dropdown" aria-label="Preview theme" data-testid="preview-theme">
-                                    <option value="dark">Dark</option>
-                                    <option value="light">Light</option>
-                                </select>
-                            </div>
-                        </div>
                     </div>
 
                     <!-- History Section -->

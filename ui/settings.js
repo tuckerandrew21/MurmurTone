@@ -416,6 +416,7 @@ function populateForm() {
     // Text settings
     setCheckbox('auto-paste', settings.auto_paste ?? true);
     setDropdown('paste-mode', settings.paste_mode ?? 'clipboard');
+    updatePasteModeHelp();
     setCheckbox('voice-commands', settings.voice_commands_enabled ?? true);
     setCheckbox('scratch-that', settings.scratch_that_enabled ?? true);
     setCheckbox('filler-removal', settings.filler_removal_enabled ?? true);
@@ -439,6 +440,13 @@ function populateForm() {
     setCheckbox('preview-enabled', settings.preview_enabled ?? true);
     setDropdown('preview-position', settings.preview_position ?? 'bottom_right');
     setSlider('preview-auto-hide', settings.preview_auto_hide_delay ?? 2.0, 's');
+    setDropdown('preview-theme', settings.preview_theme ?? 'dark');
+    const fontSize = settings.preview_font_size ?? 11;
+    setSlider('preview-font-size', fontSize);
+    const fontSizeValue = document.getElementById('preview-font-size-value');
+    if (fontSizeValue) {
+        fontSizeValue.textContent = `${fontSize}pt`;
+    }
 
     // Update visibility
     updateAiCleanupVisibility();
@@ -606,7 +614,10 @@ function setupFormListeners() {
 
     // Text settings
     addCheckboxListener('auto-paste', (checked) => saveSetting('auto_paste', checked));
-    addDropdownListener('paste-mode', (value) => saveSetting('paste_mode', value));
+    addDropdownListener('paste-mode', (value) => {
+        saveSetting('paste_mode', value);
+        updatePasteModeHelp();
+    });
     addCheckboxListener('voice-commands', (checked) => {
         saveSetting('voice_commands_enabled', checked);
         updateVoiceCommandsVisibility();
@@ -660,6 +671,13 @@ function setupFormListeners() {
     addDropdownListener('preview-position', (value) => saveSetting('preview_position', value));
     addSliderListener('preview-auto-hide', (value) => saveSetting('preview_auto_hide_delay', parseFloat(value)), 's');
     addDropdownListener('preview-theme', (value) => saveSetting('preview_theme', value));
+    addSliderListener('preview-font-size', (value) => {
+        saveSetting('preview_font_size', parseInt(value));
+        const valueDisplay = document.getElementById('preview-font-size-value');
+        if (valueDisplay) {
+            valueDisplay.textContent = `${value}pt`;
+        }
+    });
 
     // Install GPU Support button
     const installGpuBtn = document.getElementById('install-gpu-btn');
@@ -1384,6 +1402,22 @@ function updatePreviewVisibility() {
             options.classList.add('disabled');
         }
     }
+}
+
+/**
+ * Update paste mode help text based on selected mode
+ */
+function updatePasteModeHelp() {
+    const mode = document.getElementById('paste-mode')?.value;
+    const helpText = document.getElementById('paste-mode-help');
+    if (!helpText) return;
+
+    const helpTexts = {
+        'clipboard': 'Copies text to clipboard and pastes with Ctrl+V',
+        'direct': 'Simulates typing each character (slower but more compatible)'
+    };
+
+    helpText.textContent = helpTexts[mode] || 'How text is inserted';
 }
 
 // ============================================
