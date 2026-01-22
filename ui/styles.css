@@ -216,7 +216,6 @@ body {
 .content-header {
     padding: var(--space-xl);
     padding-bottom: var(--space-md);
-    border-bottom: 1px solid var(--slate-700);
 }
 
 .page-title {
