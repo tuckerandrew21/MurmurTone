@@ -223,6 +223,12 @@ function navigateTo(page) {
         p.classList.toggle('active', p.id === `page-${page}`);
     });
 
+    // Scroll content to top when switching tabs
+    const contentBody = document.querySelector('.content-body');
+    if (contentBody) {
+        contentBody.scrollTop = 0;
+    }
+
     // Update page title
     const titles = {
         general: 'General',
