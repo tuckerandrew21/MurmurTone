@@ -757,6 +757,45 @@ body {
     height: 16px;
 }
 
+/* Icon Button - Small button for icons only (e.g., refresh) */
+.icon-btn {
+    background: transparent;
+    border: 1px solid var(--slate-600);
+    border-radius: 6px;
+    padding: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-left: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-btn:hover {
+    background: var(--slate-700);
+    border-color: var(--primary);
+}
+
+.icon-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.refresh-icon {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+
+.refresh-icon.spinning {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
 .btn.loading .btn-icon {
     animation: spin 1s linear infinite;
 }

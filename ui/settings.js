@@ -685,6 +685,12 @@ function setupFormListeners() {
         installGpuBtn.addEventListener('click', installGpuSupport);
     }
 
+    // Refresh GPU Status button
+    const refreshGpuBtn = document.getElementById('refresh-gpu-btn');
+    if (refreshGpuBtn) {
+        refreshGpuBtn.addEventListener('click', refreshGpuStatus);
+    }
+
     // Reset to defaults button
     const resetBtn = document.getElementById('reset-defaults-btn');
     if (resetBtn) {
@@ -1215,6 +1221,29 @@ async function checkGpuStatus() {
         badge.querySelector('.status-text').textContent = 'GPU Status Unknown';
         // Show install button on error
         if (installRow) installRow.classList.remove('hidden');
+    }
+}
+
+/**
+ * Refresh GPU status with user feedback
+ */
+async function refreshGpuStatus() {
+    const btn = document.getElementById('refresh-gpu-btn');
+    if (!btn) return;
+
+    const icon = btn.querySelector('.refresh-icon');
+    btn.disabled = true;
+    if (icon) icon.classList.add('spinning');
+
+    try {
+        await checkGpuStatus();
+        showToast('GPU status refreshed', 'success');
+    } catch (error) {
+        console.error('Error refreshing GPU:', error);
+        showToast('Failed to refresh GPU status', 'error');
+    } finally {
+        btn.disabled = false;
+        if (icon) icon.classList.remove('spinning');
     }
 }
 
