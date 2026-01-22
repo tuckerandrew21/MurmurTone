@@ -114,11 +114,24 @@ body {
     padding: var(--space-lg);
 }
 
+.sidebar-logo-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: var(--space-md);
+}
+
+.sidebar-logo {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+}
+
 .sidebar-title {
     font-size: var(--font-size-xl);
     font-weight: 600;
     color: var(--slate-100);
     margin-bottom: var(--space-xl);
+    text-align: center;
 }
 
 .nav-items {
@@ -1118,6 +1131,12 @@ body {
     height: 20px;
 }
 
+.license-badge-logo {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+}
+
 .license-badge.trial .license-icon {
     background: rgba(251, 191, 36, 0.2);
     color: var(--warning);
@@ -1580,6 +1599,12 @@ body {
     color: white;
 }
 
+.welcome-logo {
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+}
+
 .welcome-title {
     font-size: 1.5rem;
     font-weight: 600;
@@ -1637,4 +1662,25 @@ body {
     margin-top: var(--space-md);
     font-size: 0.75rem;
     color: var(--text-tertiary);
+}
+
+/* ============================================
+   About Page Logo
+   ============================================ */
+.about-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
+}
+
+.about-logo {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.about-header-text {
+    flex: 1;
 }
