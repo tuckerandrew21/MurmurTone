@@ -25,7 +25,10 @@ window.onModelDownloadProgress = function(percent, status) {
     if (progressRow) progressRow.classList.remove('hidden');
     if (progressBar) progressBar.style.width = `${percent}%`;
     if (progressText) progressText.textContent = status;
-    if (downloadBtn) downloadBtn.disabled = true;
+    if (downloadBtn) {
+        downloadBtn.disabled = true;
+        downloadBtn.classList.add('loading');
+    }
 };
 
 window.onModelDownloadComplete = function(success) {
@@ -33,7 +36,10 @@ window.onModelDownloadComplete = function(success) {
     const progressRow = document.getElementById('download-progress-row');
     const downloadBtn = document.getElementById('download-model-btn');
 
-    if (downloadBtn) downloadBtn.disabled = false;
+    if (downloadBtn) {
+        downloadBtn.disabled = false;
+        downloadBtn.classList.remove('loading');
+    }
 
     if (success) {
         showToast('Model downloaded successfully!', 'success');
@@ -50,7 +56,10 @@ window.onModelDownloadError = function(error) {
     const downloadBtn = document.getElementById('download-model-btn');
 
     if (progressRow) progressRow.classList.add('hidden');
-    if (downloadBtn) downloadBtn.disabled = false;
+    if (downloadBtn) {
+        downloadBtn.disabled = false;
+        downloadBtn.classList.remove('loading');
+    }
 
     showToast(`Download failed: ${error}`, 'error');
 };
@@ -88,6 +97,16 @@ async function onApiReady() {
     setupFormListeners();
     setupKeyboardNavigation();
 
+    // Restore last active tab
+    restoreActiveTab();
+
+    // Toast click-to-dismiss
+    const toast = document.getElementById('toast');
+    if (toast) {
+        toast.addEventListener('click', hideToast);
+        toast.style.cursor = 'pointer';
+    }
+
     // Update version display
     updateVersionDisplay();
 
@@ -103,6 +122,9 @@ async function onApiReady() {
  * Load all settings from Python API
  */
 async function loadSettings() {
+    const contentBody = document.querySelector('.content-body');
+    if (contentBody) contentBody.classList.add('loading');
+
     try {
         const result = await pywebview.api.get_all_settings();
         if (result.success) {
@@ -114,6 +136,13 @@ async function loadSettings() {
     } catch (error) {
         console.error('Error loading settings:', error);
         showToast('Failed to load settings', 'error');
+    } finally {
+        if (contentBody) {
+            contentBody.classList.remove('loading');
+            contentBody.classList.add('loaded');
+            // Remove loaded class after animation completes
+            setTimeout(() => contentBody.classList.remove('loaded'), 300);
+        }
     }
 }
 
@@ -206,6 +235,27 @@ function navigateTo(page) {
     document.getElementById('page-title').textContent = titles[page] || page;
 
     currentPage = page;
+
+    // Persist active tab
+    try {
+        localStorage.setItem('murmurtone_active_tab', page);
+    } catch (e) {
+        // localStorage may not be available
+    }
+}
+
+/**
+ * Restore active tab from localStorage
+ */
+function restoreActiveTab() {
+    try {
+        const savedTab = localStorage.getItem('murmurtone_active_tab');
+        if (savedTab && ['general', 'audio', 'recognition', 'text', 'advanced', 'about'].includes(savedTab)) {
+            navigateTo(savedTab);
+        }
+    } catch (e) {
+        // localStorage may not be available
+    }
 }
 
 // ============================================
@@ -373,6 +423,14 @@ function setupFormListeners() {
         });
     }
 
+    // Vocabulary search/filter
+    const vocabSearch = document.getElementById('vocabulary-search');
+    if (vocabSearch) {
+        vocabSearch.addEventListener('input', () => {
+            filterList('vocabulary-list', vocabSearch.value);
+        });
+    }
+
     // Download model button
     const downloadBtn = document.getElementById('download-model-btn');
     if (downloadBtn) {
@@ -393,6 +451,8 @@ function setupFormListeners() {
             }
 
             isDownloading = true;
+            downloadBtn.classList.add('loading');
+            downloadBtn.disabled = true;
             showToast(`Starting download of ${modelName} model...`, 'info');
 
             try {
@@ -424,6 +484,14 @@ function setupFormListeners() {
         addFillerBtn.addEventListener('click', () => addFillerWord(fillerInput.value));
         fillerInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') addFillerWord(fillerInput.value);
+        });
+    }
+
+    // Filler search/filter
+    const fillerSearch = document.getElementById('filler-search');
+    if (fillerSearch) {
+        fillerSearch.addEventListener('input', () => {
+            filterList('filler-list', fillerSearch.value);
         });
     }
 
@@ -558,6 +626,7 @@ function setSlider(id, value, unit = '') {
     const valueEl = document.getElementById(`${id}-value`);
     if (el) {
         el.value = value;
+        updateSliderFill(el);
         if (valueEl) {
             valueEl.textContent = `${value}${unit ? ' ' + unit : ''}`;
         }
@@ -569,12 +638,24 @@ function addSliderListener(id, callback, unit = '') {
     const valueEl = document.getElementById(`${id}-value`);
     if (el) {
         el.addEventListener('input', () => {
+            updateSliderFill(el);
             if (valueEl) {
                 valueEl.textContent = `${el.value}${unit ? ' ' + unit : ''}`;
             }
         });
         el.addEventListener('change', () => callback(el.value));
     }
+}
+
+/**
+ * Update slider track fill based on current value
+ */
+function updateSliderFill(slider) {
+    const min = parseFloat(slider.min) || 0;
+    const max = parseFloat(slider.max) || 100;
+    const value = parseFloat(slider.value) || 0;
+    const percentage = ((value - min) / (max - min)) * 100;
+    slider.style.setProperty('--slider-fill', `${percentage}%`);
 }
 
 // ============================================
@@ -737,6 +818,44 @@ function createListItem(text, onDelete) {
     li.appendChild(span);
     li.appendChild(btn);
     return li;
+}
+
+/**
+ * Filter list items by search term
+ */
+function filterList(listId, searchTerm) {
+    const list = document.getElementById(listId);
+    if (!list) return;
+
+    const term = searchTerm.toLowerCase().trim();
+    const items = list.querySelectorAll('.editable-list-item');
+    let visibleCount = 0;
+
+    items.forEach(item => {
+        const text = item.querySelector('.item-text')?.textContent.toLowerCase() || '';
+        if (!term || text.includes(term)) {
+            item.classList.remove('filtered');
+            visibleCount++;
+        } else {
+            item.classList.add('filtered');
+        }
+    });
+
+    // Update empty state visibility
+    const emptyId = listId.replace('-list', '-empty');
+    const emptyState = document.getElementById(emptyId);
+    if (emptyState) {
+        if (visibleCount === 0 && items.length > 0) {
+            emptyState.textContent = 'No matches found.';
+            emptyState.classList.remove('hidden');
+        } else if (items.length === 0) {
+            emptyState.textContent = listId === 'vocabulary-list' ?
+                'No custom vocabulary added yet.' : 'No custom filler words added.';
+            emptyState.classList.remove('hidden');
+        } else {
+            emptyState.classList.add('hidden');
+        }
+    }
 }
 
 // ============================================
@@ -1580,15 +1699,37 @@ function showSaveStatus() {
 /**
  * Show a toast notification
  */
+let toastTimeout = null;
+
 function showToast(message, type = 'info') {
     const toast = document.getElementById('toast');
     if (toast) {
+        // Clear any existing timeout
+        if (toastTimeout) {
+            clearTimeout(toastTimeout);
+        }
+
         toast.textContent = message;
         toast.className = 'toast visible ' + type;
 
-        setTimeout(() => {
+        // Auto-dismiss after 3 seconds
+        toastTimeout = setTimeout(() => {
             toast.classList.remove('visible');
         }, 3000);
+    }
+}
+
+/**
+ * Hide toast immediately (click to dismiss)
+ */
+function hideToast() {
+    const toast = document.getElementById('toast');
+    if (toast) {
+        if (toastTimeout) {
+            clearTimeout(toastTimeout);
+            toastTimeout = null;
+        }
+        toast.classList.remove('visible');
     }
 }
 
@@ -1600,13 +1741,38 @@ function showToast(message, type = 'info') {
  * Set up keyboard navigation
  */
 function setupKeyboardNavigation() {
+    const tabs = ['general', 'audio', 'recognition', 'text', 'advanced', 'about'];
+
     document.addEventListener('keydown', (e) => {
-        // Escape key - close welcome banner if open
+        // Escape key - close modals and banners
         if (e.key === 'Escape') {
+            // Close welcome banner
             const banner = document.getElementById('welcome-banner');
             if (banner && banner.classList.contains('visible')) {
                 hideWelcomeBanner();
+                return;
             }
+            // Close any open modal
+            const openModal = document.querySelector('.modal-overlay.visible');
+            if (openModal) {
+                closeModal(openModal.id);
+                return;
+            }
+        }
+
+        // Ctrl+1-6 - Quick tab switching
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key >= '1' && e.key <= '6') {
+            e.preventDefault();
+            const tabIndex = parseInt(e.key) - 1;
+            if (tabIndex < tabs.length) {
+                navigateTo(tabs[tabIndex]);
+            }
+        }
+
+        // Ctrl+S - Save confirmation (settings auto-save, but provide feedback)
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key === 's') {
+            e.preventDefault();
+            showToast('Settings auto-saved', 'success');
         }
 
         // Arrow keys for tab navigation when focused on nav
@@ -1762,6 +1928,10 @@ function createMockApi() {
                 console.log(`Mock open URL: ${url}`);
                 window.open(url, '_blank');
                 return Promise.resolve({ success: true });
+            },
+            get_history_count: () => {
+                const mockHistory = JSON.parse(localStorage.getItem('mock_history') || '[]');
+                return Promise.resolve({ success: true, count: mockHistory.length });
             }
         }
     };

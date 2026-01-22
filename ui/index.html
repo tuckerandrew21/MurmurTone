@@ -207,7 +207,7 @@
                         <div class="setting-row">
                             <label class="setting-label">Sample Rate</label>
                             <select id="sample-rate" class="dropdown" data-testid="sample-rate">
-                                <option value="16000">16 kHz (Recommended)</option>
+                                <option value="16000" data-recommended>16 kHz (Recommended)</option>
                                 <option value="44100">44.1 kHz</option>
                                 <option value="48000">48 kHz</option>
                             </select>
@@ -348,7 +348,7 @@
                         <div class="setting-row">
                             <label class="setting-label">Mode</label>
                             <select id="processing-mode" class="dropdown" aria-label="Processing mode" data-testid="processing-mode">
-                                <option value="auto">Auto (Recommended)</option>
+                                <option value="auto" data-recommended>Auto (Recommended)</option>
                                 <option value="cpu">CPU Only</option>
                                 <option value="gpu_int8">GPU - Fast (int8)</option>
                                 <option value="gpu_float16">GPU - Balanced (float16)</option>
@@ -407,6 +407,10 @@
                                     data-testid="vocabulary-input">
                                 <button type="button" id="add-vocabulary-btn" class="btn btn-secondary" data-testid="add-vocabulary-btn">Add</button>
                             </div>
+                            <input type="text" id="vocabulary-search" class="list-search-input"
+                                placeholder="Filter vocabulary..."
+                                aria-label="Filter vocabulary list"
+                                data-testid="vocabulary-search">
                             <ul class="editable-list" id="vocabulary-list" data-testid="vocabulary-list">
                                 <!-- Items added dynamically -->
                             </ul>
@@ -546,6 +550,10 @@
                                         data-testid="filler-input">
                                     <button type="button" id="add-filler-btn" class="btn btn-secondary" data-testid="add-filler-btn">Add</button>
                                 </div>
+                                <input type="text" id="filler-search" class="list-search-input"
+                                    placeholder="Filter filler words..."
+                                    aria-label="Filter filler list"
+                                    data-testid="filler-search">
                                 <ul class="editable-list" id="filler-list" data-testid="filler-list">
                                     <!-- Items added dynamically -->
                                 </ul>
@@ -866,15 +874,31 @@
             </p>
             <div class="welcome-features">
                 <div class="welcome-feature">
-                    <span class="feature-icon">⌨️</span>
+                    <span class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="4" width="20" height="16" rx="2"/>
+                            <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M6 16h8"/>
+                        </svg>
+                    </span>
                     <span>Default hotkey: <strong>Ctrl+Shift+Space</strong></span>
                 </div>
                 <div class="welcome-feature">
-                    <span class="feature-icon">🎤</span>
+                    <span class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                            <line x1="12" y1="19" x2="12" y2="23"/>
+                            <line x1="8" y1="23" x2="16" y2="23"/>
+                        </svg>
+                    </span>
                     <span>Works with any microphone</span>
                 </div>
                 <div class="welcome-feature">
-                    <span class="feature-icon">⚡</span>
+                    <span class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                        </svg>
+                    </span>
                     <span>Transcription appears at your cursor</span>
                 </div>
             </div>

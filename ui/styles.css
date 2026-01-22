@@ -271,12 +271,61 @@ body {
     }
 }
 
+/* Loading state for content */
+.content-body.loading {
+    pointer-events: none;
+}
+
+.content-body.loading .settings-section {
+    opacity: 0.5;
+}
+
+.content-body.loading .setting-row,
+.content-body.loading .setting-value,
+.content-body.loading .dropdown,
+.content-body.loading .checkbox-wrapper {
+    position: relative;
+    overflow: hidden;
+}
+
+.content-body.loading .setting-row::after,
+.content-body.loading .setting-value::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.content-body.loaded {
+    animation: contentFadeIn 0.3s var(--ease-out);
+}
+
+@keyframes contentFadeIn {
+    from { opacity: 0.7; }
+    to { opacity: 1; }
+}
+
 .settings-section {
     margin-bottom: var(--space-xl);
     padding: var(--space-lg);
     background: var(--slate-800);
     border-radius: var(--radius-lg);
     border: 1px solid var(--slate-700);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.settings-section:hover {
+    border-color: var(--slate-600);
+    box-shadow: 0 0 0 1px var(--slate-700);
 }
 
 .section-title {
@@ -466,7 +515,7 @@ body {
     color: var(--slate-200);
     cursor: pointer;
     min-width: 180px;
-    max-width: 240px;
+    max-width: 320px;
     transition: all var(--transition-fast);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
     background-repeat: no-repeat;
@@ -474,7 +523,7 @@ body {
 }
 
 .dropdown.wide {
-    max-width: 280px;
+    max-width: 400px;
 }
 
 .dropdown:hover {
@@ -493,6 +542,12 @@ body {
     color: var(--slate-200);
 }
 
+.dropdown option[data-recommended] {
+    background: var(--slate-700);
+    font-weight: 600;
+    color: var(--primary-light);
+}
+
 /* ============================================
    Form Controls: Slider
    ============================================ */
@@ -507,7 +562,7 @@ body {
     appearance: none;
     width: 200px;
     height: 6px;
-    background: var(--slate-600);
+    background: linear-gradient(to right, var(--primary) 0%, var(--primary) var(--slider-fill, 50%), var(--slate-600) var(--slider-fill, 50%), var(--slate-600) 100%);
     border-radius: 3px;
     outline: none;
 }
@@ -790,6 +845,30 @@ body {
     flex: 1;
 }
 
+.list-search-input {
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    background: var(--slate-800);
+    border: 1px solid var(--slate-600);
+    border-radius: var(--radius-md);
+    color: var(--slate-100);
+    font-size: var(--font-size-sm);
+    transition: border-color var(--transition-fast);
+}
+
+.list-search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.list-search-input::placeholder {
+    color: var(--slate-500);
+}
+
+.editable-list-item.filtered {
+    display: none;
+}
+
 .editable-list {
     list-style: none;
     padding: 0;
@@ -847,7 +926,7 @@ body {
     margin-left: var(--space-lg);
     margin-top: var(--space-sm);
     padding-left: var(--space-md);
-    border-left: 2px solid var(--slate-600);
+    border-left: 2px solid var(--primary);
     transition: opacity var(--transition-normal);
 }
 
@@ -1040,6 +1119,14 @@ body {
 .toast.error {
     border-color: var(--error);
     background: var(--error-bg);
+}
+
+.toast.visible {
+    cursor: pointer;
+}
+
+.toast.visible:hover {
+    filter: brightness(1.1);
 }
 
 /* ============================================
@@ -1418,7 +1505,15 @@ body {
 }
 
 .feature-icon {
-    font-size: 1.25rem;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    color: var(--primary-light);
+}
+
+.feature-icon svg {
+    width: 100%;
+    height: 100%;
 }
 
 .welcome-feature strong {
