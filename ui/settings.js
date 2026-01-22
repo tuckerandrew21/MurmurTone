@@ -270,7 +270,7 @@ function populateForm() {
     setCheckbox('hotkey-ctrl', settings.hotkey?.ctrl ?? true);
     setCheckbox('hotkey-shift', settings.hotkey?.shift ?? true);
     setCheckbox('hotkey-alt', settings.hotkey?.alt ?? false);
-    setDropdown('hotkey-key', settings.hotkey?.key ?? 'space');
+    setKeyCaptureButton('hotkey-key', settings.hotkey?.key ?? 'space');
 
     // Recording mode
     setDropdown('recording-mode', settings.recording_mode ?? 'push_to_talk');
@@ -361,7 +361,7 @@ function setupFormListeners() {
     addCheckboxListener('hotkey-ctrl', (checked) => saveSetting('hotkey.ctrl', checked));
     addCheckboxListener('hotkey-shift', (checked) => saveSetting('hotkey.shift', checked));
     addCheckboxListener('hotkey-alt', (checked) => saveSetting('hotkey.alt', checked));
-    addDropdownListener('hotkey-key', (value) => saveSetting('hotkey.key', value));
+    setupHotkeyKeyCapture('hotkey-key', (value) => saveSetting('hotkey.key', value));
 
     // Recording mode
     addDropdownListener('recording-mode', (value) => saveSetting('recording_mode', value));
@@ -608,6 +608,85 @@ function addDropdownListener(id, callback) {
     if (el) {
         el.addEventListener('change', () => callback(el.value));
     }
+}
+
+/**
+ * Format a key name for display (e.g., 'space' -> 'Space', 'f5' -> 'F5')
+ */
+function formatKeyName(key) {
+    if (!key) return 'Not set';
+    if (key === 'space' || key === ' ') return 'Space';
+    // F-keys
+    if (key.match(/^f\d+$/i)) return key.toUpperCase();
+    // Capitalize first letter for other keys
+    return key.charAt(0).toUpperCase() + key.slice(1);
+}
+
+/**
+ * Normalize a key name for storage (consistent lowercase format)
+ */
+function normalizeKeyName(key) {
+    if (key === ' ') return 'space';
+    return key.toLowerCase();
+}
+
+/**
+ * Set the displayed value of a key capture button
+ */
+function setKeyCaptureButton(id, value) {
+    const btn = document.getElementById(id);
+    if (btn) {
+        const keyValue = btn.querySelector('.key-value');
+        if (keyValue) {
+            keyValue.textContent = formatKeyName(value);
+        }
+        btn.dataset.currentKey = value;
+    }
+}
+
+/**
+ * Set up key capture functionality for the hotkey button
+ */
+function setupHotkeyKeyCapture(id, callback) {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+
+    btn.addEventListener('click', () => {
+        // Already capturing, ignore
+        if (btn.classList.contains('capturing')) return;
+
+        const currentKey = btn.dataset.currentKey || 'space';
+        btn.classList.add('capturing');
+        const keyValue = btn.querySelector('.key-value');
+        if (keyValue) {
+            keyValue.textContent = 'Press any key...';
+        }
+
+        const handleKey = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Ignore modifier-only presses
+            if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) {
+                return;
+            }
+
+            document.removeEventListener('keydown', handleKey);
+            btn.classList.remove('capturing');
+
+            // Escape cancels
+            if (e.key === 'Escape') {
+                setKeyCaptureButton(id, currentKey);
+                return;
+            }
+
+            const keyName = normalizeKeyName(e.key);
+            setKeyCaptureButton(id, keyName);
+            callback(keyName);
+        };
+
+        document.addEventListener('keydown', handleKey);
+    });
 }
 
 function addInputListener(id, callback, debounce = 500) {

@@ -550,6 +550,41 @@ body {
 }
 
 /* ============================================
+   Form Controls: Key Capture Button
+   ============================================ */
+.key-capture-btn {
+    appearance: none;
+    background: var(--slate-700);
+    border: 1px solid var(--slate-600);
+    border-radius: var(--radius-md);
+    padding: var(--space-sm) var(--space-lg);
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
+    color: var(--slate-200);
+    cursor: pointer;
+    min-width: 120px;
+    transition: all var(--transition-fast);
+    text-align: left;
+}
+
+.key-capture-btn:hover {
+    border-color: var(--slate-500);
+    background-color: var(--slate-600);
+}
+
+.key-capture-btn:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-alpha);
+}
+
+.key-capture-btn.capturing {
+    border-color: var(--primary);
+    background-color: var(--primary);
+    color: white;
+}
+
+/* ============================================
    Form Controls: Slider
    ============================================ */
 .slider-container {
