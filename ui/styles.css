@@ -1072,6 +1072,11 @@ body {
     pointer-events: none;
 }
 
+.conditional-setting.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
 /* ============================================
    About Page Styles
    ============================================ */

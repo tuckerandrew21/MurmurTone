@@ -321,8 +321,22 @@
                         <h3 class="section-title">Audio Feedback</h3>
                         <p class="section-description">Sound notifications for different events.</p>
 
-                        <div class="setting-row">
-                            <label class="setting-label">Feedback Volume</label>
+                        <!-- Master toggle for all audio feedback -->
+                        <div class="setting-row toggle-row">
+                            <div class="setting-info">
+                                <label class="setting-label">Enable Audio Feedback</label>
+                                <p class="setting-help">Master toggle for all sound notifications.</p>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="audio-feedback-enabled" data-testid="audio-feedback-enabled">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- Conditional container for audio feedback options -->
+                        <div id="audio-feedback-options" class="conditional-setting">
+                            <div class="setting-row">
+                                <label class="setting-label">Feedback Volume</label>
                             <div class="slider-row">
                                 <input type="range" id="feedback-volume" class="slider"
                                     min="0" max="100" value="50"
@@ -375,6 +389,7 @@
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
+                        </div><!-- End audio-feedback-options -->
                     </div>
                 </section>
 
