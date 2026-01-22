@@ -802,6 +802,58 @@ body {
 }
 
 /* ============================================
+   Audio Meter (Microphone Test)
+   ============================================ */
+.mic-test-container {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.audio-meter {
+    position: relative;
+    width: 200px;
+    height: 20px;
+    background: var(--slate-700);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 1px solid var(--slate-600);
+}
+
+.meter-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(to right, var(--green-500), var(--amber-500), var(--red-500));
+    transition: width 0.05s ease-out;
+}
+
+.threshold-marker {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 2px;
+    background: var(--primary);
+    box-shadow: 0 0 4px var(--primary);
+    /* Position will be set by JS based on threshold value */
+    left: 50%;
+}
+
+#mic-test-btn {
+    white-space: nowrap;
+}
+
+#mic-test-btn.testing {
+    background: var(--red-500);
+}
+
+#mic-test-btn.testing:hover {
+    background: var(--red-600);
+}
+
+/* ============================================
    Conditional Settings (show/hide with animation)
    ============================================ */
 .conditional-setting {
