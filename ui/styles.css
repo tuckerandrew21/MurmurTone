@@ -549,9 +549,9 @@ body {
 }
 
 /* ============================================
-   Form Controls: Key Capture Button
+   Form Controls: Hotkey Capture Button
    ============================================ */
-.key-capture-btn {
+.hotkey-capture-btn {
     appearance: none;
     background: var(--slate-700);
     border: 1px solid var(--slate-600);
@@ -561,26 +561,31 @@ body {
     font-size: var(--font-size-base);
     color: var(--slate-200);
     cursor: pointer;
-    min-width: 120px;
+    min-width: 200px;
     transition: all var(--transition-fast);
-    text-align: left;
+    text-align: center;
 }
 
-.key-capture-btn:hover {
+.hotkey-capture-btn:hover {
     border-color: var(--slate-500);
     background-color: var(--slate-600);
 }
 
-.key-capture-btn:focus {
+.hotkey-capture-btn:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 2px var(--primary-alpha);
 }
 
-.key-capture-btn.capturing {
+.hotkey-capture-btn.capturing {
     border-color: var(--primary);
     background-color: var(--primary);
     color: white;
+}
+
+.hotkey-display {
+    font-family: 'Consolas', 'Monaco', monospace;
+    letter-spacing: 0.5px;
 }
 
 /* ============================================
