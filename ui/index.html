@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MurmurTone Settings</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="window">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <h1 class="sidebar-title">Settings</h1>
+
+            <div class="nav-items">
+                <button class="nav-item active" data-page="general">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                    </svg>
+                    <span>General</span>
+                </button>
+
+                <button class="nav-item" data-page="audio">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <line x1="12" y1="19" x2="12" y2="23"/>
+                        <line x1="8" y1="23" x2="16" y2="23"/>
+                    </svg>
+                    <span>Audio</span>
+                </button>
+
+                <button class="nav-item" data-page="recognition">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                        <polyline points="2 17 12 22 22 17"/>
+                        <polyline points="2 12 12 17 22 12"/>
+                    </svg>
+                    <span>Recognition</span>
+                </button>
+
+                <button class="nav-item" data-page="text">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="4 7 4 4 20 4 20 7"/>
+                        <line x1="9" y1="20" x2="15" y2="20"/>
+                        <line x1="12" y1="4" x2="12" y2="20"/>
+                    </svg>
+                    <span>Text</span>
+                </button>
+
+                <button class="nav-item" data-page="advanced">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    <span>Advanced</span>
+                </button>
+
+                <button class="nav-item" data-page="about">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                    <span>About</span>
+                </button>
+            </div>
+
+            <div class="sidebar-spacer"></div>
+
+            <div class="sidebar-footer">
+                <div class="save-status" id="save-status"></div>
+                <div class="version-text" id="version-text">MurmurTone v1.0.0</div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="content">
+            <header class="content-header">
+                <h2 class="page-title" id="page-title">General</h2>
+            </header>
+
+            <div class="content-body">
+                <!-- General Page -->
+                <section class="page active" id="page-general">
+                    <!-- Hotkey Section -->
+                    <div class="settings-section">
+                        <h3 class="section-title">Activation Hotkey</h3>
+                        <p class="section-description">Choose your preferred key combination to start recording.</p>
+
+                        <div class="setting-row">
+                            <div class="hotkey-modifiers">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="hotkey-ctrl" data-testid="hotkey-ctrl">
+                                    <span class="checkbox-custom"></span>
+                                    <span>Ctrl</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="hotkey-shift" data-testid="hotkey-shift">
+                                    <span class="checkbox-custom"></span>
+                                    <span>Shift</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="hotkey-alt" data-testid="hotkey-alt">
+                                    <span class="checkbox-custom"></span>
+                                    <span>Alt</span>
+                                </label>
+                                <span class="hotkey-plus">+</span>
+                                <select id="hotkey-key" class="dropdown" data-testid="hotkey-key">
+                                    <option value="space">Space</option>
+                                    <option value="f1">F1</option>
+                                    <option value="f2">F2</option>
+                                    <option value="f3">F3</option>
+                                    <option value="f4">F4</option>
+                                    <option value="f5">F5</option>
+                                    <option value="f6">F6</option>
+                                    <option value="f7">F7</option>
+                                    <option value="f8">F8</option>
+                                    <option value="f9">F9</option>
+                                    <option value="f10">F10</option>
+                                    <option value="f11">F11</option>
+                                    <option value="f12">F12</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recording Mode Section -->
+                    <div class="settings-section">
+                        <h3 class="section-title">Recording Mode</h3>
+                        <p class="section-description">How recording starts and stops.</p>
+
+                        <div class="setting-row">
+                            <select id="recording-mode" class="dropdown" aria-label="Recording mode" data-testid="recording-mode">
+                                <option value="push_to_talk">Push to Talk</option>
+                                <option value="toggle">Toggle</option>
+                                <option value="auto_stop">Auto Stop</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Language Section -->
+                    <div class="settings-section">
+                        <h3 class="section-title">Language</h3>
+                        <p class="section-description">Speech recognition language.</p>
+
+                        <div class="setting-row">
+                            <select id="language" class="dropdown" aria-label="Language" data-testid="language">
+                                <option value="auto">Auto Detect</option>
+                                <option value="en">English</option>
+                                <option value="es">Spanish</option>
+                                <option value="fr">French</option>
+                                <option value="de">German</option>
+                                <option value="it">Italian</option>
+                                <option value="pt">Portuguese</option>
+                                <option value="nl">Dutch</option>
+                                <option value="pl">Polish</option>
+                                <option value="ru">Russian</option>
+                                <option value="zh">Chinese</option>
+                                <option value="ja">Japanese</option>
+                                <option value="ko">Korean</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Startup Section -->
+                    <div class="settings-section">
+                        <h3 class="section-title">Startup</h3>
+                        <p class="section-description">Application startup behavior.</p>
+
+                        <div class="setting-row toggle-row">
+                            <div class="setting-info">
+                                <label class="setting-label">Start with Windows</label>
+                                <p class="setting-help">Launch MurmurTone automatically when you sign in.</p>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="start-with-windows" data-testid="start-with-windows">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Audio Page -->
+                <section class="page" id="page-audio">
+                    <!-- Input Device Section -->
+                    <div class="settings-section">
+                        <h3 class="section-title">Input Device</h3>
+                        <p class="section-description">Select your microphone for speech recognition.</p>
+
+                        <div class="setting-row">
+                            <label class="setting-label">Microphone</label>
+                            <div class="input-with-button">
+                                <select id="input-device" class="dropdown" data-testid="input-device">
+                                    <option value="">System Default</option>
+                                </select>
+                                <button type="button" id="refresh-devices-btn" class="btn btn-secondary" data-testid="refresh-devices-btn" title="Refresh device list">
+                                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+                                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="setting-row">
+                            <label class="setting-label">Sample Rate</label>
+                            <select id="sample-rate" class="dropdown" data-testid="sample-rate">
+                                <option value="16000">16 kHz (Recommended)</option>
+                                <option value="44100">44.1 kHz</option>
+                                <option value="48000">48 kHz</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Noise Gate Section -->
+                    <div class="settings-section">
+                        <h3 class="section-title">Noise Gate</h3>
+                        <p class="section-description">Filter out background noise below a threshold.</p>
+
+                        <div class="setting-row toggle-row">
+                            <div class="setting-info">
+                                <label class="setting-label">Enable Noise Gate</label>
+                                <p class="setting-help">Ignore sounds quieter than the threshold.</p>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="noise-gate-enabled" data-testid="noise-gate-enabled">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-row conditional-setting" id="noise-gate-options">
+                            <label class="setting-label">Threshold</label>
+                            <div class="slider-row">
+                                <input type="range" id="noise-gate-threshold" class="slider"
+                                    min="-60" max="-20" value="-40"
+                                    aria-label="Noise gate threshold"
+                                    data-testid="noise-gate-threshold">
+                                <span class="slider-value" id="noise-gate-threshold-value">-40 dB</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Audio Feedback Section -->
+                    <div class="settings-section">
+                        <h3 class="section-title">Audio Feedback</h3>
+                        <p class="section-description">Sound notifications for different events.</p>
+
+                        <div class="setting-row">
+                            <label class="setting-label">Feedback Volume</label>
+                            <div class="slider-row">
+                                <input type="range" id="feedback-volume" class="slider"
+                                    min="0" max="100" value="50"
+                                    aria-label="Feedback volume"
+                                    data-testid="feedback-volume">
+                                <span class="slider-value" id="feedback-volume-value">50%</span>
+                            </div>
+                        </div>
+
+                        <div class="setting-row toggle-row">
+                            <div class="setting-info">
+                                <label class="setting-label">Processing Sound</label>
+                                <p class="setting-help">Play sound when recording starts.</p>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="sound-processing" data-testid="sound-processing">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-row toggle-row">
+                            <div class="setting-info">
+                                <label class="setting-label">Success Sound</label>
+                                <p class="setting-help">Play sound when transcription completes.</p>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="sound-success" data-testid="sound-success">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-row toggle-row">
+                            <div class="setting-info">
+                                <label class="setting-label">Error Sound</label>
+                                <p class="setting-help">Play sound when an error occurs.</p>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="sound-error" data-testid="sound-error">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-row toggle-row">
+                            <div class="setting-info">
+                                <label class="setting-label">Command Sound</label>
+                                <p class="setting-help">Play sound when a voice command is recognized.</p>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="sound-command" aria-label="Command sound" data-testid="sound-command">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Recognition Page -->
+                <section class="page" id="page-recognition">
+                    <!-- Model Section -->
+                    <div class="settings-section">
+                        <h3 class="section-title">Speech Recognition Model</h3>
+                        <p class="section-description">Choose the Whisper model for transcription accuracy vs speed.</p>
+
+                        <div class="setting-row">
+                            <label class="setting-label">Model Size</label>
+                            <div class="input-with-button">
+                                <select id="model-size" class="dropdown" aria-label="Model size" data-testid="model-size">
+                                    <option value="tiny">Tiny - Fastest (75MB)</option>
+                                    <option value="base">Base - Fast (142MB)</option>
+                                    <option value="small">Small - Balanced (484MB)</option>
+                                    <option value="medium">Medium - Accurate (1.5GB)</option>
+                                    <option value="large-v3">Large - Best (3GB)</option>
+                                </select>
+                                <button type="button" id="download-model-btn" class="btn btn-secondary" data-testid="download-model-btn" title="Download selected model">
+                                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                        <polyline points="7 10 12 15 17 10"/>
+                                        <line x1="12" y1="15" x2="12" y2="3"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="setting-row hidden" id="download-progress-row">
+                            <label class="setting-label">Download Progress</label>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="download-progress"></div>
+                            </div>
+                            <span class="progress-text" id="download-progress-text">0%</span>
+                        </div>
+                    </div>
+
+                    <!-- Processing Mode Section -->
+                    <div class="settings-section">
+                        <h3 class="section-title">Processing Mode</h3>
+                        <p class="section-description">Choose between CPU and GPU processing.</p>
+
+                        <div class="setting-row">
+                            <label class="setting-label">Mode</label>
+                            <select id="processing-mode" class="dropdown" aria-label="Processing mode" data-testid="processing-mode">
+                                <option value="auto">Auto (Recommended)</option>
+                                <option value="cpu">CPU Only</option>
+                                <option value="gpu_int8">GPU - Fast (int8)</option>
+                                <option value="gpu_float16">GPU - Balanced (float16)</option>
+                                <option value="gpu_float32">GPU - Quality (float32)</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-row" id="gpu-status-row">
+                            <div class="status-badge" id="gpu-status">
+                                <span class="status-indicator"></span>
+                                <span class="status-text">Checking GPU...</span>
+                            </div>
+                        </div>
+
+                        <div class="setting-row hidden" id="gpu-install-row">
+                            <button type="button" id="install-gpu-btn" class="btn btn-secondary" data-testid="install-gpu-btn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Install GPU Support
+                            </button>
+                            <p class="setting-help">Download and install CUDA libraries for GPU acceleration.</p>
+                        </div>
+                    </div>
+
+                    <!-- Recognition Options Section -->
+                    <div class="settings-section">
+                        <h3 class="section-title">Recognition Options</h3>
+                        <p class="section-description">Fine-tune speech recognition behavior.</p>
+
+                        <div class="setting-row">
+                            <label class="setting-label">Silence Duration</label>
+                            <div class="slider-row">
+                                <input type="range" id="silence-duration" class="slider"
+                                    min="0.5" max="5" step="0.5" value="2"
+                                    aria-label="Silence duration"
+                                    data-testid="silence-duration">
+                                <span class="slider-value" id="silence-duration-value">2.0s</span>
+                            </div>
+                            <p class="setting-help">How long to wait for silence before stopping.</p>
+                        </div>
+                    </div>
+
+                    <!-- Custom Vocabulary Section -->
+                    <div class="settings-section">
+                        <h3 class="section-title">Custom Vocabulary</h3>
+                        <p class="section-description">Add words or phrases to improve recognition accuracy.</p>
+
+                        <div class="list-input-container">
+                            <div class="list-input-row">
+                                <input type="text" id="vocabulary-input" class="text-input"
+                                    placeholder="Enter a word or phrase..."
+                                    aria-label="New vocabulary word"
+                                    data-testid="vocabulary-input">
+                                <button type="button" id="add-vocabulary-btn" class="btn btn-secondary" data-testid="add-vocabulary-btn">Add</button>
+                            </div>
+                            <ul class="editable-list" id="vocabulary-list" data-testid="vocabulary-list">
+                                <!-- Items added dynamically -->
+                            </ul>
+                            <p class="list-empty-state" id="vocabulary-empty">No custom vocabulary added yet.</p>
+                        </div>
+                    </div>
+
+                    <!-- Translation Section -->
+                    <div class="settings-section">
+                        <h3 class="section-title">Translation</h3>
+                        <p class="section-description">Translate speech from other languages to English.</p>
+
+                        <div class="setting-row toggle-row">
+                            <div class="setting-info">
+                                <label class="setting-label">Enable Translation</label>
+                                <p class="setting-help">Translate speech from the source language to English.</p>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="translation-enabled" aria-label="Enable translation" data-testid="translation-enabled">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-row" id="translation-language-row">
+                            <label class="setting-label">Source Language</label>
+                            <div class="select-wrapper">
+                                <select id="translation-source-language" aria-label="Source language" data-testid="translation-source-language">
+                                    <option value="auto">Auto Detect</option>
+                                    <option value="es">Spanish</option>
+                                    <option value="fr">French</option>
+                                    <option value="de">German</option>
+                                    <option value="it">Italian</option>
+                                    <option value="pt">Portuguese</option>
+                                    <option value="nl">Dutch</option>
+                                    <option value="pl">Polish</option>
+                                    <option value="ru">Russian</option>
+                                    <option value="zh">Chinese</option>
+                                    <option value="ja">Japanese</option>
+                                    <option value="ko">Korean</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <a href="#" class="learn-more-link" id="translation-learn-more">Learn more about translation</a>
+                    </div>
+                </section>
+
+                <!-- Text Page -->
+                <section class="page" id="page-text">
+                    <!-- Output Mode Section -->
+                    <div class="settings-section">
+                        <h3 class="section-title">Text Output</h3>
+                        <p class="section-description">How transcribed text is delivered to your applications.</p>
+
+                        <div class="setting-row toggle-row">
+                            <div class="setting-info">
+                                <label class="setting-label">Auto-paste</label>
+                                <p class="setting-help">Automatically paste transcribed text into the active application.</p>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="auto-paste" aria-label="Auto-paste" data-testid="auto-paste">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-row">
+                            <label class="setting-label">Paste Mode</label>
+                            <select id="paste-mode" class="dropdown" aria-label="Paste mode" data-testid="paste-mode">
+                                <option value="clipboard">Clipboard (Ctrl+V)</option>
+                                <option value="direct">Direct Typing</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Voice Commands Section -->
+                    <div class="settings-section">
+                        <h3 class="section-title">Voice Commands</h3>
+                        <p class="section-description">Control your computer with voice commands.</p>
+
+                        <div class="setting-row toggle-row">
+                            <div class="setting-info">
+                                <label class="setting-label">Enable Voice Commands</label>
+                                <p class="setting-help">Recognize and execute voice commands like "new line" or "period".</p>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="voice-commands" aria-label="Voice commands" data-testid="voice-commands">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-row toggle-row nested-setting" id="scratch-that-row">
+                            <div class="setting-info">
+                                <label class="setting-label">Scratch That</label>
+                                <p class="setting-help">Say "scratch that" to undo the last transcription.</p>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="scratch-that" aria-label="Scratch that" data-testid="scratch-that">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Filler Removal Section -->
+                    <div class="settings-section">
+                        <h3 class="section-title">Filler Word Removal</h3>
+                        <p class="section-description">Automatically remove "um", "uh", and other filler words.</p>
+
+                        <div class="setting-row toggle-row">
+                            <div class="setting-info">
+                                <label class="setting-label">Enable Filler Removal</label>
+                                <p class="setting-help">Remove common filler words from transcriptions.</p>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="filler-removal" aria-label="Filler removal" data-testid="filler-removal">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-row toggle-row nested-setting" id="filler-aggressive-row">
+                            <div class="setting-info">
+                                <label class="setting-label">Aggressive Mode</label>
+                                <p class="setting-help">Remove more words including "like", "you know", "basically".</p>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="filler-aggressive" aria-label="Aggressive filler removal" data-testid="filler-aggressive">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="nested-setting" id="custom-fillers-section">
+                            <div class="list-input-container">
+                                <label class="setting-label">Custom Filler Words</label>
+                                <div class="list-input-row">
+                                    <input type="text" id="filler-input" class="text-input"
+                                        placeholder="Enter a word to filter..."
+                                        aria-label="New filler word"
+                                        data-testid="filler-input">
+                                    <button type="button" id="add-filler-btn" class="btn btn-secondary" data-testid="add-filler-btn">Add</button>
+                                </div>
+                                <ul class="editable-list" id="filler-list" data-testid="filler-list">
+                                    <!-- Items added dynamically -->
+                                </ul>
+                                <p class="list-empty-state" id="filler-empty">No custom filler words added.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Custom Dictionary Section -->
+                    <div class="settings-section">
+                        <h3 class="section-title">Custom Dictionary</h3>
+                        <p class="section-description">Define word replacements to automatically fix common transcription errors.</p>
+
+                        <div class="setting-row">
+                            <button type="button" id="edit-dictionary-btn" class="btn btn-secondary" data-testid="edit-dictionary-btn">
+                                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                </svg>
+                                Edit Dictionary
+                            </button>
+                            <span class="setting-help" id="dictionary-count">0 replacements defined</span>
+                        </div>
+                    </div>
+
+                    <!-- Text Shortcuts Section -->
+                    <div class="settings-section">
+                        <h3 class="section-title">Text Shortcuts</h3>
+                        <p class="section-description">Create trigger phrases that expand into longer text blocks.</p>
+
+                        <div class="setting-row">
+                            <button type="button" id="edit-shortcuts-btn" class="btn btn-secondary" data-testid="edit-shortcuts-btn">
+                                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                </svg>
+                                Edit Shortcuts
+                            </button>
+                            <span class="setting-help" id="shortcuts-count">0 shortcuts defined</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Advanced Page -->
+                <section class="page" id="page-advanced">
+                    <!-- AI Text Cleanup Section -->
+                    <div class="settings-section">
+                        <h3 class="section-title">AI Text Cleanup</h3>
+                        <p class="section-description">Use a local AI (Ollama) to improve transcription quality.</p>
+
+                        <div class="setting-row toggle-row">
+                            <div class="setting-info">
+                                <label class="setting-label">Enable AI Cleanup</label>
+                                <p class="setting-help">Process transcriptions through Ollama for grammar and clarity.</p>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="ai-cleanup" aria-label="AI cleanup" data-testid="ai-cleanup">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="nested-setting" id="ai-cleanup-options">
+                            <div class="setting-row">
+                                <label class="setting-label">Ollama URL</label>
+                                <div class="input-with-button">
+                                    <input type="text" id="ollama-url" class="text-input"
+                                        placeholder="http://localhost:11434"
+                                        aria-label="Ollama URL"
+                                        data-testid="ollama-url">
+                                    <button type="button" id="test-ollama-btn" class="btn btn-secondary" data-testid="test-ollama-btn">Test</button>
+                                </div>
+                            </div>
+
+                            <div class="setting-row" id="ollama-status-row">
+                                <div class="status-badge" id="ollama-status">
+                                    <span class="status-indicator"></span>
+                                    <span class="status-text">Not tested</span>
+                                </div>
+                            </div>
+
+                            <div class="setting-row">
+                                <label class="setting-label">Model</label>
+                                <select id="ollama-model" class="dropdown" aria-label="Ollama model" data-testid="ollama-model">
+                                    <option value="llama3.2:3b">Llama 3.2 3B (Fast)</option>
+                                    <option value="llama3.2:7b">Llama 3.2 7B</option>
+                                    <option value="mistral:7b">Mistral 7B</option>
+                                    <option value="phi3:mini">Phi-3 Mini</option>
+                                </select>
+                            </div>
+
+                            <div class="setting-row">
+                                <label class="setting-label">Cleanup Mode</label>
+                                <select id="ai-cleanup-mode" class="dropdown" aria-label="Cleanup mode" data-testid="ai-cleanup-mode">
+                                    <option value="grammar">Grammar Only</option>
+                                    <option value="formality">Formality Adjustment</option>
+                                    <option value="concise">Make Concise</option>
+                                </select>
+                            </div>
+
+                            <div class="setting-row" id="formality-row">
+                                <label class="setting-label">Formality Level</label>
+                                <select id="ai-formality-level" class="dropdown" aria-label="Formality level" data-testid="ai-formality-level">
+                                    <option value="casual">Casual</option>
+                                    <option value="neutral">Neutral</option>
+                                    <option value="formal">Formal</option>
+                                    <option value="professional">Professional</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preview Window Section -->
+                    <div class="settings-section">
+                        <h3 class="section-title">Preview Window</h3>
+                        <p class="section-description">Show a floating preview of transcriptions before pasting.</p>
+
+                        <div class="setting-row toggle-row">
+                            <div class="setting-info">
+                                <label class="setting-label">Enable Preview</label>
+                                <p class="setting-help">Display transcription in a small overlay window.</p>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="preview-enabled" aria-label="Preview enabled" data-testid="preview-enabled">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="nested-setting" id="preview-options">
+                            <div class="setting-row">
+                                <label class="setting-label">Position</label>
+                                <select id="preview-position" class="dropdown" aria-label="Preview position" data-testid="preview-position">
+                                    <option value="bottom_right">Bottom Right</option>
+                                    <option value="bottom_left">Bottom Left</option>
+                                    <option value="top_right">Top Right</option>
+                                    <option value="top_left">Top Left</option>
+                                    <option value="center">Center</option>
+                                </select>
+                            </div>
+
+                            <div class="setting-row">
+                                <label class="setting-label">Auto-hide Delay</label>
+                                <div class="slider-row">
+                                    <input type="range" id="preview-auto-hide" class="slider"
+                                        min="1" max="10" step="0.5" value="2"
+                                        aria-label="Preview auto-hide delay"
+                                        data-testid="preview-auto-hide">
+                                    <span class="slider-value" id="preview-auto-hide-value">2.0s</span>
+                                </div>
+                            </div>
+
+                            <div class="setting-row">
+                                <label class="setting-label">Theme</label>
+                                <select id="preview-theme" class="dropdown" aria-label="Preview theme" data-testid="preview-theme">
+                                    <option value="dark">Dark</option>
+                                    <option value="light">Light</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- History Section -->
+                    <div class="settings-section">
+                        <h3 class="section-title">Transcription History</h3>
+                        <p class="section-description">View, export, or clear your recent transcription history.</p>
+
+                        <div class="setting-row">
+                            <button type="button" id="view-history-btn" class="btn btn-secondary" data-testid="view-history-btn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                View History
+                            </button>
+                            <span class="setting-sublabel" id="history-count">Loading...</span>
+                        </div>
+                    </div>
+
+                    <!-- Reset Section -->
+                    <div class="settings-section">
+                        <h3 class="section-title">Reset Settings</h3>
+                        <p class="section-description">Restore all settings to their default values.</p>
+
+                        <div class="setting-row">
+                            <button type="button" id="reset-defaults-btn" class="btn btn-danger" data-testid="reset-defaults-btn">
+                                Reset to Defaults
+                            </button>
+                            <p class="setting-help">This will not affect your license key.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- About Page -->
+                <section class="page" id="page-about">
+                    <!-- App Info Section -->
+                    <div class="settings-section">
+                        <h3 class="section-title">About MurmurTone</h3>
+                        <p class="section-description">Voice-to-text transcription powered by Whisper AI.</p>
+
+                        <div class="about-info">
+                            <div class="about-row">
+                                <span class="about-label">Version</span>
+                                <span class="about-value" id="about-version">1.0.0</span>
+                            </div>
+                            <div class="about-row">
+                                <span class="about-label">Python</span>
+                                <span class="about-value" id="about-python">3.12.0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- License Section -->
+                    <div class="settings-section">
+                        <h3 class="section-title">License</h3>
+                        <p class="section-description">Manage your MurmurTone license.</p>
+
+                        <div class="license-status" id="license-status-container">
+                            <div class="license-badge trial" id="license-badge">
+                                <span class="license-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <polyline points="12 6 12 12 16 14"/>
+                                    </svg>
+                                </span>
+                                <div class="license-info">
+                                    <span class="license-title" id="license-title">Trial Mode</span>
+                                    <span class="license-subtitle" id="license-subtitle">14 days remaining</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="setting-row" id="license-input-row">
+                            <label class="setting-label">License Key</label>
+                            <div class="input-with-button">
+                                <input type="text" id="license-key" class="text-input"
+                                    placeholder="Enter your license key..."
+                                    aria-label="License key"
+                                    data-testid="license-key">
+                                <button type="button" id="activate-license-btn" class="btn btn-primary" data-testid="activate-license-btn">Activate</button>
+                            </div>
+                        </div>
+
+                        <div class="setting-row">
+                            <button type="button" id="purchase-btn" class="btn btn-secondary" data-testid="purchase-btn">
+                                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                    <polyline points="15 3 21 3 21 9"/>
+                                    <line x1="10" y1="14" x2="21" y2="3"/>
+                                </svg>
+                                Purchase License
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Links Section -->
+                    <div class="settings-section">
+                        <h3 class="section-title">Resources</h3>
+                        <div class="link-buttons">
+                            <button type="button" class="link-btn" data-url="https://murmurtone.com/docs">
+                                <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                    <line x1="16" y1="13" x2="8" y2="13"/>
+                                    <line x1="16" y1="17" x2="8" y2="17"/>
+                                </svg>
+                                Documentation
+                            </button>
+                            <button type="button" class="link-btn" data-url="https://murmurtone.com/support">
+                                <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                </svg>
+                                Get Support
+                            </button>
+                            <button type="button" class="link-btn" id="show-welcome-btn" onclick="showWelcomeBanner()">
+                                <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <line x1="12" y1="16" x2="12" y2="12"/>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                                </svg>
+                                Show Welcome
+                            </button>
+                            <button type="button" class="link-btn" id="visit-website-btn" data-url="https://murmurtone.com">
+                                <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <line x1="2" y1="12" x2="22" y2="12"/>
+                                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                                </svg>
+                                Visit Website
+                            </button>
+                            <button type="button" class="link-btn" id="open-logs-btn">
+                                <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                                </svg>
+                                Open Logs Folder
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Welcome Banner (First Run) -->
+    <div class="welcome-banner" id="welcome-banner">
+        <div class="welcome-content">
+            <div class="welcome-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                    <line x1="12" x2="12" y1="19" y2="22"></line>
+                </svg>
+            </div>
+            <h2 class="welcome-title">Welcome to MurmurTone</h2>
+            <p class="welcome-description">
+                Voice-to-text transcription powered by Whisper AI.
+                Press your hotkey to start recording, and your speech will be transcribed instantly.
+            </p>
+            <div class="welcome-features">
+                <div class="welcome-feature">
+                    <span class="feature-icon">⌨️</span>
+                    <span>Default hotkey: <strong>Ctrl+Shift+Space</strong></span>
+                </div>
+                <div class="welcome-feature">
+                    <span class="feature-icon">🎤</span>
+                    <span>Works with any microphone</span>
+                </div>
+                <div class="welcome-feature">
+                    <span class="feature-icon">⚡</span>
+                    <span>Transcription appears at your cursor</span>
+                </div>
+            </div>
+            <button class="btn btn-primary welcome-btn" onclick="hideWelcomeBanner()">
+                Get Started
+            </button>
+            <p class="welcome-hint">Press Escape to close</p>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Dictionary Editor Modal -->
+    <div class="modal-overlay" id="dictionary-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Edit Dictionary</h2>
+                <button type="button" class="modal-close" id="dictionary-modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-description">Define word replacements. When the original word is transcribed, it will automatically be replaced.</p>
+                <div class="modal-table-container">
+                    <table class="editor-table" id="dictionary-table">
+                        <thead>
+                            <tr>
+                                <th>Original Word</th>
+                                <th>Replacement</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="dictionary-tbody">
+                            <!-- Rows added dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+                <button type="button" class="btn btn-secondary" id="add-dictionary-row">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Add Row
+                </button>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="dictionary-cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" id="dictionary-save">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shortcuts Editor Modal -->
+    <div class="modal-overlay" id="shortcuts-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Edit Shortcuts</h2>
+                <button type="button" class="modal-close" id="shortcuts-modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-description">Create trigger phrases that expand into longer text. Say the trigger to insert the expansion.</p>
+                <div class="modal-table-container">
+                    <table class="editor-table" id="shortcuts-table">
+                        <thead>
+                            <tr>
+                                <th>Trigger Phrase</th>
+                                <th>Expansion Text</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="shortcuts-tbody">
+                            <!-- Rows added dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+                <button type="button" class="btn btn-secondary" id="add-shortcuts-row">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Add Row
+                </button>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="shortcuts-cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" id="shortcuts-save">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div class="modal-overlay" id="history-modal">
+        <div class="modal modal-large">
+            <div class="modal-header">
+                <h2>Transcription History</h2>
+                <button type="button" class="modal-close" id="history-modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-description">Your recent transcriptions are shown below.</p>
+                <div class="history-list" id="history-list">
+                    <!-- History items added dynamically -->
+                </div>
+                <p class="history-empty hidden" id="history-empty">No transcription history available.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" id="history-clear">Clear History</button>
+                <button type="button" class="btn btn-secondary" id="history-export">Export to File</button>
+                <button type="button" class="btn btn-primary" id="history-close">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="settings.js"></script>
+</body>
+</html>

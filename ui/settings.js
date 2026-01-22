@@ -1,0 +1,1779 @@
+/**
+ * MurmurTone Settings - JavaScript Controller
+ * Handles tab switching, API communication, and UI state
+ */
+
+// ============================================
+// State Management
+// ============================================
+
+let currentPage = 'general';
+let settings = {};
+let saveTimeout = null;
+let isDownloading = false;
+
+// ============================================
+// Model Download Callbacks (called from Python)
+// ============================================
+
+window.onModelDownloadProgress = function(percent, status) {
+    const progressRow = document.getElementById('download-progress-row');
+    const progressBar = document.getElementById('download-progress');
+    const progressText = document.getElementById('download-progress-text');
+    const downloadBtn = document.getElementById('download-model-btn');
+
+    if (progressRow) progressRow.classList.remove('hidden');
+    if (progressBar) progressBar.style.width = `${percent}%`;
+    if (progressText) progressText.textContent = status;
+    if (downloadBtn) downloadBtn.disabled = true;
+};
+
+window.onModelDownloadComplete = function(success) {
+    isDownloading = false;
+    const progressRow = document.getElementById('download-progress-row');
+    const downloadBtn = document.getElementById('download-model-btn');
+
+    if (downloadBtn) downloadBtn.disabled = false;
+
+    if (success) {
+        showToast('Model downloaded successfully!', 'success');
+        // Hide progress after a delay
+        setTimeout(() => {
+            if (progressRow) progressRow.classList.add('hidden');
+        }, 2000);
+    }
+};
+
+window.onModelDownloadError = function(error) {
+    isDownloading = false;
+    const progressRow = document.getElementById('download-progress-row');
+    const downloadBtn = document.getElementById('download-model-btn');
+
+    if (progressRow) progressRow.classList.add('hidden');
+    if (downloadBtn) downloadBtn.disabled = false;
+
+    showToast(`Download failed: ${error}`, 'error');
+};
+
+// ============================================
+// Initialization
+// ============================================
+
+/**
+ * Wait for pywebview API to be ready, then initialize
+ */
+function init() {
+    // Check if running in pywebview or browser (for testing)
+    if (typeof pywebview !== 'undefined') {
+        window.addEventListener('pywebviewready', onApiReady);
+    } else {
+        // Running in browser for testing - use mock API
+        console.log('Running in browser mode with mock API');
+        window.pywebview = createMockApi();
+        onApiReady();
+    }
+}
+
+/**
+ * Called when pywebview API is ready
+ */
+async function onApiReady() {
+    console.log('PyWebView API ready');
+
+    // Load settings from Python
+    await loadSettings();
+
+    // Set up event listeners
+    setupNavigation();
+    setupFormListeners();
+    setupKeyboardNavigation();
+
+    // Update version display
+    updateVersionDisplay();
+
+    // Check if should show welcome banner (first run)
+    checkFirstRun();
+}
+
+// ============================================
+// API Communication
+// ============================================
+
+/**
+ * Load all settings from Python API
+ */
+async function loadSettings() {
+    try {
+        const result = await pywebview.api.get_all_settings();
+        if (result.success) {
+            settings = result.data;
+            populateForm();
+        } else {
+            showToast('Failed to load settings: ' + result.error, 'error');
+        }
+    } catch (error) {
+        console.error('Error loading settings:', error);
+        showToast('Failed to load settings', 'error');
+    }
+}
+
+/**
+ * Save a single setting to Python API
+ */
+async function saveSetting(key, value) {
+    try {
+        const result = await pywebview.api.save_setting(key, value);
+        if (result.success) {
+            // Update local state
+            if (key.includes('.')) {
+                const parts = key.split('.');
+                let target = settings;
+                for (let i = 0; i < parts.length - 1; i++) {
+                    target = target[parts[i]];
+                }
+                target[parts[parts.length - 1]] = value;
+            } else {
+                settings[key] = value;
+            }
+            showSaveStatus();
+        } else {
+            showToast('Failed to save: ' + result.error, 'error');
+        }
+    } catch (error) {
+        console.error('Error saving setting:', error);
+        showToast('Failed to save setting', 'error');
+    }
+}
+
+/**
+ * Update version display in sidebar
+ */
+async function updateVersionDisplay() {
+    try {
+        const result = await pywebview.api.get_version_info();
+        if (result.success) {
+            const versionText = document.getElementById('version-text');
+            if (versionText) {
+                versionText.textContent = `${result.data.app_name} v${result.data.version}`;
+            }
+        }
+    } catch (error) {
+        console.error('Error getting version:', error);
+    }
+}
+
+// ============================================
+// Navigation
+// ============================================
+
+/**
+ * Set up sidebar navigation click handlers
+ */
+function setupNavigation() {
+    const navItems = document.querySelectorAll('.nav-item');
+
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const page = item.dataset.page;
+            navigateTo(page);
+        });
+    });
+}
+
+/**
+ * Navigate to a specific page
+ */
+function navigateTo(page) {
+    // Update nav items
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.page === page);
+    });
+
+    // Update page visibility
+    document.querySelectorAll('.page').forEach(p => {
+        p.classList.toggle('active', p.id === `page-${page}`);
+    });
+
+    // Update page title
+    const titles = {
+        general: 'General',
+        audio: 'Audio',
+        recognition: 'Recognition',
+        text: 'Text',
+        advanced: 'Advanced',
+        about: 'About'
+    };
+    document.getElementById('page-title').textContent = titles[page] || page;
+
+    currentPage = page;
+}
+
+// ============================================
+// Form Handling
+// ============================================
+
+/**
+ * Populate form fields with current settings
+ */
+function populateForm() {
+    // Hotkey modifiers
+    setCheckbox('hotkey-ctrl', settings.hotkey?.ctrl ?? true);
+    setCheckbox('hotkey-shift', settings.hotkey?.shift ?? true);
+    setCheckbox('hotkey-alt', settings.hotkey?.alt ?? false);
+    setDropdown('hotkey-key', settings.hotkey?.key ?? 'space');
+
+    // Recording mode
+    setDropdown('recording-mode', settings.recording_mode ?? 'push_to_talk');
+
+    // Language
+    setDropdown('language', settings.language ?? 'en');
+
+    // Start with Windows
+    setCheckbox('start-with-windows', settings.start_with_windows ?? false);
+
+    // Audio settings
+    setDropdown('sample-rate', settings.sample_rate ?? 16000);
+    setCheckbox('noise-gate-enabled', settings.noise_gate_enabled ?? true);
+    setSlider('noise-gate-threshold', settings.noise_gate_threshold_db ?? -40, 'dB');
+    setSlider('feedback-volume', settings.audio_feedback_volume ?? 50, '%');
+    setCheckbox('sound-processing', settings.sound_processing ?? true);
+    setCheckbox('sound-success', settings.sound_success ?? true);
+    setCheckbox('sound-error', settings.sound_error ?? true);
+    setCheckbox('sound-command', settings.sound_command ?? true);
+
+    // Update conditional visibility
+    updateNoiseGateVisibility();
+
+    // Load audio devices
+    loadAudioDevices();
+
+    // Recognition settings
+    setDropdown('model-size', settings.model_size ?? 'tiny');
+    setDropdown('processing-mode', settings.processing_mode ?? 'auto');
+    setSlider('silence-duration', settings.silence_duration_sec ?? 2.0, 's');
+
+    // Translation settings
+    setCheckbox('translation-enabled', settings.translation_enabled ?? false);
+    setDropdown('translation-source-language', settings.translation_source_language ?? 'auto');
+    updateTranslationVisibility();
+
+    // Load vocabulary list
+    loadVocabularyList();
+
+    // Update editor counts
+    updateDictionaryCount();
+    updateShortcutsCount();
+
+    // Check GPU status
+    checkGpuStatus();
+
+    // Text settings
+    setCheckbox('auto-paste', settings.auto_paste ?? true);
+    setDropdown('paste-mode', settings.paste_mode ?? 'clipboard');
+    setCheckbox('voice-commands', settings.voice_commands_enabled ?? true);
+    setCheckbox('scratch-that', settings.scratch_that_enabled ?? true);
+    setCheckbox('filler-removal', settings.filler_removal_enabled ?? true);
+    setCheckbox('filler-aggressive', settings.filler_removal_aggressive ?? false);
+
+    // Update nested setting visibility
+    updateVoiceCommandsVisibility();
+    updateFillerRemovalVisibility();
+
+    // Load filler list
+    loadFillerList();
+
+    // Advanced settings - AI Cleanup
+    setCheckbox('ai-cleanup', settings.ai_cleanup_enabled ?? false);
+    setInput('ollama-url', settings.ollama_url ?? 'http://localhost:11434');
+    setDropdown('ollama-model', settings.ollama_model ?? 'llama3.2:3b');
+    setDropdown('ai-cleanup-mode', settings.ai_cleanup_mode ?? 'formality');
+    setDropdown('ai-formality-level', settings.ai_formality_level ?? 'casual');
+
+    // Advanced settings - Preview
+    setCheckbox('preview-enabled', settings.preview_enabled ?? true);
+    setDropdown('preview-position', settings.preview_position ?? 'bottom_right');
+    setSlider('preview-auto-hide', settings.preview_auto_hide_delay ?? 2.0, 's');
+
+    // Update visibility
+    updateAiCleanupVisibility();
+    updatePreviewVisibility();
+
+    // About page
+    loadAboutInfo();
+    loadLicenseStatus();
+}
+
+/**
+ * Set up change listeners on all form elements
+ */
+function setupFormListeners() {
+    // Hotkey modifiers
+    addCheckboxListener('hotkey-ctrl', (checked) => saveSetting('hotkey.ctrl', checked));
+    addCheckboxListener('hotkey-shift', (checked) => saveSetting('hotkey.shift', checked));
+    addCheckboxListener('hotkey-alt', (checked) => saveSetting('hotkey.alt', checked));
+    addDropdownListener('hotkey-key', (value) => saveSetting('hotkey.key', value));
+
+    // Recording mode
+    addDropdownListener('recording-mode', (value) => saveSetting('recording_mode', value));
+
+    // Language
+    addDropdownListener('language', (value) => saveSetting('language', value));
+
+    // Start with Windows (vertical slice)
+    addCheckboxListener('start-with-windows', (checked) => saveSetting('start_with_windows', checked));
+
+    // Audio settings
+    addDropdownListener('input-device', (value) => saveSetting('input_device', value || null));
+    addDropdownListener('sample-rate', (value) => saveSetting('sample_rate', parseInt(value)));
+    addCheckboxListener('noise-gate-enabled', (checked) => {
+        saveSetting('noise_gate_enabled', checked);
+        updateNoiseGateVisibility();
+    });
+    addSliderListener('noise-gate-threshold', (value) => saveSetting('noise_gate_threshold_db', parseInt(value)), 'dB');
+    addSliderListener('feedback-volume', (value) => saveSetting('audio_feedback_volume', parseInt(value)), '%');
+    addCheckboxListener('sound-processing', (checked) => saveSetting('sound_processing', checked));
+    addCheckboxListener('sound-success', (checked) => saveSetting('sound_success', checked));
+    addCheckboxListener('sound-error', (checked) => saveSetting('sound_error', checked));
+    addCheckboxListener('sound-command', (checked) => saveSetting('sound_command', checked));
+
+    // Refresh devices button
+    const refreshBtn = document.getElementById('refresh-devices-btn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', loadAudioDevices);
+    }
+
+    // Recognition settings
+    addDropdownListener('model-size', (value) => saveSetting('model_size', value));
+    addDropdownListener('processing-mode', (value) => saveSetting('processing_mode', value));
+    addSliderListener('silence-duration', (value) => saveSetting('silence_duration_sec', parseFloat(value)), 's');
+
+    // Translation settings
+    addCheckboxListener('translation-enabled', (checked) => {
+        saveSetting('translation_enabled', checked);
+        updateTranslationVisibility();
+    });
+    addDropdownListener('translation-source-language', (value) => saveSetting('translation_source_language', value));
+
+    // Translation learn more link
+    const translationLearnMore = document.getElementById('translation-learn-more');
+    if (translationLearnMore) {
+        translationLearnMore.addEventListener('click', (e) => {
+            e.preventDefault();
+            pywebview.api.open_url('https://murmurtone.com/docs/translation');
+        });
+    }
+
+    // Vocabulary list
+    const addVocabBtn = document.getElementById('add-vocabulary-btn');
+    const vocabInput = document.getElementById('vocabulary-input');
+    if (addVocabBtn && vocabInput) {
+        addVocabBtn.addEventListener('click', () => addVocabularyWord(vocabInput.value));
+        vocabInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addVocabularyWord(vocabInput.value);
+        });
+    }
+
+    // Download model button
+    const downloadBtn = document.getElementById('download-model-btn');
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', async () => {
+            if (isDownloading) {
+                showToast('Download already in progress', 'info');
+                return;
+            }
+
+            const modelSelect = document.getElementById('model-size');
+            const modelName = modelSelect ? modelSelect.value : 'small';
+
+            // Check if model is bundled (no download needed)
+            const bundledModels = ['tiny', 'base'];
+            if (bundledModels.includes(modelName)) {
+                showToast('This model is already bundled with MurmurTone', 'info');
+                return;
+            }
+
+            isDownloading = true;
+            showToast(`Starting download of ${modelName} model...`, 'info');
+
+            try {
+                await pywebview.api.download_model(modelName);
+            } catch (e) {
+                window.onModelDownloadError(e.message || 'Unknown error');
+            }
+        });
+    }
+
+    // Text settings
+    addCheckboxListener('auto-paste', (checked) => saveSetting('auto_paste', checked));
+    addDropdownListener('paste-mode', (value) => saveSetting('paste_mode', value));
+    addCheckboxListener('voice-commands', (checked) => {
+        saveSetting('voice_commands_enabled', checked);
+        updateVoiceCommandsVisibility();
+    });
+    addCheckboxListener('scratch-that', (checked) => saveSetting('scratch_that_enabled', checked));
+    addCheckboxListener('filler-removal', (checked) => {
+        saveSetting('filler_removal_enabled', checked);
+        updateFillerRemovalVisibility();
+    });
+    addCheckboxListener('filler-aggressive', (checked) => saveSetting('filler_removal_aggressive', checked));
+
+    // Filler list
+    const addFillerBtn = document.getElementById('add-filler-btn');
+    const fillerInput = document.getElementById('filler-input');
+    if (addFillerBtn && fillerInput) {
+        addFillerBtn.addEventListener('click', () => addFillerWord(fillerInput.value));
+        fillerInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addFillerWord(fillerInput.value);
+        });
+    }
+
+    // Advanced settings - AI Cleanup
+    addCheckboxListener('ai-cleanup', (checked) => {
+        saveSetting('ai_cleanup_enabled', checked);
+        updateAiCleanupVisibility();
+    });
+    addInputListener('ollama-url', (value) => saveSetting('ollama_url', value), 1000);
+    addDropdownListener('ollama-model', (value) => saveSetting('ollama_model', value));
+    addDropdownListener('ai-cleanup-mode', (value) => saveSetting('ai_cleanup_mode', value));
+    addDropdownListener('ai-formality-level', (value) => saveSetting('ai_formality_level', value));
+
+    // Test Ollama connection button
+    const testOllamaBtn = document.getElementById('test-ollama-btn');
+    if (testOllamaBtn) {
+        testOllamaBtn.addEventListener('click', testOllamaConnection);
+    }
+
+    // Advanced settings - Preview
+    addCheckboxListener('preview-enabled', (checked) => {
+        saveSetting('preview_enabled', checked);
+        updatePreviewVisibility();
+    });
+    addDropdownListener('preview-position', (value) => saveSetting('preview_position', value));
+    addSliderListener('preview-auto-hide', (value) => saveSetting('preview_auto_hide_delay', parseFloat(value)), 's');
+    addDropdownListener('preview-theme', (value) => saveSetting('preview_theme', value));
+
+    // Install GPU Support button
+    const installGpuBtn = document.getElementById('install-gpu-btn');
+    if (installGpuBtn) {
+        installGpuBtn.addEventListener('click', installGpuSupport);
+    }
+
+    // Reset to defaults button
+    const resetBtn = document.getElementById('reset-defaults-btn');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', confirmResetDefaults);
+    }
+
+    // Modal editors
+    setupDictionaryModal();
+    setupShortcutsModal();
+    setupHistoryModal();
+
+    // About page - License activation
+    const activateBtn = document.getElementById('activate-license-btn');
+    const licenseInput = document.getElementById('license-key');
+    if (activateBtn && licenseInput) {
+        activateBtn.addEventListener('click', () => activateLicense(licenseInput.value));
+        licenseInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') activateLicense(licenseInput.value);
+        });
+    }
+
+    // Purchase button
+    const purchaseBtn = document.getElementById('purchase-btn');
+    if (purchaseBtn) {
+        purchaseBtn.addEventListener('click', () => {
+            pywebview.api.open_url('https://murmurtone.com/purchase');
+        });
+    }
+
+    // Link buttons (Documentation, Support, Visit Website)
+    document.querySelectorAll('.link-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const url = btn.dataset.url;
+            if (url) pywebview.api.open_url(url);
+        });
+    });
+
+    // Open Logs Folder button
+    const openLogsBtn = document.getElementById('open-logs-btn');
+    if (openLogsBtn) {
+        openLogsBtn.addEventListener('click', async () => {
+            try {
+                await pywebview.api.open_logs_folder();
+            } catch (error) {
+                console.error('Failed to open logs folder:', error);
+                showToast('Failed to open logs folder', 'error');
+            }
+        });
+    }
+}
+
+// ============================================
+// Form Helpers
+// ============================================
+
+function setCheckbox(id, checked) {
+    const el = document.getElementById(id);
+    if (el) el.checked = checked;
+}
+
+function setDropdown(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.value = value;
+}
+
+function setInput(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.value = value;
+}
+
+function addCheckboxListener(id, callback) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.addEventListener('change', () => callback(el.checked));
+    }
+}
+
+function addDropdownListener(id, callback) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.addEventListener('change', () => callback(el.value));
+    }
+}
+
+function addInputListener(id, callback, debounce = 500) {
+    const el = document.getElementById(id);
+    if (el) {
+        let timeout;
+        el.addEventListener('input', () => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => callback(el.value), debounce);
+        });
+    }
+}
+
+function setSlider(id, value, unit = '') {
+    const el = document.getElementById(id);
+    const valueEl = document.getElementById(`${id}-value`);
+    if (el) {
+        el.value = value;
+        if (valueEl) {
+            valueEl.textContent = `${value}${unit ? ' ' + unit : ''}`;
+        }
+    }
+}
+
+function addSliderListener(id, callback, unit = '') {
+    const el = document.getElementById(id);
+    const valueEl = document.getElementById(`${id}-value`);
+    if (el) {
+        el.addEventListener('input', () => {
+            if (valueEl) {
+                valueEl.textContent = `${el.value}${unit ? ' ' + unit : ''}`;
+            }
+        });
+        el.addEventListener('change', () => callback(el.value));
+    }
+}
+
+// ============================================
+// Audio Device Management
+// ============================================
+
+/**
+ * Load audio devices into the dropdown
+ */
+async function loadAudioDevices() {
+    const dropdown = document.getElementById('input-device');
+    const refreshBtn = document.getElementById('refresh-devices-btn');
+
+    if (!dropdown) return;
+
+    // Show loading state
+    if (refreshBtn) {
+        refreshBtn.disabled = true;
+        refreshBtn.classList.add('loading');
+    }
+
+    try {
+        const result = await pywebview.api.get_audio_devices();
+        if (result.success) {
+            // Clear existing options except default
+            dropdown.innerHTML = '<option value="">System Default</option>';
+
+            // Add devices
+            result.data.forEach(device => {
+                if (device.id) {  // Skip the default entry
+                    const option = document.createElement('option');
+                    option.value = device.id;
+                    option.textContent = device.name;
+                    dropdown.appendChild(option);
+                }
+            });
+
+            // Select current device
+            if (settings.input_device) {
+                dropdown.value = settings.input_device;
+            }
+        } else {
+            showToast('Failed to load audio devices: ' + result.error, 'error');
+        }
+    } catch (error) {
+        console.error('Error loading audio devices:', error);
+        showToast('Failed to load audio devices', 'error');
+    } finally {
+        // Remove loading state
+        if (refreshBtn) {
+            refreshBtn.disabled = false;
+            refreshBtn.classList.remove('loading');
+        }
+    }
+}
+
+/**
+ * Update noise gate options visibility based on toggle state
+ */
+function updateNoiseGateVisibility() {
+    const enabled = document.getElementById('noise-gate-enabled')?.checked;
+    const options = document.getElementById('noise-gate-options');
+
+    if (options) {
+        if (enabled) {
+            options.classList.remove('hidden');
+        } else {
+            options.classList.add('hidden');
+        }
+    }
+}
+
+// ============================================
+// Vocabulary List Management
+// ============================================
+
+/**
+ * Load vocabulary list from settings
+ */
+function loadVocabularyList() {
+    const list = document.getElementById('vocabulary-list');
+    const emptyState = document.getElementById('vocabulary-empty');
+    if (!list) return;
+
+    const words = settings.custom_vocabulary || [];
+
+    list.innerHTML = '';
+
+    if (words.length === 0) {
+        if (emptyState) emptyState.classList.remove('hidden');
+    } else {
+        if (emptyState) emptyState.classList.add('hidden');
+        words.forEach(word => {
+            const item = createListItem(word, () => removeVocabularyWord(word));
+            list.appendChild(item);
+        });
+    }
+}
+
+/**
+ * Add a word to the vocabulary list
+ */
+async function addVocabularyWord(word) {
+    word = word.trim();
+    if (!word) return;
+
+    const words = settings.custom_vocabulary || [];
+    if (words.includes(word)) {
+        showToast('Word already in vocabulary', 'info');
+        return;
+    }
+
+    words.push(word);
+    const result = await saveSetting('custom_vocabulary', words);
+
+    if (result) {
+        settings.custom_vocabulary = words;
+        loadVocabularyList();
+
+        // Clear input
+        const input = document.getElementById('vocabulary-input');
+        if (input) input.value = '';
+    }
+}
+
+/**
+ * Remove a word from the vocabulary list
+ */
+async function removeVocabularyWord(word) {
+    const words = settings.custom_vocabulary || [];
+    const index = words.indexOf(word);
+    if (index === -1) return;
+
+    words.splice(index, 1);
+    const result = await saveSetting('custom_vocabulary', words);
+
+    if (result) {
+        settings.custom_vocabulary = words;
+        loadVocabularyList();
+    }
+}
+
+/**
+ * Create a list item element with delete button
+ */
+function createListItem(text, onDelete) {
+    const li = document.createElement('li');
+    li.className = 'editable-list-item';
+
+    const span = document.createElement('span');
+    span.className = 'item-text';
+    span.textContent = text;
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'delete-btn';
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    btn.addEventListener('click', onDelete);
+
+    li.appendChild(span);
+    li.appendChild(btn);
+    return li;
+}
+
+// ============================================
+// GPU Status
+// ============================================
+
+/**
+ * Check GPU availability and update status badge
+ */
+async function checkGpuStatus() {
+    const badge = document.getElementById('gpu-status');
+    const installRow = document.getElementById('gpu-install-row');
+    if (!badge) return;
+
+    badge.className = 'status-badge checking';
+    badge.querySelector('.status-text').textContent = 'Checking GPU...';
+
+    try {
+        const result = await pywebview.api.get_gpu_status();
+        if (result.success && result.data.available) {
+            badge.className = 'status-badge available';
+            badge.querySelector('.status-text').textContent =
+                `GPU Available: ${result.data.name || 'CUDA'}`;
+            // Hide install button when GPU is available
+            if (installRow) installRow.classList.add('hidden');
+        } else {
+            badge.className = 'status-badge unavailable';
+            badge.querySelector('.status-text').textContent = 'GPU Not Available';
+            // Show install button when GPU is not available
+            if (installRow) installRow.classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error('Error checking GPU:', error);
+        badge.className = 'status-badge unavailable';
+        badge.querySelector('.status-text').textContent = 'GPU Status Unknown';
+        // Show install button on error
+        if (installRow) installRow.classList.remove('hidden');
+    }
+}
+
+/**
+ * Install GPU support libraries
+ */
+async function installGpuSupport() {
+    const btn = document.getElementById('install-gpu-btn');
+    if (!btn) return;
+
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Installing...';
+
+    try {
+        const result = await pywebview.api.install_gpu_support();
+        if (result.success) {
+            showToast('GPU support installed! Please restart the application.', 'success');
+            // Recheck GPU status
+            await checkGpuStatus();
+        } else {
+            showToast(result.message || 'Failed to install GPU support', 'error');
+        }
+    } catch (error) {
+        console.error('Error installing GPU support:', error);
+        showToast('Failed to install GPU support. See manual instructions.', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+// ============================================
+// Filler List Management
+// ============================================
+
+/**
+ * Load filler list from settings
+ */
+function loadFillerList() {
+    const list = document.getElementById('filler-list');
+    const emptyState = document.getElementById('filler-empty');
+    if (!list) return;
+
+    const words = settings.custom_fillers || [];
+
+    list.innerHTML = '';
+
+    if (words.length === 0) {
+        if (emptyState) emptyState.classList.remove('hidden');
+    } else {
+        if (emptyState) emptyState.classList.add('hidden');
+        words.forEach(word => {
+            const item = createListItem(word, () => removeFillerWord(word));
+            list.appendChild(item);
+        });
+    }
+}
+
+/**
+ * Add a word to the filler list
+ */
+async function addFillerWord(word) {
+    word = word.trim().toLowerCase();
+    if (!word) return;
+
+    const words = settings.custom_fillers || [];
+    if (words.includes(word)) {
+        showToast('Word already in list', 'info');
+        return;
+    }
+
+    words.push(word);
+    const result = await saveSetting('custom_fillers', words);
+
+    if (result) {
+        settings.custom_fillers = words;
+        loadFillerList();
+
+        // Clear input
+        const input = document.getElementById('filler-input');
+        if (input) input.value = '';
+    }
+}
+
+/**
+ * Remove a word from the filler list
+ */
+async function removeFillerWord(word) {
+    const words = settings.custom_fillers || [];
+    const index = words.indexOf(word);
+    if (index === -1) return;
+
+    words.splice(index, 1);
+    const result = await saveSetting('custom_fillers', words);
+
+    if (result) {
+        settings.custom_fillers = words;
+        loadFillerList();
+    }
+}
+
+// ============================================
+// Nested Setting Visibility
+// ============================================
+
+/**
+ * Update voice commands sub-options visibility
+ */
+function updateVoiceCommandsVisibility() {
+    const enabled = document.getElementById('voice-commands')?.checked;
+    const scratchRow = document.getElementById('scratch-that-row');
+
+    if (scratchRow) {
+        if (enabled) {
+            scratchRow.classList.remove('disabled');
+        } else {
+            scratchRow.classList.add('disabled');
+        }
+    }
+}
+
+/**
+ * Update filler removal sub-options visibility
+ */
+function updateFillerRemovalVisibility() {
+    const enabled = document.getElementById('filler-removal')?.checked;
+    const aggressiveRow = document.getElementById('filler-aggressive-row');
+    const customSection = document.getElementById('custom-fillers-section');
+
+    [aggressiveRow, customSection].forEach(el => {
+        if (el) {
+            if (enabled) {
+                el.classList.remove('disabled');
+            } else {
+                el.classList.add('disabled');
+            }
+        }
+    });
+}
+
+/**
+ * Update translation sub-options visibility
+ */
+function updateTranslationVisibility() {
+    const enabled = document.getElementById('translation-enabled')?.checked;
+    const languageRow = document.getElementById('translation-language-row');
+
+    if (languageRow) {
+        if (enabled) {
+            languageRow.classList.remove('disabled');
+        } else {
+            languageRow.classList.add('disabled');
+        }
+    }
+}
+
+/**
+ * Update AI cleanup sub-options visibility
+ */
+function updateAiCleanupVisibility() {
+    const enabled = document.getElementById('ai-cleanup')?.checked;
+    const options = document.getElementById('ai-cleanup-options');
+
+    if (options) {
+        if (enabled) {
+            options.classList.remove('disabled');
+        } else {
+            options.classList.add('disabled');
+        }
+    }
+}
+
+/**
+ * Update preview sub-options visibility
+ */
+function updatePreviewVisibility() {
+    const enabled = document.getElementById('preview-enabled')?.checked;
+    const options = document.getElementById('preview-options');
+
+    if (options) {
+        if (enabled) {
+            options.classList.remove('disabled');
+        } else {
+            options.classList.add('disabled');
+        }
+    }
+}
+
+// ============================================
+// Modal Dialogs
+// ============================================
+
+let dictionaryData = [];
+let shortcutsData = [];
+
+/**
+ * Open a modal dialog
+ */
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('visible');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+/**
+ * Close a modal dialog
+ */
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('visible');
+        document.body.style.overflow = '';
+    }
+}
+
+/**
+ * Setup dictionary editor modal
+ */
+function setupDictionaryModal() {
+    const editBtn = document.getElementById('edit-dictionary-btn');
+    const modal = document.getElementById('dictionary-modal');
+    const closeBtn = document.getElementById('dictionary-modal-close');
+    const cancelBtn = document.getElementById('dictionary-cancel');
+    const saveBtn = document.getElementById('dictionary-save');
+    const addRowBtn = document.getElementById('add-dictionary-row');
+
+    if (editBtn) {
+        editBtn.addEventListener('click', () => {
+            dictionaryData = [...(settings.custom_dictionary || [])];
+            renderDictionaryTable();
+            openModal('dictionary-modal');
+        });
+    }
+
+    if (closeBtn) closeBtn.addEventListener('click', () => closeModal('dictionary-modal'));
+    if (cancelBtn) cancelBtn.addEventListener('click', () => closeModal('dictionary-modal'));
+
+    if (saveBtn) {
+        saveBtn.addEventListener('click', () => {
+            // Collect data from table
+            const rows = document.querySelectorAll('#dictionary-tbody tr');
+            const newData = [];
+            rows.forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                const original = inputs[0]?.value.trim();
+                const replacement = inputs[1]?.value.trim();
+                if (original && replacement) {
+                    newData.push({ original, replacement });
+                }
+            });
+            settings.custom_dictionary = newData;
+            saveSetting('custom_dictionary', newData);
+            updateDictionaryCount();
+            closeModal('dictionary-modal');
+            showToast('Dictionary saved', 'success');
+        });
+    }
+
+    if (addRowBtn) {
+        addRowBtn.addEventListener('click', () => {
+            dictionaryData.push({ original: '', replacement: '' });
+            renderDictionaryTable();
+        });
+    }
+
+    // Close on overlay click
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal('dictionary-modal');
+        });
+    }
+}
+
+/**
+ * Render the dictionary table rows
+ */
+function renderDictionaryTable() {
+    const tbody = document.getElementById('dictionary-tbody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+    dictionaryData.forEach((item, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><input type="text" value="${escapeHtml(item.original || '')}" placeholder="Original word"></td>
+            <td><input type="text" value="${escapeHtml(item.replacement || '')}" placeholder="Replacement"></td>
+            <td>
+                <button type="button" class="delete-row-btn" data-index="${index}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
+
+        // Add delete handler
+        row.querySelector('.delete-row-btn').addEventListener('click', () => {
+            dictionaryData.splice(index, 1);
+            renderDictionaryTable();
+        });
+    });
+
+    // Add empty row if no data
+    if (dictionaryData.length === 0) {
+        dictionaryData.push({ original: '', replacement: '' });
+        renderDictionaryTable();
+    }
+}
+
+/**
+ * Update dictionary count display
+ */
+function updateDictionaryCount() {
+    const countEl = document.getElementById('dictionary-count');
+    const count = (settings.custom_dictionary || []).filter(d => d.original && d.replacement).length;
+    if (countEl) {
+        countEl.textContent = `${count} replacement${count !== 1 ? 's' : ''} defined`;
+    }
+}
+
+/**
+ * Setup shortcuts editor modal
+ */
+function setupShortcutsModal() {
+    const editBtn = document.getElementById('edit-shortcuts-btn');
+    const modal = document.getElementById('shortcuts-modal');
+    const closeBtn = document.getElementById('shortcuts-modal-close');
+    const cancelBtn = document.getElementById('shortcuts-cancel');
+    const saveBtn = document.getElementById('shortcuts-save');
+    const addRowBtn = document.getElementById('add-shortcuts-row');
+
+    if (editBtn) {
+        editBtn.addEventListener('click', () => {
+            shortcutsData = [...(settings.custom_commands || [])];
+            renderShortcutsTable();
+            openModal('shortcuts-modal');
+        });
+    }
+
+    if (closeBtn) closeBtn.addEventListener('click', () => closeModal('shortcuts-modal'));
+    if (cancelBtn) cancelBtn.addEventListener('click', () => closeModal('shortcuts-modal'));
+
+    if (saveBtn) {
+        saveBtn.addEventListener('click', () => {
+            // Collect data from table
+            const rows = document.querySelectorAll('#shortcuts-tbody tr');
+            const newData = [];
+            rows.forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                const trigger = inputs[0]?.value.trim();
+                const expansion = inputs[1]?.value.trim();
+                if (trigger && expansion) {
+                    newData.push({ trigger, expansion });
+                }
+            });
+            settings.custom_commands = newData;
+            saveSetting('custom_commands', newData);
+            updateShortcutsCount();
+            closeModal('shortcuts-modal');
+            showToast('Shortcuts saved', 'success');
+        });
+    }
+
+    if (addRowBtn) {
+        addRowBtn.addEventListener('click', () => {
+            shortcutsData.push({ trigger: '', expansion: '' });
+            renderShortcutsTable();
+        });
+    }
+
+    // Close on overlay click
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal('shortcuts-modal');
+        });
+    }
+}
+
+/**
+ * Render the shortcuts table rows
+ */
+function renderShortcutsTable() {
+    const tbody = document.getElementById('shortcuts-tbody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+    shortcutsData.forEach((item, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><input type="text" value="${escapeHtml(item.trigger || '')}" placeholder="Trigger phrase"></td>
+            <td><input type="text" value="${escapeHtml(item.expansion || '')}" placeholder="Expansion text"></td>
+            <td>
+                <button type="button" class="delete-row-btn" data-index="${index}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
+
+        // Add delete handler
+        row.querySelector('.delete-row-btn').addEventListener('click', () => {
+            shortcutsData.splice(index, 1);
+            renderShortcutsTable();
+        });
+    });
+
+    // Add empty row if no data
+    if (shortcutsData.length === 0) {
+        shortcutsData.push({ trigger: '', expansion: '' });
+        renderShortcutsTable();
+    }
+}
+
+/**
+ * Update shortcuts count display
+ */
+function updateShortcutsCount() {
+    const countEl = document.getElementById('shortcuts-count');
+    const count = (settings.custom_commands || []).filter(s => s.trigger && s.expansion).length;
+    if (countEl) {
+        countEl.textContent = `${count} shortcut${count !== 1 ? 's' : ''} defined`;
+    }
+}
+
+// ============================================
+// History Modal
+// ============================================
+
+let historyData = [];
+
+/**
+ * Setup history modal event handlers
+ */
+function setupHistoryModal() {
+    const viewBtn = document.getElementById('view-history-btn');
+    const modal = document.getElementById('history-modal');
+    const closeBtn = document.getElementById('history-modal-close');
+    const closeFooterBtn = document.getElementById('history-close');
+    const clearBtn = document.getElementById('history-clear');
+    const exportBtn = document.getElementById('history-export');
+
+    if (viewBtn) {
+        viewBtn.addEventListener('click', async () => {
+            await loadHistory();
+            renderHistoryList();
+            openModal('history-modal');
+        });
+    }
+
+    if (closeBtn) closeBtn.addEventListener('click', () => closeModal('history-modal'));
+    if (closeFooterBtn) closeFooterBtn.addEventListener('click', () => closeModal('history-modal'));
+
+    if (clearBtn) {
+        clearBtn.addEventListener('click', async () => {
+            if (confirm('Are you sure you want to clear all transcription history?')) {
+                await clearHistory();
+                await loadHistory();
+                renderHistoryList();
+                updateHistoryCount();
+                showToast('History cleared', 'success');
+            }
+        });
+    }
+
+    if (exportBtn) {
+        exportBtn.addEventListener('click', async () => {
+            await exportHistory();
+        });
+    }
+
+    // Close on overlay click
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal('history-modal');
+        });
+    }
+
+    // Initial count update
+    updateHistoryCount();
+}
+
+/**
+ * Load history from backend
+ */
+async function loadHistory() {
+    try {
+        if (window.pywebview && window.pywebview.api) {
+            const result = await window.pywebview.api.get_history();
+            historyData = result.history || [];
+        } else {
+            // Mock data for testing
+            console.log('Mock: loading history');
+            historyData = JSON.parse(localStorage.getItem('mock_history') || '[]');
+        }
+    } catch (error) {
+        console.error('Failed to load history:', error);
+        historyData = [];
+    }
+}
+
+/**
+ * Clear all history
+ */
+async function clearHistory() {
+    try {
+        if (window.pywebview && window.pywebview.api) {
+            await window.pywebview.api.clear_history();
+        } else {
+            console.log('Mock: clearing history');
+            localStorage.removeItem('mock_history');
+        }
+        historyData = [];
+    } catch (error) {
+        console.error('Failed to clear history:', error);
+    }
+}
+
+/**
+ * Export history to file
+ */
+async function exportHistory() {
+    try {
+        if (window.pywebview && window.pywebview.api) {
+            const result = await window.pywebview.api.export_history();
+            if (result.success) {
+                showToast('History exported to ' + result.filename, 'success');
+            } else {
+                showToast('Export cancelled', 'info');
+            }
+        } else {
+            // Mock export - download as JSON
+            console.log('Mock: exporting history');
+            const dataStr = JSON.stringify(historyData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'transcription_history.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('History exported', 'success');
+        }
+    } catch (error) {
+        console.error('Failed to export history:', error);
+        showToast('Failed to export history', 'error');
+    }
+}
+
+/**
+ * Render history list in modal
+ */
+function renderHistoryList() {
+    const listEl = document.getElementById('history-list');
+    const emptyEl = document.getElementById('history-empty');
+
+    if (!listEl) return;
+
+    if (historyData.length === 0) {
+        listEl.innerHTML = '';
+        if (emptyEl) emptyEl.classList.remove('hidden');
+        return;
+    }
+
+    if (emptyEl) emptyEl.classList.add('hidden');
+
+    listEl.innerHTML = historyData.map((item, index) => {
+        const time = new Date(item.timestamp).toLocaleString();
+        return `
+            <div class="history-item">
+                <div class="history-item-header">
+                    <span class="history-item-time">${escapeHtml(time)}</span>
+                </div>
+                <div class="history-item-text">${escapeHtml(item.text)}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Update history count display
+ */
+async function updateHistoryCount() {
+    const countEl = document.getElementById('history-count');
+    if (!countEl) return;
+
+    try {
+        if (window.pywebview && window.pywebview.api) {
+            const result = await window.pywebview.api.get_history_count();
+            const count = result.count || 0;
+            countEl.textContent = `${count} transcription${count !== 1 ? 's' : ''} saved`;
+        } else {
+            const mockHistory = JSON.parse(localStorage.getItem('mock_history') || '[]');
+            const count = mockHistory.length;
+            countEl.textContent = `${count} transcription${count !== 1 ? 's' : ''} saved`;
+        }
+    } catch (error) {
+        countEl.textContent = '0 transcriptions saved';
+    }
+}
+
+/**
+ * Escape HTML special characters
+ */
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// ============================================
+// Ollama Connection Test
+// ============================================
+
+/**
+ * Test Ollama connection
+ */
+async function testOllamaConnection() {
+    const urlInput = document.getElementById('ollama-url');
+    const badge = document.getElementById('ollama-status');
+    const btn = document.getElementById('test-ollama-btn');
+
+    if (!urlInput || !badge) return;
+
+    const url = urlInput.value.trim();
+    if (!url) {
+        showToast('Please enter an Ollama URL', 'error');
+        return;
+    }
+
+    // Update UI to testing state
+    badge.className = 'status-badge checking';
+    badge.querySelector('.status-text').textContent = 'Testing...';
+    if (btn) btn.disabled = true;
+
+    try {
+        const result = await pywebview.api.test_ollama_connection(url);
+        if (result.success && result.data.connected) {
+            badge.className = 'status-badge available';
+            badge.querySelector('.status-text').textContent = 'Connected';
+            showToast('Ollama connection successful', 'success');
+        } else {
+            badge.className = 'status-badge unavailable';
+            badge.querySelector('.status-text').textContent = result.error || 'Connection failed';
+            showToast('Could not connect to Ollama', 'error');
+        }
+    } catch (error) {
+        console.error('Error testing Ollama:', error);
+        badge.className = 'status-badge unavailable';
+        badge.querySelector('.status-text').textContent = 'Error';
+        showToast('Connection test failed', 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+// ============================================
+// Reset to Defaults
+// ============================================
+
+/**
+ * Show confirmation and reset settings
+ */
+async function confirmResetDefaults() {
+    if (!confirm('Reset all settings to defaults? This cannot be undone.')) {
+        return;
+    }
+
+    try {
+        const result = await pywebview.api.reset_to_defaults();
+        if (result.success) {
+            showToast('Settings reset to defaults', 'success');
+            // Reload settings
+            await loadSettings();
+        } else {
+            showToast('Failed to reset: ' + result.error, 'error');
+        }
+    } catch (error) {
+        console.error('Error resetting settings:', error);
+        showToast('Failed to reset settings', 'error');
+    }
+}
+
+// ============================================
+// About Page Functions
+// ============================================
+
+/**
+ * Load version and system info
+ */
+async function loadAboutInfo() {
+    try {
+        const result = await pywebview.api.get_version_info();
+        if (result.success) {
+            const versionEl = document.getElementById('about-version');
+            const pythonEl = document.getElementById('about-python');
+
+            if (versionEl) versionEl.textContent = result.data.version;
+            if (pythonEl) pythonEl.textContent = result.data.python_version;
+        }
+    } catch (error) {
+        console.error('Error loading version info:', error);
+    }
+}
+
+/**
+ * Load and display license status
+ */
+async function loadLicenseStatus() {
+    try {
+        const result = await pywebview.api.get_license_status();
+        if (result.success) {
+            const badge = document.getElementById('license-badge');
+            const title = document.getElementById('license-title');
+            const subtitle = document.getElementById('license-subtitle');
+            const inputRow = document.getElementById('license-input-row');
+
+            if (result.data.is_active) {
+                badge.className = 'license-badge active';
+                title.textContent = 'Licensed';
+                subtitle.textContent = 'Full version activated';
+                // Hide license input for active licenses
+                if (inputRow) inputRow.classList.add('hidden');
+            } else if (result.data.is_trial) {
+                badge.className = 'license-badge trial';
+                title.textContent = 'Trial Mode';
+                const days = result.data.days_remaining;
+                subtitle.textContent = days !== null
+                    ? `${days} day${days !== 1 ? 's' : ''} remaining`
+                    : 'Trial period';
+            } else {
+                badge.className = 'license-badge';
+                title.textContent = 'Not Licensed';
+                subtitle.textContent = 'Please activate or purchase';
+            }
+        }
+    } catch (error) {
+        console.error('Error loading license status:', error);
+    }
+}
+
+/**
+ * Activate a license key
+ */
+async function activateLicense(key) {
+    key = key.trim();
+    if (!key) {
+        showToast('Please enter a license key', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('activate-license-btn');
+    if (btn) btn.disabled = true;
+
+    try {
+        const result = await pywebview.api.activate_license(key);
+        if (result.success) {
+            showToast('License activated successfully!', 'success');
+            // Clear input and refresh status
+            const input = document.getElementById('license-key');
+            if (input) input.value = '';
+            await loadLicenseStatus();
+        } else {
+            showToast(result.error || 'Invalid license key', 'error');
+        }
+    } catch (error) {
+        console.error('Error activating license:', error);
+        showToast('Failed to activate license', 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+// ============================================
+// UI Feedback
+// ============================================
+
+/**
+ * Show "Saved" status in sidebar
+ */
+function showSaveStatus() {
+    const status = document.getElementById('save-status');
+    if (status) {
+        status.textContent = '✓ Saved';
+        status.classList.add('visible');
+
+        // Clear any existing timeout
+        if (saveTimeout) clearTimeout(saveTimeout);
+
+        // Hide after 2 seconds
+        saveTimeout = setTimeout(() => {
+            status.classList.remove('visible');
+        }, 2000);
+    }
+}
+
+/**
+ * Show a toast notification
+ */
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    if (toast) {
+        toast.textContent = message;
+        toast.className = 'toast visible ' + type;
+
+        setTimeout(() => {
+            toast.classList.remove('visible');
+        }, 3000);
+    }
+}
+
+// ============================================
+// Keyboard Navigation
+// ============================================
+
+/**
+ * Set up keyboard navigation
+ */
+function setupKeyboardNavigation() {
+    document.addEventListener('keydown', (e) => {
+        // Escape key - close welcome banner if open
+        if (e.key === 'Escape') {
+            const banner = document.getElementById('welcome-banner');
+            if (banner && banner.classList.contains('visible')) {
+                hideWelcomeBanner();
+            }
+        }
+
+        // Arrow keys for tab navigation when focused on nav
+        if (e.target.closest('.nav-items')) {
+            const navItems = Array.from(document.querySelectorAll('.nav-item'));
+            const currentIndex = navItems.indexOf(document.activeElement);
+
+            if (e.key === 'ArrowDown' && currentIndex < navItems.length - 1) {
+                e.preventDefault();
+                navItems[currentIndex + 1].focus();
+            } else if (e.key === 'ArrowUp' && currentIndex > 0) {
+                e.preventDefault();
+                navItems[currentIndex - 1].focus();
+            } else if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                document.activeElement.click();
+            }
+        }
+    });
+}
+
+// ============================================
+// Welcome Banner
+// ============================================
+
+const FIRST_RUN_KEY = 'murmurtone_first_run_shown';
+
+/**
+ * Check if this is first run and show welcome banner
+ */
+function checkFirstRun() {
+    const hasSeenWelcome = localStorage.getItem(FIRST_RUN_KEY);
+    if (!hasSeenWelcome) {
+        showWelcomeBanner();
+    }
+}
+
+/**
+ * Show the welcome banner
+ */
+function showWelcomeBanner() {
+    const banner = document.getElementById('welcome-banner');
+    if (banner) {
+        banner.classList.add('visible');
+    }
+}
+
+/**
+ * Hide the welcome banner and mark as seen
+ */
+function hideWelcomeBanner() {
+    const banner = document.getElementById('welcome-banner');
+    if (banner) {
+        banner.classList.remove('visible');
+        localStorage.setItem(FIRST_RUN_KEY, 'true');
+    }
+}
+
+/**
+ * Reset first run state (for testing)
+ */
+function resetFirstRun() {
+    localStorage.removeItem(FIRST_RUN_KEY);
+}
+
+// ============================================
+// Mock API (for browser testing)
+// ============================================
+
+function createMockApi() {
+    const mockSettings = {
+        hotkey: { ctrl: true, shift: true, alt: false, key: 'space' },
+        recording_mode: 'push_to_talk',
+        language: 'en',
+        start_with_windows: false,
+        model_size: 'medium',
+        processing_mode: 'auto',
+        silence_duration_sec: 2.0,
+        custom_vocabulary: ['MurmurTone', 'PyWebView'],
+        sample_rate: 16000,
+        input_device: null,
+        noise_gate_enabled: true,
+        noise_gate_threshold_db: -40,
+        audio_feedback_volume: 50,
+        sound_processing: true,
+        sound_success: true,
+        sound_error: true,
+        sound_command: true,
+        auto_paste: true,
+        paste_mode: 'clipboard',
+        voice_commands_enabled: true,
+        scratch_that_enabled: true,
+        filler_removal_enabled: true,
+        filler_removal_aggressive: false,
+        custom_fillers: ['actually', 'basically'],
+        ai_cleanup_enabled: true,
+        ollama_url: 'http://localhost:11434',
+        ollama_model: 'llama3.2:3b',
+        ai_cleanup_mode: 'formality',
+        ai_formality_level: 'casual',
+        preview_enabled: true,
+        preview_position: 'bottom_right',
+        preview_auto_hide_delay: 2.0
+    };
+
+    return {
+        api: {
+            get_all_settings: () => Promise.resolve({ success: true, data: mockSettings }),
+            save_setting: (key, value) => {
+                console.log(`Mock save: ${key} = ${value}`);
+                return Promise.resolve({ success: true });
+            },
+            get_version_info: () => Promise.resolve({
+                success: true,
+                data: { app_name: 'MurmurTone', version: '1.0.0', python_version: '3.12.0' }
+            }),
+            get_audio_devices: () => Promise.resolve({
+                success: true,
+                data: [
+                    { name: 'System Default', id: null, is_default: true },
+                    { name: 'Microphone (Realtek Audio)', id: 'realtek-mic', is_default: false },
+                    { name: 'Blue Yeti', id: 'blue-yeti', is_default: false }
+                ]
+            }),
+            get_available_models: () => Promise.resolve({
+                success: true,
+                data: [
+                    { name: 'tiny', display_name: 'Quick', size_mb: 75, is_bundled: true, is_downloaded: true },
+                    { name: 'small', display_name: 'Recommended', size_mb: 484, is_bundled: false, is_downloaded: false }
+                ]
+            }),
+            get_license_status: () => Promise.resolve({
+                success: true,
+                data: { status: 'trial', is_trial: true, is_active: false, days_remaining: 14 }
+            }),
+            get_gpu_status: () => Promise.resolve({
+                success: true,
+                data: { available: true, name: 'NVIDIA GeForce RTX 3080' }
+            }),
+            test_ollama_connection: (url) => Promise.resolve({
+                success: true,
+                data: { connected: true }
+            }),
+            reset_to_defaults: () => Promise.resolve({ success: true }),
+            activate_license: (key) => {
+                console.log(`Mock activate license: ${key}`);
+                if (key && key.length > 10) {
+                    return Promise.resolve({ success: true, data: { status: 'active' } });
+                }
+                return Promise.resolve({ success: false, error: 'Invalid license key' });
+            },
+            open_url: (url) => {
+                console.log(`Mock open URL: ${url}`);
+                window.open(url, '_blank');
+                return Promise.resolve({ success: true });
+            }
+        }
+    };
+}
+
+// ============================================
+// Start
+// ============================================
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}

@@ -1,0 +1,549 @@
+"""
+MurmurTone Settings GUI - PyWebView Version
+A modern HTML/CSS/JS-based settings interface using PyWebView.
+"""
+import webview
+import threading
+import os
+import sys
+import json
+
+import config
+
+# Get the directory containing this script
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UI_DIR = os.path.join(BASE_DIR, "ui")
+
+
+class SettingsAPI:
+    """
+    API class exposed to JavaScript via pywebview.api.
+    All methods return JSON-serializable dicts.
+    """
+
+    def __init__(self):
+        self._config = config.load_config()
+        self._window = None
+
+    def set_window(self, window):
+        """Store reference to window for evaluate_js calls."""
+        self._window = window
+
+    # =========================================================================
+    # Core Settings Methods
+    # =========================================================================
+
+    def get_all_settings(self):
+        """
+        Return all current settings.
+        Called on page load to populate UI.
+        """
+        try:
+            # Reload config to get fresh values
+            self._config = config.load_config()
+
+            # Don't expose encrypted license key to frontend
+            safe_config = self._config.copy()
+            if "license_key" in safe_config:
+                # Only indicate if key exists, don't expose it
+                safe_config["has_license_key"] = bool(safe_config.get("license_key"))
+                safe_config["license_key"] = ""  # Don't send to frontend
+
+            return {"success": True, "data": safe_config}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def save_setting(self, key, value):
+        """
+        Save a single setting.
+        Supports nested keys like "hotkey.ctrl" using dot notation.
+        """
+        try:
+            # Handle nested keys (e.g., "hotkey.ctrl")
+            if "." in key:
+                parts = key.split(".")
+                target = self._config
+                for part in parts[:-1]:
+                    if part not in target:
+                        target[part] = {}
+                    target = target[part]
+                target[parts[-1]] = value
+            else:
+                self._config[key] = value
+
+            # Persist to disk
+            config.save_config(self._config)
+
+            return {"success": True}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def save_multiple_settings(self, settings_dict):
+        """
+        Save multiple settings at once.
+        More efficient than calling save_setting multiple times.
+        """
+        try:
+            for key, value in settings_dict.items():
+                if "." in key:
+                    parts = key.split(".")
+                    target = self._config
+                    for part in parts[:-1]:
+                        if part not in target:
+                            target[part] = {}
+                        target = target[part]
+                    target[parts[-1]] = value
+                else:
+                    self._config[key] = value
+
+            config.save_config(self._config)
+            return {"success": True}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    # =========================================================================
+    # App Info
+    # =========================================================================
+
+    def get_version_info(self):
+        """Return app version and related info."""
+        try:
+            return {
+                "success": True,
+                "data": {
+                    "version": config.VERSION,
+                    "app_name": config.APP_NAME,
+                    "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+                }
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    # =========================================================================
+    # Audio Devices
+    # =========================================================================
+
+    def get_audio_devices(self):
+        """Return list of available audio input devices."""
+        try:
+            devices = config.get_input_devices()
+            device_list = []
+            for display_name, device_info in devices:
+                device_list.append({
+                    "name": display_name,
+                    "id": device_info["name"] if device_info else None,
+                    "is_default": device_info is None  # First item is always default
+                })
+            return {"success": True, "data": device_list}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def refresh_audio_devices(self):
+        """Refresh and return the audio device list."""
+        return self.get_audio_devices()
+
+    # =========================================================================
+    # Model Info
+    # =========================================================================
+
+    def get_available_models(self):
+        """Return list of available Whisper models with download status."""
+        try:
+            models = []
+            for model_name in config.MODEL_OPTIONS:
+                display_name = config.MODEL_DISPLAY_NAMES.get(model_name, model_name)
+                size_mb = config.MODEL_SIZES_MB.get(model_name, 0)
+
+                # Check if model is downloaded (simplified check)
+                is_bundled = model_name in config.BUNDLED_MODELS
+                # TODO: Add actual download status check
+                is_downloaded = is_bundled
+
+                models.append({
+                    "name": model_name,
+                    "display_name": display_name,
+                    "size_mb": size_mb,
+                    "is_bundled": is_bundled,
+                    "is_downloaded": is_downloaded
+                })
+
+            return {"success": True, "data": models}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def download_model(self, model_name):
+        """
+        Start downloading a Whisper model.
+        Progress is reported back to JavaScript via evaluate_js.
+        """
+        def do_download():
+            try:
+                import requests
+                import zipfile
+                import tempfile
+                from dependency_check import get_models_dir, check_model_available
+
+                # Get download URL
+                download_url = config.MODEL_DOWNLOAD_URLS.get(model_name)
+                if not download_url:
+                    self._window.evaluate_js(
+                        f'window.onModelDownloadError("No download URL for model: {model_name}")'
+                    )
+                    return
+
+                # Report starting
+                self._window.evaluate_js('window.onModelDownloadProgress(0, "Connecting...")')
+
+                # Download
+                response = requests.get(download_url, stream=True, timeout=30)
+                response.raise_for_status()
+
+                total_size = int(response.headers.get('content-length', 0))
+                downloaded = 0
+
+                temp_zip = tempfile.NamedTemporaryFile(delete=False, suffix='.zip')
+
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        temp_zip.write(chunk)
+                        downloaded += len(chunk)
+                        if total_size > 0:
+                            percent = int((downloaded / total_size) * 80)  # 80% for download
+                            size_mb = downloaded / (1024 * 1024)
+                            total_mb = total_size / (1024 * 1024)
+                            self._window.evaluate_js(
+                                f'window.onModelDownloadProgress({percent}, "Downloading: {size_mb:.1f} / {total_mb:.1f} MB")'
+                            )
+
+                temp_zip.close()
+
+                # Extract
+                self._window.evaluate_js('window.onModelDownloadProgress(85, "Extracting model...")')
+                models_dir = get_models_dir()
+                os.makedirs(models_dir, exist_ok=True)
+
+                with zipfile.ZipFile(temp_zip.name, 'r') as zip_ref:
+                    zip_ref.extractall(models_dir)
+
+                # Verify
+                self._window.evaluate_js('window.onModelDownloadProgress(95, "Verifying...")')
+                is_available, _ = check_model_available(model_name)
+                if not is_available:
+                    raise Exception("Model extraction failed - files not found")
+
+                # Cleanup temp file
+                try:
+                    os.unlink(temp_zip.name)
+                except Exception:
+                    pass
+
+                # Success
+                self._window.evaluate_js('window.onModelDownloadProgress(100, "Complete!")')
+                self._window.evaluate_js('window.onModelDownloadComplete(true)')
+
+            except Exception as e:
+                error_msg = str(e).replace("'", "\\'").replace('"', '\\"')
+                self._window.evaluate_js(f'window.onModelDownloadError("{error_msg}")')
+
+        # Start download in background thread
+        thread = threading.Thread(target=do_download, daemon=True)
+        thread.start()
+        return {"success": True, "message": "Download started"}
+
+    def get_history(self):
+        """Get transcription history."""
+        history_file = os.path.join(os.path.dirname(__file__), "transcription_history.json")
+        try:
+            if os.path.exists(history_file):
+                with open(history_file, 'r', encoding='utf-8') as f:
+                    history = json.load(f)
+                return {"history": history}
+        except Exception as e:
+            print(f"Failed to load history: {e}")
+        return {"history": []}
+
+    def get_history_count(self):
+        """Get the count of history items."""
+        result = self.get_history()
+        return {"count": len(result.get("history", []))}
+
+    def clear_history(self):
+        """Clear all transcription history."""
+        history_file = os.path.join(os.path.dirname(__file__), "transcription_history.json")
+        try:
+            if os.path.exists(history_file):
+                os.remove(history_file)
+            return {"success": True}
+        except Exception as e:
+            print(f"Failed to clear history: {e}")
+            return {"success": False, "error": str(e)}
+
+    def export_history(self):
+        """Export history to a file chosen by user."""
+        try:
+            result = self._window.create_file_dialog(
+                webview.SAVE_DIALOG,
+                save_filename='transcription_history.json',
+                file_types=('JSON Files (*.json)', 'Text Files (*.txt)', 'All Files (*.*)')
+            )
+            if result:
+                filename = result if isinstance(result, str) else result[0]
+                history = self.get_history().get("history", [])
+
+                with open(filename, 'w', encoding='utf-8') as f:
+                    if filename.endswith('.txt'):
+                        for item in history:
+                            f.write(f"[{item.get('timestamp', 'Unknown')}]\n")
+                            f.write(f"{item.get('text', '')}\n\n")
+                    else:
+                        json.dump(history, f, indent=2, ensure_ascii=False)
+
+                return {"success": True, "filename": os.path.basename(filename)}
+            return {"success": False, "cancelled": True}
+        except Exception as e:
+            print(f"Failed to export history: {e}")
+            return {"success": False, "error": str(e)}
+
+    def get_gpu_status(self):
+        """Check if GPU/CUDA is available for processing."""
+        try:
+            # Try to detect CUDA availability
+            cuda_available = False
+            gpu_name = None
+
+            try:
+                import torch
+                cuda_available = torch.cuda.is_available()
+                if cuda_available:
+                    gpu_name = torch.cuda.get_device_name(0)
+            except ImportError:
+                # torch not installed, try ctranslate2
+                try:
+                    import ctranslate2
+                    # ctranslate2.get_supported_compute_types requires device parameter
+                    supported = ctranslate2.get_supported_compute_types("cuda")
+                    cuda_available = len(supported) > 0
+                except (ImportError, RuntimeError):
+                    # CUDA not available or ctranslate2 not installed
+                    pass
+
+            return {
+                "success": True,
+                "data": {
+                    "available": cuda_available,
+                    "name": gpu_name
+                }
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def install_gpu_support(self):
+        """
+        Attempt to install CUDA libraries for GPU acceleration.
+        For bundled exe users, this downloads pre-packaged DLLs.
+        """
+        try:
+            import subprocess
+            import sys
+
+            # Try pip install for development environments
+            packages = [
+                "nvidia-cublas-cu12",
+                "nvidia-cudnn-cu12"
+            ]
+
+            for package in packages:
+                result = subprocess.run(
+                    [sys.executable, "-m", "pip", "install", package],
+                    capture_output=True,
+                    text=True,
+                    timeout=300
+                )
+                if result.returncode != 0:
+                    return {
+                        "success": False,
+                        "message": f"Failed to install {package}. Please install CUDA manually."
+                    }
+
+            return {
+                "success": True,
+                "message": "GPU support installed. Please restart the application."
+            }
+        except subprocess.TimeoutExpired:
+            return {
+                "success": False,
+                "message": "Installation timed out. Please try again or install manually."
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"Installation failed: {str(e)}"
+            }
+
+    # =========================================================================
+    # License (Status Only - Key Stays in Python)
+    # =========================================================================
+
+    def get_license_status(self):
+        """Return license status without exposing the key."""
+        try:
+            status = self._config.get("license_status", "trial")
+            trial_started = self._config.get("trial_started_date")
+
+            # Calculate days remaining for trial
+            days_remaining = None
+            if status == "trial" and trial_started:
+                from datetime import datetime
+                try:
+                    start = datetime.fromisoformat(trial_started)
+                    elapsed = (datetime.now() - start).days
+                    days_remaining = max(0, 14 - elapsed)  # 14-day trial
+                except:
+                    days_remaining = 14
+
+            return {
+                "success": True,
+                "data": {
+                    "status": status,
+                    "is_trial": status == "trial",
+                    "is_active": status == "active",
+                    "days_remaining": days_remaining,
+                    "has_key": bool(self._config.get("license_key"))
+                }
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def activate_license(self, key):
+        """
+        Validate and activate a license key.
+        Key validation happens in Python, only status is returned.
+        """
+        try:
+            # Import license module for validation
+            import license as license_module
+
+            # Validate the key (returns tuple: is_valid, message)
+            is_valid, message = license_module.validate_license_key(key, self._config)
+
+            if is_valid:
+                self._config["license_key"] = key
+                self._config["license_status"] = "active"
+                config.save_config(self._config)
+                return {"success": True, "data": {"status": "active"}}
+            else:
+                return {"success": False, "error": message or "Invalid license key"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    # =========================================================================
+    # Utility Methods
+    # =========================================================================
+
+    def test_ollama_connection(self, url):
+        """Test connection to Ollama server."""
+        try:
+            import urllib.request
+            import urllib.error
+
+            # Clean up URL
+            url = url.rstrip('/')
+            test_url = f"{url}/api/tags"
+
+            req = urllib.request.Request(test_url, method='GET')
+            req.add_header('Accept', 'application/json')
+
+            with urllib.request.urlopen(req, timeout=5) as response:
+                if response.status == 200:
+                    return {
+                        "success": True,
+                        "data": {"connected": True}
+                    }
+                else:
+                    return {
+                        "success": True,
+                        "data": {"connected": False},
+                        "error": f"HTTP {response.status}"
+                    }
+        except urllib.error.URLError as e:
+            return {
+                "success": True,
+                "data": {"connected": False},
+                "error": str(e.reason)
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def open_url(self, url):
+        """Open a URL in the default browser."""
+        try:
+            import webbrowser
+            webbrowser.open(url)
+            return {"success": True}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def open_logs_folder(self):
+        """Open the logs folder in the system file explorer."""
+        try:
+            logs_dir = os.path.join(os.path.dirname(__file__), "logs")
+            os.makedirs(logs_dir, exist_ok=True)
+            os.startfile(logs_dir)
+            return {"success": True}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def reset_to_defaults(self):
+        """Reset all settings to defaults (except license)."""
+        try:
+            # Preserve license info
+            license_key = self._config.get("license_key", "")
+            license_status = self._config.get("license_status", "trial")
+            trial_started = self._config.get("trial_started_date")
+
+            # Reset to defaults
+            self._config = config.DEFAULTS.copy()
+
+            # Restore license info
+            self._config["license_key"] = license_key
+            self._config["license_status"] = license_status
+            self._config["trial_started_date"] = trial_started
+
+            config.save_config(self._config)
+            return {"success": True}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+
+def create_window():
+    """Create and run the PyWebView window."""
+    api = SettingsAPI()
+
+    # Create window
+    window = webview.create_window(
+        title=f"{config.APP_NAME} Settings",
+        url=os.path.join(UI_DIR, "index.html"),
+        js_api=api,
+        width=900,
+        height=650,
+        min_size=(800, 500),
+        resizable=True,
+        background_color="#0f172a"  # Match dark theme
+    )
+
+    # Store window reference in API for evaluate_js calls
+    api.set_window(window)
+
+    return window
+
+
+def main():
+    """Entry point for the settings GUI."""
+    window = create_window()
+
+    # Start webview (blocks until window is closed)
+    webview.start(debug=True)  # debug=True for development
+
+
+if __name__ == "__main__":
+    main()
