@@ -765,8 +765,14 @@ async function loadAudioDevices() {
     try {
         const result = await pywebview.api.get_audio_devices();
         if (result.success) {
-            // Clear existing options except default
-            dropdown.innerHTML = '<option value="">System Default</option>';
+            // Find the default device name
+            const defaultDevice = result.data.find(d => d.is_default && d.id);
+            const defaultLabel = defaultDevice
+                ? `System Default (${defaultDevice.name})`
+                : 'System Default';
+
+            // Clear existing options and add default
+            dropdown.innerHTML = `<option value="">${defaultLabel}</option>`;
 
             // Add devices
             result.data.forEach(device => {
@@ -1977,9 +1983,8 @@ function createMockApi() {
             get_audio_devices: () => Promise.resolve({
                 success: true,
                 data: [
-                    { name: 'System Default', id: null, is_default: true },
                     { name: 'Microphone (Realtek Audio)', id: 'realtek-mic', is_default: false },
-                    { name: 'Blue Yeti', id: 'blue-yeti', is_default: false }
+                    { name: 'Blue Yeti', id: 'blue-yeti', is_default: true }
                 ]
             }),
             get_available_models: () => Promise.resolve({
