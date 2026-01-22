@@ -272,11 +272,8 @@ function restoreActiveTab() {
  * Populate form fields with current settings
  */
 function populateForm() {
-    // Hotkey modifiers
-    setCheckbox('hotkey-ctrl', settings.hotkey?.ctrl ?? true);
-    setCheckbox('hotkey-shift', settings.hotkey?.shift ?? true);
-    setCheckbox('hotkey-alt', settings.hotkey?.alt ?? false);
-    setKeyCaptureButton('hotkey-key', settings.hotkey?.key ?? 'space');
+    // Hotkey combo
+    setHotkeyDisplay('hotkey-capture', settings.hotkey ?? { ctrl: true, shift: true, alt: false, key: 'space' });
 
     // Recording mode
     setDropdown('recording-mode', settings.recording_mode ?? 'push_to_talk');
@@ -363,11 +360,8 @@ function populateForm() {
  * Set up change listeners on all form elements
  */
 function setupFormListeners() {
-    // Hotkey modifiers
-    addCheckboxListener('hotkey-ctrl', (checked) => saveSetting('hotkey.ctrl', checked));
-    addCheckboxListener('hotkey-shift', (checked) => saveSetting('hotkey.shift', checked));
-    addCheckboxListener('hotkey-alt', (checked) => saveSetting('hotkey.alt', checked));
-    setupHotkeyKeyCapture('hotkey-key', (value) => saveSetting('hotkey.key', value));
+    // Hotkey combo capture
+    setupHotkeyComboCapture('hotkey-capture', (hotkey) => saveSetting('hotkey', hotkey));
 
     // Recording mode
     addDropdownListener('recording-mode', (value) => saveSetting('recording_mode', value));
@@ -617,43 +611,41 @@ function addDropdownListener(id, callback) {
 }
 
 /**
- * Format a key name for display (e.g., 'space' -> 'Space', 'f5' -> 'F5')
+ * Format a hotkey object for display (e.g., { ctrl: true, shift: true, key: 'space' } -> 'Ctrl + Shift + Space')
  */
-function formatKeyName(key) {
-    if (!key) return 'Not set';
-    if (key === 'space' || key === ' ') return 'Space';
-    // F-keys
-    if (key.match(/^f\d+$/i)) return key.toUpperCase();
-    // Capitalize first letter for other keys
-    return key.charAt(0).toUpperCase() + key.slice(1);
+function formatHotkeyCombo(hotkey) {
+    if (!hotkey || !hotkey.key) return 'Not set';
+    const parts = [];
+    if (hotkey.ctrl) parts.push('Ctrl');
+    if (hotkey.shift) parts.push('Shift');
+    if (hotkey.alt) parts.push('Alt');
+    // Format the key
+    let keyDisplay = hotkey.key;
+    if (keyDisplay === 'space' || keyDisplay === ' ') keyDisplay = 'Space';
+    else if (keyDisplay.match(/^f\d+$/i)) keyDisplay = keyDisplay.toUpperCase();
+    else keyDisplay = keyDisplay.charAt(0).toUpperCase() + keyDisplay.slice(1);
+    parts.push(keyDisplay);
+    return parts.join(' + ');
 }
 
 /**
- * Normalize a key name for storage (consistent lowercase format)
+ * Set the displayed value of the hotkey capture button
  */
-function normalizeKeyName(key) {
-    if (key === ' ') return 'space';
-    return key.toLowerCase();
-}
-
-/**
- * Set the displayed value of a key capture button
- */
-function setKeyCaptureButton(id, value) {
+function setHotkeyDisplay(id, hotkey) {
     const btn = document.getElementById(id);
     if (btn) {
-        const keyValue = btn.querySelector('.key-value');
-        if (keyValue) {
-            keyValue.textContent = formatKeyName(value);
+        const display = btn.querySelector('.hotkey-display');
+        if (display) {
+            display.textContent = formatHotkeyCombo(hotkey);
         }
-        btn.dataset.currentKey = value;
+        btn.dataset.hotkey = JSON.stringify(hotkey);
     }
 }
 
 /**
- * Set up key capture functionality for the hotkey button
+ * Set up hotkey combo capture - captures full key combination (e.g., Ctrl+Shift+X)
  */
-function setupHotkeyKeyCapture(id, callback) {
+function setupHotkeyComboCapture(id, callback) {
     const btn = document.getElementById(id);
     if (!btn) return;
 
@@ -661,18 +653,18 @@ function setupHotkeyKeyCapture(id, callback) {
         // Already capturing, ignore
         if (btn.classList.contains('capturing')) return;
 
-        const currentKey = btn.dataset.currentKey || 'space';
+        const currentHotkey = JSON.parse(btn.dataset.hotkey || '{"ctrl":true,"shift":true,"alt":false,"key":"space"}');
         btn.classList.add('capturing');
-        const keyValue = btn.querySelector('.key-value');
-        if (keyValue) {
-            keyValue.textContent = 'Press any key...';
+        const display = btn.querySelector('.hotkey-display');
+        if (display) {
+            display.textContent = 'Press key combo...';
         }
 
         const handleKey = (e) => {
             e.preventDefault();
             e.stopPropagation();
 
-            // Ignore modifier-only presses
+            // Ignore modifier-only presses - wait for a real key
             if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) {
                 return;
             }
@@ -682,13 +674,20 @@ function setupHotkeyKeyCapture(id, callback) {
 
             // Escape cancels
             if (e.key === 'Escape') {
-                setKeyCaptureButton(id, currentKey);
+                setHotkeyDisplay(id, currentHotkey);
                 return;
             }
 
-            const keyName = normalizeKeyName(e.key);
-            setKeyCaptureButton(id, keyName);
-            callback(keyName);
+            // Build the hotkey from current modifiers + key
+            const newHotkey = {
+                ctrl: e.ctrlKey,
+                shift: e.shiftKey,
+                alt: e.altKey,
+                key: e.key === ' ' ? 'space' : e.key.toLowerCase()
+            };
+
+            setHotkeyDisplay(id, newHotkey);
+            callback(newHotkey);
         };
 
         document.addEventListener('keydown', handleKey);
@@ -765,11 +764,10 @@ async function loadAudioDevices() {
     try {
         const result = await pywebview.api.get_audio_devices();
         if (result.success) {
-            // Find the default device name
-            const defaultDevice = result.data.find(d => d.is_default && d.id);
-            const defaultLabel = defaultDevice
-                ? `System Default (${defaultDevice.name})`
-                : 'System Default';
+            // Find the system default entry (has id: null)
+            // Python backend already formats it as "System Default (device name)"
+            const defaultEntry = result.data.find(d => !d.id);
+            const defaultLabel = defaultEntry?.name || 'System Default';
 
             // Clear existing options and add default
             dropdown.innerHTML = `<option value="">${defaultLabel}</option>`;
@@ -1983,8 +1981,9 @@ function createMockApi() {
             get_audio_devices: () => Promise.resolve({
                 success: true,
                 data: [
+                    { name: 'System Default (Microphone)', id: null, is_default: true },
                     { name: 'Microphone (Realtek Audio)', id: 'realtek-mic', is_default: false },
-                    { name: 'Blue Yeti', id: 'blue-yeti', is_default: true }
+                    { name: 'Blue Yeti', id: 'blue-yeti', is_default: false }
                 ]
             }),
             get_available_models: () => Promise.resolve({
