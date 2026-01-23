@@ -1478,10 +1478,10 @@ function setupDictionaryModal() {
             const newData = [];
             rows.forEach(row => {
                 const inputs = row.querySelectorAll('input');
-                const original = inputs[0]?.value.trim();
-                const replacement = inputs[1]?.value.trim();
-                if (original && replacement) {
-                    newData.push({ original, replacement });
+                const from = inputs[0]?.value.trim();
+                const to = inputs[1]?.value.trim();
+                if (from && to) {
+                    newData.push({ from, to });
                 }
             });
             settings.custom_dictionary = newData;
@@ -1494,7 +1494,7 @@ function setupDictionaryModal() {
 
     if (addRowBtn) {
         addRowBtn.addEventListener('click', () => {
-            dictionaryData.push({ original: '', replacement: '' });
+            dictionaryData.push({ from: '', to: '' });
             renderDictionaryTable();
         });
     }
@@ -1518,8 +1518,8 @@ function renderDictionaryTable() {
     dictionaryData.forEach((item, index) => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td><input type="text" value="${escapeHtml(item.original || '')}" placeholder="Original word"></td>
-            <td><input type="text" value="${escapeHtml(item.replacement || '')}" placeholder="Replacement"></td>
+            <td><input type="text" value="${escapeHtml(item.from || '')}" placeholder="Original word"></td>
+            <td><input type="text" value="${escapeHtml(item.to || '')}" placeholder="Replacement"></td>
             <td>
                 <button type="button" class="delete-row-btn" data-index="${index}">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1540,7 +1540,7 @@ function renderDictionaryTable() {
 
     // Add empty row if no data
     if (dictionaryData.length === 0) {
-        dictionaryData.push({ original: '', replacement: '' });
+        dictionaryData.push({ from: '', to: '' });
         renderDictionaryTable();
     }
 }
@@ -1550,7 +1550,7 @@ function renderDictionaryTable() {
  */
 function updateDictionaryCount() {
     const countEl = document.getElementById('dictionary-count');
-    const count = (settings.custom_dictionary || []).filter(d => d.original && d.replacement).length;
+    const count = (settings.custom_dictionary || []).filter(d => d.from && d.to).length;
     if (countEl) {
         countEl.textContent = `${count} replacement${count !== 1 ? 's' : ''} defined`;
     }
@@ -1586,9 +1586,9 @@ function setupShortcutsModal() {
             rows.forEach(row => {
                 const inputs = row.querySelectorAll('input');
                 const trigger = inputs[0]?.value.trim();
-                const expansion = inputs[1]?.value.trim();
-                if (trigger && expansion) {
-                    newData.push({ trigger, expansion });
+                const replacement = inputs[1]?.value.trim();
+                if (trigger && replacement) {
+                    newData.push({ trigger, replacement });
                 }
             });
             settings.custom_commands = newData;
@@ -1601,7 +1601,7 @@ function setupShortcutsModal() {
 
     if (addRowBtn) {
         addRowBtn.addEventListener('click', () => {
-            shortcutsData.push({ trigger: '', expansion: '' });
+            shortcutsData.push({ trigger: '', replacement: '' });
             renderShortcutsTable();
         });
     }
@@ -1626,7 +1626,7 @@ function renderShortcutsTable() {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td><input type="text" value="${escapeHtml(item.trigger || '')}" placeholder="Trigger phrase"></td>
-            <td><input type="text" value="${escapeHtml(item.expansion || '')}" placeholder="Expansion text"></td>
+            <td><input type="text" value="${escapeHtml(item.replacement || '')}" placeholder="Expansion text"></td>
             <td>
                 <button type="button" class="delete-row-btn" data-index="${index}">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1647,7 +1647,7 @@ function renderShortcutsTable() {
 
     // Add empty row if no data
     if (shortcutsData.length === 0) {
-        shortcutsData.push({ trigger: '', expansion: '' });
+        shortcutsData.push({ trigger: '', replacement: '' });
         renderShortcutsTable();
     }
 }
@@ -1657,7 +1657,7 @@ function renderShortcutsTable() {
  */
 function updateShortcutsCount() {
     const countEl = document.getElementById('shortcuts-count');
-    const count = (settings.custom_commands || []).filter(s => s.trigger && s.expansion).length;
+    const count = (settings.custom_commands || []).filter(s => s.trigger && s.replacement).length;
     if (countEl) {
         countEl.textContent = `${count} shortcut${count !== 1 ? 's' : ''} defined`;
     }
