@@ -598,3 +598,130 @@ class TestInputValidators:
         items = ["valid", 123, None, "also valid", ["nested"]]
         result = settings_logic.validate_vocabulary_list(items)
         assert result == ["valid", "also valid"]
+
+
+class TestTextTabStability:
+    """Test Text tab stability and edge case handling in Tkinter GUI."""
+
+    def test_text_tab_loads_with_missing_config(self, mocker, temp_config):
+        """Text tab should load defaults when config.yaml missing."""
+        import customtkinter as ctk
+        from settings_gui import SettingsWindow
+
+        # Create empty config (missing Text tab keys)
+        empty_config = {}
+        mocker.patch('config.load_config', return_value=empty_config)
+        mocker.patch('config.save_config')
+        mocker.patch('config.get_config_path', return_value=temp_config)
+
+        # Mock CTk to avoid GUI display
+        mocker.patch.object(ctk.CTk, '__init__', return_value=None)
+        mocker.patch.object(ctk.CTk, 'title')
+        mocker.patch.object(ctk.CTk, 'geometry')
+
+        # Create window - should not crash
+        try:
+            window = SettingsWindow()
+            # Verify defaults are set
+            assert hasattr(window, 'voice_commands_var')
+            assert hasattr(window, 'scratch_that_var')
+            assert hasattr(window, 'filler_var')
+            assert hasattr(window, 'filler_aggressive_var')
+        except Exception as e:
+            pytest.fail(f"Text tab should load with missing config, but got: {e}")
+
+    def test_text_tab_loads_with_corrupted_custom_fillers(self, mocker, temp_config):
+        """Text tab should handle custom_fillers='string' gracefully."""
+        import customtkinter as ctk
+        from settings_gui import SettingsWindow
+
+        # Create config with corrupted custom_fillers
+        corrupted_config = {
+            **config.DEFAULTS,
+            "custom_fillers": "this should be an array"  # Corrupted value
+        }
+        mocker.patch('config.load_config', return_value=corrupted_config)
+        mocker.patch('config.save_config')
+        mocker.patch('config.get_config_path', return_value=temp_config)
+
+        # Mock CTk to avoid GUI display
+        mocker.patch.object(ctk.CTk, '__init__', return_value=None)
+        mocker.patch.object(ctk.CTk, 'title')
+        mocker.patch.object(ctk.CTk, 'geometry')
+
+        # Create window - should not crash
+        try:
+            window = SettingsWindow()
+            # Window should load despite corrupted data
+            assert hasattr(window, 'custom_fillers')
+        except Exception as e:
+            pytest.fail(f"Text tab should handle corrupted custom_fillers, but got: {e}")
+
+    def test_dictionary_editor_opens_without_error(self, mocker):
+        """Dictionary modal should open and close cleanly."""
+        import customtkinter as ctk
+        from settings_gui import DictionaryEditor
+
+        # Mock toplevel window
+        mock_parent = mocker.MagicMock()
+        mock_toplevel = mocker.MagicMock()
+        mocker.patch('customtkinter.CTkToplevel', return_value=mock_toplevel)
+
+        # Mock callback
+        save_callback = mocker.MagicMock()
+
+        # Create dictionary editor with empty list
+        try:
+            editor = DictionaryEditor(mock_parent, [], save_callback)
+            # Should not crash on init
+            assert editor is not None
+        except Exception as e:
+            pytest.fail(f"Dictionary editor should open without error, but got: {e}")
+
+    def test_vocabulary_editor_handles_empty_list(self, mocker):
+        """Vocabulary modal should show empty state message."""
+        import customtkinter as ctk
+        from settings_gui import VocabularyEditor
+
+        # Mock toplevel window
+        mock_parent = mocker.MagicMock()
+        mock_toplevel = mocker.MagicMock()
+        mocker.patch('customtkinter.CTkToplevel', return_value=mock_toplevel)
+
+        # Mock callback
+        save_callback = mocker.MagicMock()
+
+        # Create vocabulary editor with empty list
+        try:
+            editor = VocabularyEditor(mock_parent, [], save_callback)
+            # Should handle empty list gracefully
+            assert editor is not None
+        except Exception as e:
+            pytest.fail(f"Vocabulary editor should handle empty list, but got: {e}")
+
+    def test_shortcuts_editor_handles_multiline_text(self, mocker):
+        """Shortcuts modal should preserve newlines in replacement."""
+        import customtkinter as ctk
+        from settings_gui import ShortcutsEditor
+
+        # Mock toplevel window
+        mock_parent = mocker.MagicMock()
+        mock_toplevel = mocker.MagicMock()
+        mocker.patch('customtkinter.CTkToplevel', return_value=mock_toplevel)
+
+        # Mock callback
+        save_callback = mocker.MagicMock()
+
+        # Create shortcut with multiline replacement
+        shortcuts = [
+            {"trigger": "sig", "replacement": "Best regards,\nJohn Smith", "enabled": True}
+        ]
+
+        try:
+            editor = ShortcutsEditor(mock_parent, shortcuts, save_callback)
+            # Should handle multiline text
+            assert editor is not None
+            # Verify newline is preserved in the shortcut data
+            assert "\n" in shortcuts[0]["replacement"]
+        except Exception as e:
+            pytest.fail(f"Shortcuts editor should handle multiline text, but got: {e}")

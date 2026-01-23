@@ -68,7 +68,77 @@ class SettingsAPI:
         "noise_gate_threshold_db": settings_logic.validate_noise_threshold,
         "audio_feedback_volume": settings_logic.validate_volume,
         "preview_auto_hide_delay": settings_logic.validate_preview_delay,
+        # Text tab validators
+        "custom_fillers": "_validate_custom_fillers",
+        "custom_dictionary": "_validate_custom_dictionary",
+        "custom_commands": "_validate_custom_commands",
+        "custom_vocabulary": "_validate_custom_vocabulary",
     }
+
+    @staticmethod
+    def _validate_custom_fillers(value):
+        """Validate and normalize custom filler words array."""
+        if not isinstance(value, list):
+            raise ValueError("custom_fillers must be an array")
+
+        # Normalize: lowercase, trim, remove empties, deduplicate
+        normalized = []
+        seen = set()
+        for item in value:
+            if not isinstance(item, str):
+                continue  # Skip non-strings silently
+            word = item.strip().lower()
+            if word and word not in seen:
+                normalized.append(word)
+                seen.add(word)
+
+        return normalized
+
+    @staticmethod
+    def _validate_custom_dictionary(value):
+        """Validate custom dictionary entries."""
+        if not isinstance(value, list):
+            raise ValueError("custom_dictionary must be an array")
+
+        for i, item in enumerate(value):
+            if not isinstance(item, dict):
+                raise ValueError(f"Dictionary entry {i} must be an object")
+            if "from" not in item or "to" not in item:
+                raise ValueError(f"Dictionary entry {i} missing 'from' or 'to' keys")
+            if not str(item.get("from", "")).strip():
+                raise ValueError(f"Dictionary entry {i} has empty 'from' value")
+
+        return value
+
+    @staticmethod
+    def _validate_custom_commands(value):
+        """Validate text shortcuts entries."""
+        if not isinstance(value, list):
+            raise ValueError("custom_commands must be an array")
+
+        for i, item in enumerate(value):
+            if not isinstance(item, dict):
+                raise ValueError(f"Shortcut entry {i} must be an object")
+            if "trigger" not in item or "replacement" not in item:
+                raise ValueError(f"Shortcut entry {i} missing 'trigger' or 'replacement' keys")
+            if not str(item.get("trigger", "")).strip():
+                raise ValueError(f"Shortcut entry {i} has empty trigger")
+
+        return value
+
+    @staticmethod
+    def _validate_custom_vocabulary(value):
+        """Validate custom vocabulary words."""
+        if not isinstance(value, list):
+            raise ValueError("custom_vocabulary must be an array")
+
+        # Ensure all items are non-empty strings
+        normalized = []
+        for item in value:
+            if isinstance(item, str) and item.strip():
+                normalized.append(item.strip())
+
+        return normalized
 
     def save_setting(self, key, value):
         """
@@ -78,7 +148,12 @@ class SettingsAPI:
         try:
             # Apply validation if validator exists for this key
             if key in self._VALIDATORS:
-                value = self._VALIDATORS[key](value)
+                validator = self._VALIDATORS[key]
+                # If validator is a string (method name), call it as a method
+                if isinstance(validator, str):
+                    value = getattr(self, validator)(value)
+                else:
+                    value = validator(value)
 
             # Validate URL fields
             if key == "ollama_url":
