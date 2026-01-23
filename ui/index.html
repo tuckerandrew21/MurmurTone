@@ -692,6 +692,11 @@
                                 </div>
                             </div>
 
+                            <div class="setting-row ollama-action-row" id="ollama-action-row">
+                                <button type="button" id="retry-ollama-btn" class="btn btn-link">Retry Connection</button>
+                                <a href="https://ollama.com/download" target="_blank" rel="noopener noreferrer" class="btn btn-link" id="download-ollama-link">Download Ollama</a>
+                            </div>
+
                             <div class="setting-row">
                                 <label class="setting-label">Model</label>
                                 <select id="ollama-model" class="dropdown" aria-label="Ollama model" data-testid="ollama-model">
@@ -707,7 +712,7 @@
                                 <select id="ai-cleanup-mode" class="dropdown" aria-label="Cleanup mode" data-testid="ai-cleanup-mode">
                                     <option value="grammar">Grammar Only</option>
                                     <option value="formality">Formality Adjustment</option>
-                                    <option value="concise">Make Concise</option>
+                                    <option value="both">Grammar + Formality</option>
                                 </select>
                             </div>
 
@@ -715,9 +720,8 @@
                                 <label class="setting-label">Formality Level</label>
                                 <select id="ai-formality-level" class="dropdown" aria-label="Formality level" data-testid="ai-formality-level">
                                     <option value="casual">Casual</option>
-                                    <option value="neutral">Neutral</option>
-                                    <option value="formal">Formal</option>
                                     <option value="professional">Professional</option>
+                                    <option value="formal">Formal</option>
                                 </select>
                             </div>
                         </div>
@@ -1012,9 +1016,41 @@
                 <p class="history-empty hidden" id="history-empty">No transcription history available.</p>
             </div>
             <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="history-copy" disabled>Copy Selected</button>
                 <button type="button" class="btn btn-danger" id="history-clear">Clear History</button>
                 <button type="button" class="btn btn-secondary" id="history-export">Export to File</button>
                 <button type="button" class="btn btn-primary" id="history-close">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Format Modal -->
+    <div class="modal-overlay" id="export-format-modal">
+        <div class="modal modal-small">
+            <div class="modal-header">
+                <h2>Export Format</h2>
+                <button type="button" class="modal-close" id="export-format-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-description">Select export format:</p>
+                <div class="radio-group">
+                    <label class="radio-option">
+                        <input type="radio" name="export-format" value="txt" checked>
+                        <span>Plain Text (.txt)</span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="export-format" value="csv">
+                        <span>CSV with timestamps (.csv)</span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="export-format" value="json">
+                        <span>JSON with metadata (.json)</span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="export-format-cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" id="export-format-confirm">Export</button>
             </div>
         </div>
     </div>

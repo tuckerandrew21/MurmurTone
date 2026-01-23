@@ -338,24 +338,50 @@ class SettingsAPI:
             print(f"Failed to clear history: {e}")
             return {"success": False, "error": str(e)}
 
-    def export_history(self):
-        """Export history to a file chosen by user."""
+    def export_history(self, format_type='json'):
+        """Export history to a file chosen by user.
+
+        Args:
+            format_type: Export format - 'txt', 'csv', or 'json'
+        """
         try:
+            ext_map = {'txt': '.txt', 'csv': '.csv', 'json': '.json'}
+            type_map = {
+                'txt': ('Text Files (*.txt)', 'All Files (*.*)'),
+                'csv': ('CSV Files (*.csv)', 'All Files (*.*)'),
+                'json': ('JSON Files (*.json)', 'All Files (*.*)')
+            }
+
+            extension = ext_map.get(format_type, '.json')
+            file_types = type_map.get(format_type, type_map['json'])
+
             result = self._window.create_file_dialog(
                 webview.SAVE_DIALOG,
-                save_filename='transcription_history.json',
-                file_types=('JSON Files (*.json)', 'Text Files (*.txt)', 'All Files (*.*)')
+                save_filename=f'transcription_history{extension}',
+                file_types=file_types
             )
             if result:
                 filename = result if isinstance(result, str) else result[0]
                 history = self.get_history().get("history", [])
 
                 with open(filename, 'w', encoding='utf-8') as f:
-                    if filename.endswith('.txt'):
+                    if format_type == 'txt':
+                        f.write("Transcription History\n")
+                        f.write("=" * 60 + "\n\n")
                         for item in history:
                             f.write(f"[{item.get('timestamp', 'Unknown')}]\n")
                             f.write(f"{item.get('text', '')}\n\n")
-                    else:
+                    elif format_type == 'csv':
+                        import csv
+                        writer = csv.writer(f)
+                        writer.writerow(["Timestamp", "Text", "Characters"])
+                        for item in history:
+                            writer.writerow([
+                                item.get('timestamp', ''),
+                                item.get('text', ''),
+                                len(item.get('text', ''))
+                            ])
+                    else:  # json
                         json.dump(history, f, indent=2, ensure_ascii=False)
 
                 return {"success": True, "filename": os.path.basename(filename)}

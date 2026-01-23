@@ -433,8 +433,8 @@ function populateForm() {
     setCheckbox('ai-cleanup', settings.ai_cleanup_enabled ?? false);
     setInput('ollama-url', settings.ollama_url ?? 'http://localhost:11434');
     setDropdown('ollama-model', settings.ollama_model ?? 'llama3.2:3b');
-    setDropdown('ai-cleanup-mode', settings.ai_cleanup_mode ?? 'formality');
-    setDropdown('ai-formality-level', settings.ai_formality_level ?? 'casual');
+    setDropdown('ai-cleanup-mode', settings.ai_cleanup_mode ?? 'grammar');
+    setDropdown('ai-formality-level', settings.ai_formality_level ?? 'professional');
 
     // Advanced settings - Preview
     setCheckbox('preview-enabled', settings.preview_enabled ?? true);
@@ -451,6 +451,7 @@ function populateForm() {
     // Update visibility
     updateAiCleanupVisibility();
     updatePreviewVisibility();
+    toggleFormalityRow();
 
     // About page
     loadAboutInfo();
@@ -651,16 +652,34 @@ function setupFormListeners() {
     addCheckboxListener('ai-cleanup', (checked) => {
         saveSetting('ai_cleanup_enabled', checked);
         updateAiCleanupVisibility();
+
+        // Auto-test Ollama connection when enabled
+        if (checked) {
+            setTimeout(() => testOllamaConnection(), 200);
+        } else {
+            // Hide action row when disabled
+            const actionRow = document.getElementById('ollama-action-row');
+            if (actionRow) actionRow.classList.remove('visible');
+        }
     });
     addInputListener('ollama-url', (value) => saveSetting('ollama_url', value), 1000);
     addDropdownListener('ollama-model', (value) => saveSetting('ollama_model', value));
-    addDropdownListener('ai-cleanup-mode', (value) => saveSetting('ai_cleanup_mode', value));
+    addDropdownListener('ai-cleanup-mode', (value) => {
+        saveSetting('ai_cleanup_mode', value);
+        toggleFormalityRow();
+    });
     addDropdownListener('ai-formality-level', (value) => saveSetting('ai_formality_level', value));
 
     // Test Ollama connection button
     const testOllamaBtn = document.getElementById('test-ollama-btn');
     if (testOllamaBtn) {
         testOllamaBtn.addEventListener('click', testOllamaConnection);
+    }
+
+    // Retry Ollama connection button
+    const retryOllamaBtn = document.getElementById('retry-ollama-btn');
+    if (retryOllamaBtn) {
+        retryOllamaBtn.addEventListener('click', testOllamaConnection);
     }
 
     // Advanced settings - Preview
@@ -1418,6 +1437,20 @@ function updateAiCleanupVisibility() {
 }
 
 /**
+ * Toggle formality row visibility based on cleanup mode
+ * Hide when mode is 'grammar' (grammar-only doesn't need formality level)
+ */
+function toggleFormalityRow() {
+    const mode = document.getElementById('ai-cleanup-mode')?.value;
+    const formalityRow = document.getElementById('formality-row');
+
+    if (formalityRow) {
+        // Show formality row for 'formality' and 'both' modes, hide for 'grammar'
+        formalityRow.style.display = (mode === 'grammar') ? 'none' : 'flex';
+    }
+}
+
+/**
  * Update preview sub-options visibility
  */
 function updatePreviewVisibility() {
@@ -1697,6 +1730,7 @@ function updateShortcutsCount() {
 // ============================================
 
 let historyData = [];
+let selectedHistoryIndex = null;
 
 /**
  * Setup history modal event handlers
@@ -1707,10 +1741,13 @@ function setupHistoryModal() {
     const closeBtn = document.getElementById('history-modal-close');
     const closeFooterBtn = document.getElementById('history-close');
     const clearBtn = document.getElementById('history-clear');
+    const copyBtn = document.getElementById('history-copy');
     const exportBtn = document.getElementById('history-export');
 
     if (viewBtn) {
         viewBtn.addEventListener('click', async () => {
+            selectedHistoryIndex = null;
+            if (copyBtn) copyBtn.disabled = true;
             await loadHistory();
             renderHistoryList();
             openModal('history-modal');
@@ -1724,6 +1761,8 @@ function setupHistoryModal() {
         clearBtn.addEventListener('click', async () => {
             if (confirm('Are you sure you want to clear all transcription history?')) {
                 await clearHistory();
+                selectedHistoryIndex = null;
+                if (copyBtn) copyBtn.disabled = true;
                 await loadHistory();
                 renderHistoryList();
                 updateHistoryCount();
@@ -1732,9 +1771,13 @@ function setupHistoryModal() {
         });
     }
 
+    if (copyBtn) {
+        copyBtn.addEventListener('click', copySelectedHistory);
+    }
+
     if (exportBtn) {
-        exportBtn.addEventListener('click', async () => {
-            await exportHistory();
+        exportBtn.addEventListener('click', () => {
+            showExportFormatModal();
         });
     }
 
@@ -1745,8 +1788,39 @@ function setupHistoryModal() {
         });
     }
 
+    // Setup export format modal
+    setupExportFormatModal();
+
     // Initial count update
     updateHistoryCount();
+}
+
+/**
+ * Setup export format modal handlers
+ */
+function setupExportFormatModal() {
+    const modal = document.getElementById('export-format-modal');
+    const closeBtn = document.getElementById('export-format-close');
+    const cancelBtn = document.getElementById('export-format-cancel');
+    const confirmBtn = document.getElementById('export-format-confirm');
+
+    if (closeBtn) closeBtn.addEventListener('click', () => closeModal('export-format-modal'));
+    if (cancelBtn) cancelBtn.addEventListener('click', () => closeModal('export-format-modal'));
+
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', async () => {
+            const selectedFormat = document.querySelector('input[name="export-format"]:checked')?.value || 'txt';
+            closeModal('export-format-modal');
+            await exportHistory(selectedFormat);
+        });
+    }
+
+    // Close on overlay click
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal('export-format-modal');
+        });
+    }
 }
 
 /**
@@ -1786,26 +1860,60 @@ async function clearHistory() {
 }
 
 /**
- * Export history to file
+ * Show export format modal
  */
-async function exportHistory() {
+function showExportFormatModal() {
+    // Reset to default selection (txt)
+    const defaultRadio = document.querySelector('input[name="export-format"][value="txt"]');
+    if (defaultRadio) defaultRadio.checked = true;
+    openModal('export-format-modal');
+}
+
+/**
+ * Export history to file with selected format
+ */
+async function exportHistory(formatType = 'txt') {
     try {
         if (window.pywebview && window.pywebview.api) {
-            const result = await window.pywebview.api.export_history();
+            const result = await window.pywebview.api.export_history(formatType);
             if (result.success) {
                 showToast('History exported to ' + result.filename, 'success');
-            } else {
+            } else if (result.cancelled) {
                 showToast('Export cancelled', 'info');
+            } else {
+                showToast('Export failed: ' + (result.error || 'Unknown error'), 'error');
             }
         } else {
-            // Mock export - download as JSON
-            console.log('Mock: exporting history');
-            const dataStr = JSON.stringify(historyData, null, 2);
-            const blob = new Blob([dataStr], { type: 'application/json' });
+            // Mock export - download based on format
+            console.log('Mock: exporting history as ' + formatType);
+            let content, mimeType, extension;
+
+            if (formatType === 'txt') {
+                content = "Transcription History\n" + "=".repeat(60) + "\n\n";
+                historyData.forEach(item => {
+                    content += `[${new Date(item.timestamp).toLocaleString()}]\n${item.text}\n\n`;
+                });
+                mimeType = 'text/plain';
+                extension = 'txt';
+            } else if (formatType === 'csv') {
+                content = "Timestamp,Text,Characters\n";
+                historyData.forEach(item => {
+                    const text = item.text.replace(/"/g, '""');
+                    content += `"${item.timestamp}","${text}",${item.text.length}\n`;
+                });
+                mimeType = 'text/csv';
+                extension = 'csv';
+            } else {
+                content = JSON.stringify(historyData, null, 2);
+                mimeType = 'application/json';
+                extension = 'json';
+            }
+
+            const blob = new Blob([content], { type: mimeType });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'transcription_history.json';
+            a.download = `transcription_history.${extension}`;
             a.click();
             URL.revokeObjectURL(url);
             showToast('History exported', 'success');
@@ -1835,8 +1943,9 @@ function renderHistoryList() {
 
     listEl.innerHTML = historyData.map((item, index) => {
         const time = new Date(item.timestamp).toLocaleString();
+        const selectedClass = selectedHistoryIndex === index ? ' selected' : '';
         return `
-            <div class="history-item">
+            <div class="history-item${selectedClass}" data-index="${index}">
                 <div class="history-item-header">
                     <span class="history-item-time">${escapeHtml(time)}</span>
                 </div>
@@ -1844,6 +1953,61 @@ function renderHistoryList() {
             </div>
         `;
     }).join('');
+
+    // Add click handlers to history items
+    listEl.querySelectorAll('.history-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const index = parseInt(item.dataset.index, 10);
+            selectHistoryItem(index);
+        });
+    });
+}
+
+/**
+ * Select a history item
+ */
+function selectHistoryItem(index) {
+    selectedHistoryIndex = index;
+    const copyBtn = document.getElementById('history-copy');
+
+    // Update visual selection
+    document.querySelectorAll('.history-item').forEach((el, i) => {
+        el.classList.toggle('selected', i === index);
+    });
+
+    // Enable copy button
+    if (copyBtn) copyBtn.disabled = false;
+}
+
+/**
+ * Copy selected history item to clipboard
+ */
+async function copySelectedHistory() {
+    if (selectedHistoryIndex === null || !historyData[selectedHistoryIndex]) {
+        showToast('Please select a transcription first', 'warning');
+        return;
+    }
+
+    const text = historyData[selectedHistoryIndex].text;
+    try {
+        await navigator.clipboard.writeText(text);
+        showToast('Copied to clipboard', 'success');
+    } catch (err) {
+        // Fallback for older browsers or when clipboard API is not available
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            showToast('Copied to clipboard', 'success');
+        } catch (copyErr) {
+            showToast('Failed to copy to clipboard', 'error');
+        }
+        document.body.removeChild(textarea);
+    }
 }
 
 /**
@@ -1888,6 +2052,7 @@ async function testOllamaConnection() {
     const urlInput = document.getElementById('ollama-url');
     const badge = document.getElementById('ollama-status');
     const btn = document.getElementById('test-ollama-btn');
+    const actionRow = document.getElementById('ollama-action-row');
 
     if (!urlInput || !badge) return;
 
@@ -1901,6 +2066,7 @@ async function testOllamaConnection() {
     badge.className = 'status-badge checking';
     badge.querySelector('.status-text').textContent = 'Testing...';
     if (btn) btn.disabled = true;
+    if (actionRow) actionRow.classList.remove('visible');
 
     try {
         const result = await pywebview.api.test_ollama_connection(url);
@@ -1908,16 +2074,19 @@ async function testOllamaConnection() {
             badge.className = 'status-badge available';
             badge.querySelector('.status-text').textContent = 'Connected';
             showToast('Ollama connection successful', 'success');
+            if (actionRow) actionRow.classList.remove('visible');
         } else {
             badge.className = 'status-badge unavailable';
             badge.querySelector('.status-text').textContent = result.error || 'Connection failed';
             showToast('Could not connect to Ollama', 'error');
+            if (actionRow) actionRow.classList.add('visible');
         }
     } catch (error) {
         console.error('Error testing Ollama:', error);
         badge.className = 'status-badge unavailable';
         badge.querySelector('.status-text').textContent = 'Error';
         showToast('Connection test failed', 'error');
+        if (actionRow) actionRow.classList.add('visible');
     } finally {
         if (btn) btn.disabled = false;
     }

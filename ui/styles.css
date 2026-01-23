@@ -986,6 +986,15 @@ body {
     animation: pulse 1.5s ease-in-out infinite;
 }
 
+.ollama-action-row {
+    display: none;
+    gap: var(--space-md);
+}
+
+.ollama-action-row.visible {
+    display: flex;
+}
+
 /* ============================================
    Editable List (Vocabulary, Fillers, etc.)
    ============================================ */
@@ -1466,6 +1475,49 @@ body {
     overflow-y: auto;
 }
 
+/* Small modal variant for dialogs */
+.modal.modal-small {
+    max-width: 400px;
+}
+
+/* Radio group styles */
+.radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.radio-option {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--slate-800);
+    border: 1px solid var(--slate-700);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.radio-option:hover {
+    background: var(--slate-700);
+}
+
+.radio-option:has(input:checked) {
+    border-color: var(--primary);
+    background: var(--slate-700);
+}
+
+.radio-option input[type="radio"] {
+    accent-color: var(--primary);
+    width: 16px;
+    height: 16px;
+}
+
+.radio-option span {
+    color: var(--slate-200);
+}
+
 /* History list styles */
 .history-list {
     display: flex;
@@ -1478,6 +1530,17 @@ body {
     border: 1px solid var(--slate-700);
     border-radius: var(--radius-md);
     padding: var(--space-md);
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.history-item:hover {
+    background-color: var(--slate-700);
+}
+
+.history-item.selected {
+    background-color: var(--slate-600);
+    border-left: 3px solid var(--primary);
 }
 
 .history-item-header {
