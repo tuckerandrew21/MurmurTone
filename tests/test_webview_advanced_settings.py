@@ -339,3 +339,210 @@ class TestJSDefaults:
 
         # Check for correct default
         assert "ai_formality_level ?? 'professional'" in content
+
+
+class TestOllamaURLFeature:
+    """Test Ollama URL input - PyWebView-only feature."""
+
+    def test_ollama_url_default_value(self):
+        """Verify default Ollama URL is http://localhost:11434."""
+        assert config.DEFAULTS.get("ollama_url") == "http://localhost:11434"
+
+    def test_ollama_url_custom_value_persists(self):
+        """Test custom URL saves and reloads correctly."""
+        api = SettingsAPI()
+
+        custom_url = "http://192.168.1.100:11434"
+        result = api.save_setting("ollama_url", custom_url)
+        assert result["success"] is True
+
+        all_settings = api.get_all_settings()
+        assert all_settings["data"]["ollama_url"] == custom_url
+
+    def test_ollama_url_in_html(self):
+        """Verify Ollama URL input element exists in HTML."""
+        html_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            'ui', 'index.html'
+        )
+
+        with open(html_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        assert 'id="ollama-url"' in content
+        assert 'type="text"' in content
+
+
+class TestOllamaModelFeature:
+    """Test Ollama model dropdown - PyWebView-only feature."""
+
+    def test_ollama_model_default_value(self):
+        """Verify default model is llama3.2:3b."""
+        assert config.DEFAULTS.get("ollama_model") == "llama3.2:3b"
+
+    def test_ollama_model_options_in_html(self):
+        """Verify all 4 model options exist in HTML."""
+        html_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            'ui', 'index.html'
+        )
+
+        with open(html_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        assert 'value="llama3.2:3b"' in content
+        assert 'value="llama3.2:7b"' in content
+        assert 'value="mistral:7b"' in content
+        assert 'value="phi3:mini"' in content
+
+    def test_ollama_model_saves_correctly(self):
+        """Test model selection persists to config."""
+        api = SettingsAPI()
+
+        result = api.save_setting("ollama_model", "mistral:7b")
+        assert result["success"] is True
+
+        all_settings = api.get_all_settings()
+        assert all_settings["data"]["ollama_model"] == "mistral:7b"
+
+
+class TestFormalityRowVisibility:
+    """Test formality row visibility logic based on cleanup mode."""
+
+    def test_formality_row_element_exists(self):
+        """Verify formality-row element exists in HTML."""
+        html_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            'ui', 'index.html'
+        )
+
+        with open(html_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        assert 'id="formality-row"' in content
+
+    def test_formality_toggle_logic_in_js(self):
+        """Verify JS contains logic to toggle formality row visibility."""
+        js_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            'ui', 'settings.js'
+        )
+
+        with open(js_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # Check for formality row toggle logic
+        assert "formality-row" in content or "formalityRow" in content
+        # Check for mode comparison that hides when grammar
+        assert "grammar" in content
+
+
+class TestHistoryCountDisplay:
+    """Test history count display - PyWebView-only feature."""
+
+    def test_history_count_element_exists(self):
+        """Verify history-count element exists in HTML."""
+        html_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            'ui', 'index.html'
+        )
+
+        with open(html_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        assert 'id="history-count"' in content
+
+    def test_history_count_update_function_in_js(self):
+        """Verify updateHistoryCount function exists in JS."""
+        js_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            'ui', 'settings.js'
+        )
+
+        with open(js_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # Check for history count update function
+        assert "updateHistoryCount" in content or "history-count" in content
+
+
+class TestResetToDefaults:
+    """Test reset to defaults functionality."""
+
+    def test_reset_preserves_license_key(self):
+        """License key should NOT be reset."""
+        api = SettingsAPI()
+
+        # Set a license key and other setting
+        api.save_setting("license_key", "TEST-LICENSE-KEY")
+        api.save_setting("ai_cleanup_enabled", True)
+
+        # Verify license key was saved (reload to get decrypted value)
+        api._config = config.load_config()
+        pre_reset_key = api._config.get("license_key", "")
+        assert pre_reset_key == "TEST-LICENSE-KEY", f"License key not saved correctly: {pre_reset_key}"
+
+        # Reset to defaults
+        result = api.reset_to_defaults()
+        assert result["success"] is True
+
+        # Verify license key preserved by checking internal config
+        # Note: get_all_settings() intentionally hides license_key from frontend
+        post_reset_key = api._config.get("license_key", "")
+        assert post_reset_key == "TEST-LICENSE-KEY", f"License key not preserved: {post_reset_key}"
+
+        # Also verify has_license_key flag is set in frontend response
+        all_settings = api.get_all_settings()
+        assert all_settings["data"]["has_license_key"] is True
+
+    def test_reset_preserves_license_status(self):
+        """License status should NOT be reset."""
+        api = SettingsAPI()
+
+        # Set a license status
+        api.save_setting("license_status", "active")
+        api.save_setting("ai_cleanup_enabled", True)
+
+        # Reset to defaults
+        result = api.reset_to_defaults()
+        assert result["success"] is True
+
+        # Verify license status preserved
+        all_settings = api.get_all_settings()
+        assert all_settings["data"]["license_status"] == "active"
+
+    def test_reset_restores_ai_cleanup_defaults(self):
+        """AI cleanup settings should be reset to defaults."""
+        api = SettingsAPI()
+
+        # Change AI cleanup settings from defaults
+        api.save_setting("ai_cleanup_enabled", True)
+        api.save_setting("ai_cleanup_mode", "both")
+        api.save_setting("ai_formality_level", "casual")
+
+        # Reset to defaults
+        result = api.reset_to_defaults()
+        assert result["success"] is True
+
+        # Verify AI settings reset to defaults
+        all_settings = api.get_all_settings()
+        assert all_settings["data"]["ai_cleanup_enabled"] == config.DEFAULTS["ai_cleanup_enabled"]
+        assert all_settings["data"]["ai_cleanup_mode"] == config.DEFAULTS["ai_cleanup_mode"]
+        assert all_settings["data"]["ai_formality_level"] == config.DEFAULTS["ai_formality_level"]
+
+    def test_reset_restores_ollama_defaults(self):
+        """Ollama URL/model should be reset to defaults."""
+        api = SettingsAPI()
+
+        # Change Ollama settings from defaults
+        api.save_setting("ollama_url", "http://custom:11434")
+        api.save_setting("ollama_model", "mistral:7b")
+
+        # Reset to defaults
+        result = api.reset_to_defaults()
+        assert result["success"] is True
+
+        # Verify Ollama settings reset to defaults
+        all_settings = api.get_all_settings()
+        assert all_settings["data"]["ollama_url"] == config.DEFAULTS["ollama_url"]
+        assert all_settings["data"]["ollama_model"] == config.DEFAULTS["ollama_model"]

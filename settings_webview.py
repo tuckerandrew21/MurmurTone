@@ -694,8 +694,9 @@ class SettingsAPI:
     def reset_to_defaults(self):
         """Reset all settings to defaults (except license)."""
         try:
-            # Preserve license info
+            # Preserve license info (including encrypted key for persistence)
             license_key = self._config.get("license_key", "")
+            license_key_encrypted = self._config.get("license_key_encrypted", "")
             license_status = self._config.get("license_status", "trial")
             trial_started = self._config.get("trial_started_date")
 
@@ -704,10 +705,16 @@ class SettingsAPI:
 
             # Restore license info
             self._config["license_key"] = license_key
+            if license_key_encrypted:
+                self._config["license_key_encrypted"] = license_key_encrypted
             self._config["license_status"] = license_status
             self._config["trial_started_date"] = trial_started
 
             config.save_config(self._config)
+
+            # Reload config to get decrypted license key in memory
+            self._config = config.load_config()
+
             return {"success": True}
         except Exception as e:
             return {"success": False, "error": str(e)}
