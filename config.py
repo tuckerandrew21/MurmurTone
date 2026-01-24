@@ -15,14 +15,14 @@ VERSION = "1.0.0"
 DEFAULTS = {
     "model_size": "tiny",
     "sample_rate": 16000,
-    "language": "en",
+    "language": "auto",
     "hotkey": {
         "ctrl": True,
         "shift": True,
         "alt": False,
         "key": "space"
     },
-    "recording_mode": "push_to_talk",  # "push_to_talk" or "auto_stop"
+    "recording_mode": "auto_stop",  # "push_to_talk" or "auto_stop"
     "silence_duration_sec": 2.0,
     "audio_feedback": True,
     "input_device": None,  # None = system default, or device name string
