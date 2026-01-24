@@ -370,7 +370,10 @@ function populateForm() {
     setDropdown('sample-rate', settings.sample_rate ?? 16000);
     setCheckbox('noise-gate-enabled', settings.noise_gate_enabled ?? true);
     setSlider('noise-gate-threshold', settings.noise_gate_threshold_db ?? -40, 'dB');
-    setSlider('feedback-volume', settings.audio_feedback_volume ?? 50, '%');
+    // Convert 0.0-1.0 to 0-100 for display
+    const volumePercent = Math.round((settings.audio_feedback_volume ?? 0.5) * 100);
+    setSlider('feedback-volume', volumePercent, '%');
+    setCheckbox('audio-feedback-enabled', settings.audio_feedback ?? true);
     setCheckbox('sound-processing', settings.sound_processing ?? true);
     setCheckbox('sound-success', settings.sound_success ?? true);
     setCheckbox('sound-error', settings.sound_error ?? true);
@@ -378,6 +381,7 @@ function populateForm() {
 
     // Update conditional visibility
     updateNoiseGateVisibility();
+    updateAudioFeedbackVisibility();
 
     // Update threshold marker position
     updateThresholdMarker();
@@ -485,7 +489,15 @@ function setupFormListeners() {
         saveSetting('noise_gate_threshold_db', parseInt(value));
         updateThresholdMarker();
     }, 'dB');
-    addSliderListener('feedback-volume', (value) => saveSetting('audio_feedback_volume', parseInt(value)), '%');
+    // Convert 0-100 to 0.0-1.0 for storage
+    addSliderListener('feedback-volume', (value) => {
+        const configValue = parseInt(value) / 100.0;
+        saveSetting('audio_feedback_volume', configValue);
+    }, '%');
+    addCheckboxListener('audio-feedback-enabled', (checked) => {
+        saveSetting('audio_feedback', checked);
+        updateAudioFeedbackVisibility();
+    });
     addCheckboxListener('sound-processing', (checked) => saveSetting('sound_processing', checked));
     addCheckboxListener('sound-success', (checked) => saveSetting('sound_success', checked));
     addCheckboxListener('sound-error', (checked) => saveSetting('sound_error', checked));
@@ -1071,6 +1083,22 @@ function updateNoiseGateVisibility() {
             options.classList.remove('hidden');
         } else {
             options.classList.add('hidden');
+        }
+    }
+}
+
+/**
+ * Update audio feedback sub-options visibility based on master toggle
+ */
+function updateAudioFeedbackVisibility() {
+    const enabled = document.getElementById('audio-feedback-enabled')?.checked;
+    const options = document.getElementById('audio-feedback-options');
+
+    if (options) {
+        if (enabled) {
+            options.classList.remove('disabled');
+        } else {
+            options.classList.add('disabled');
         }
     }
 }

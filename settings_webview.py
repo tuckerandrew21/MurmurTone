@@ -66,7 +66,7 @@ class SettingsAPI:
         "sample_rate": settings_logic.validate_sample_rate,
         "silence_duration_sec": settings_logic.validate_silence_duration,
         "noise_gate_threshold_db": settings_logic.validate_noise_threshold,
-        "audio_feedback_volume": settings_logic.validate_volume,
+        # audio_feedback_volume removed - conversion happens in JS, validation below
         "preview_auto_hide_delay": settings_logic.validate_preview_delay,
         # Text tab validators
         "custom_fillers": "_validate_custom_fillers",
@@ -154,6 +154,10 @@ class SettingsAPI:
                     value = getattr(self, validator)(value)
                 else:
                     value = validator(value)
+
+            # Custom validation for volume (already converted from UI 0-100 to 0.0-1.0, just clamp)
+            if key == "audio_feedback_volume":
+                value = max(0.0, min(1.0, float(value)))
 
             # Validate URL fields
             if key == "ollama_url":
