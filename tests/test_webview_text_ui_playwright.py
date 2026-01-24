@@ -169,7 +169,7 @@ class TestToggleInteractions:
         })
 
         assert result["changed"] is True, "Toggle state should change on click"
-        assert result["before"] !== result["after"], "State should be different"
+        assert result["before"] != result["after"], "State should be different"
 
     def test_scratch_that_nested_visibility(self, mcp__playwright__browser_evaluate):
         """
