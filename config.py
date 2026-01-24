@@ -40,7 +40,7 @@ DEFAULTS = {
     "custom_commands": [],  # Voice commands: [{"trigger": "...", "replacement": "...", "enabled": True}]
     # Preview window settings
     "preview_enabled": True,
-    "preview_position": "bottom-right",  # top-right, bottom-right, top-left, bottom-left
+    "preview_position": "bottom_right",  # top_right, bottom_right, top_left, bottom_left, center
     "preview_auto_hide_delay": 2.0,  # seconds, 0 to disable auto-hide
     "preview_theme": "dark",  # dark, light
     "preview_font_size": 11,  # 8-18
