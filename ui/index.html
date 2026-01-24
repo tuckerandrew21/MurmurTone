@@ -290,30 +290,22 @@
 
                         <div class="setting-row conditional-setting" id="noise-gate-options">
                             <label class="setting-label">Threshold</label>
-                            <div class="slider-row">
-                                <input type="range" id="noise-gate-threshold" class="slider"
-                                    min="-60" max="-20" value="-40"
-                                    aria-label="Noise gate threshold"
-                                    data-testid="noise-gate-threshold">
-                                <span class="slider-value" id="noise-gate-threshold-value">-40 dB</span>
-                            </div>
-                        </div>
-
-                        <a href="#" class="learn-more-link" id="noise-gate-learn-more">Learn more about noise gate</a>
-
-                        <div class="setting-row conditional-setting" id="mic-test-row">
-                            <label class="setting-label">Test Microphone</label>
-                            <div class="mic-test-container">
-                                <div class="audio-meter" id="audio-level-meter">
+                            <div class="threshold-meter-container">
+                                <div class="threshold-meter" id="threshold-meter" data-testid="noise-gate-threshold">
                                     <div class="meter-fill" id="audio-level-fill"></div>
-                                    <div id="threshold-marker" class="threshold-marker"></div>
+                                    <div class="threshold-handle" id="threshold-handle"></div>
                                 </div>
-                                <button type="button" class="btn btn-secondary" id="mic-test-btn">
-                                    Test Microphone
+                                <span class="slider-value" id="noise-gate-threshold-value">-40 dB</span>
+                                <button type="button" class="btn btn-secondary btn-sm" id="mic-test-btn">
+                                    Test
                                 </button>
                             </div>
-                            <p class="setting-help">Test your microphone to calibrate the noise gate threshold.</p>
+                            <!-- Hidden input for form compatibility -->
+                            <input type="hidden" id="noise-gate-threshold" value="-40">
                         </div>
+                        <p class="setting-help threshold-help">Drag handle to set threshold. Audio below the handle gets filtered out.</p>
+
+                        <a href="#" class="learn-more-link" id="noise-gate-learn-more">Learn more about noise gate</a>
                     </div>
 
                     <!-- Audio Feedback Section -->

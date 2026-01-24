@@ -155,9 +155,9 @@ class SettingsAPI:
                 else:
                     value = validator(value)
 
-            # Custom validation for volume (already converted from UI 0-100 to 0.0-1.0, just clamp)
+            # Custom validation for volume (0-100 percentage)
             if key == "audio_feedback_volume":
-                value = max(0.0, min(1.0, float(value)))
+                value = max(0, min(100, int(value)))
 
             # Validate URL fields
             if key == "ollama_url":

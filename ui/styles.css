@@ -394,6 +394,11 @@ body {
     margin-top: var(--space-xs);
 }
 
+.threshold-help {
+    margin-top: var(--space-sm);
+    margin-bottom: var(--space-sm);
+}
+
 .learn-more-link {
     font-size: var(--font-size-sm);
     color: var(--primary);
@@ -854,8 +859,63 @@ body {
 }
 
 /* ============================================
-   Audio Meter (Microphone Test)
+   Combined Threshold Meter (Audio Level + Draggable Threshold)
    ============================================ */
+.threshold-meter-container {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.threshold-meter {
+    position: relative;
+    width: 280px;
+    height: 10px;
+    background: var(--slate-700);
+    border-radius: 5px;
+    cursor: ew-resize;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.meter-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 0%;
+    border-radius: 5px;
+    background: var(--success);
+    transition: width 0.05s ease-out;
+    pointer-events: none;
+}
+
+.threshold-handle {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 14px;
+    height: 14px;
+    background: var(--slate-300);
+    border: 2px solid var(--slate-100);
+    border-radius: 50%;
+    cursor: ew-resize;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    z-index: 10;
+    transition: transform 0.1s ease, background 0.1s ease;
+}
+
+.threshold-handle:hover {
+    background: var(--slate-100);
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
+.threshold-handle.dragging {
+    background: var(--slate-100);
+    transform: translate(-50%, -50%) scale(1.15);
+}
+
+/* Legacy classes for backwards compatibility */
 .mic-test-container {
     display: flex;
     align-items: center;
@@ -865,32 +925,13 @@ body {
 .audio-meter {
     position: relative;
     width: 200px;
-    height: 20px;
+    height: 8px;
     background: var(--slate-700);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-    border: 1px solid var(--slate-600);
-}
-
-.meter-fill {
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 100%;
-    width: 0%;
-    background: linear-gradient(to right, var(--green-500), var(--amber-500), var(--red-500));
-    transition: width 0.05s ease-out;
+    border-radius: 4px;
 }
 
 .threshold-marker {
-    position: absolute;
-    top: 0;
-    height: 100%;
-    width: 2px;
-    background: var(--primary);
-    box-shadow: 0 0 4px var(--primary);
-    /* Position will be set by JS based on threshold value */
-    left: 50%;
+    display: none;
 }
 
 #mic-test-btn {

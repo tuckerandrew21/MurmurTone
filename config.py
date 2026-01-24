@@ -50,7 +50,7 @@ DEFAULTS = {
     "noise_gate_enabled": True,
     "noise_gate_threshold_db": -40,  # Range: -60 to -20 dB
     # Audio feedback settings
-    "audio_feedback_volume": 0.3,  # 0.0 to 1.0
+    "audio_feedback_volume": 30,  # 0 to 100
     "sound_processing": True,
     "sound_success": True,
     "sound_error": True,

@@ -72,36 +72,89 @@ let isMicTesting = false;
 
 window.onAudioLevel = function(db) {
     const fill = document.getElementById('audio-level-fill');
-    const threshold = document.getElementById('noise-gate-threshold');
 
     if (fill) {
         // Map -60 to -20 dB to 0-100%
         const percent = Math.max(0, Math.min(100, ((db + 60) / 40) * 100));
         fill.style.width = `${percent}%`;
-
-        // Color based on threshold
-        const thresholdDb = parseInt(threshold?.value || -40);
-        if (db > thresholdDb) {
-            fill.style.background = 'linear-gradient(to right, var(--green-500), var(--green-400))';
-        } else {
-            fill.style.background = 'linear-gradient(to right, var(--slate-500), var(--slate-400))';
-        }
     }
 };
 
 /**
- * Update threshold marker position when threshold slider changes
+ * Update threshold handle position based on current value
  */
-function updateThresholdMarker() {
+function updateThresholdHandle() {
     const threshold = document.getElementById('noise-gate-threshold');
-    const marker = document.getElementById('threshold-marker');
+    const handle = document.getElementById('threshold-handle');
 
-    if (threshold && marker) {
-        // Map threshold value (-60 to -20) to percentage (0 to 100)
+    if (threshold && handle) {
         const thresholdDb = parseInt(threshold.value || -40);
         const percent = ((thresholdDb + 60) / 40) * 100;
-        marker.style.left = `${percent}%`;
+        handle.style.left = `${percent}%`;
     }
+}
+
+/**
+ * Setup draggable threshold handle
+ */
+function setupThresholdDrag() {
+    const meter = document.getElementById('threshold-meter');
+    const handle = document.getElementById('threshold-handle');
+    const threshold = document.getElementById('noise-gate-threshold');
+    const valueDisplay = document.getElementById('noise-gate-threshold-value');
+
+    if (!meter || !handle || !threshold) return;
+
+    let isDragging = false;
+
+    function updateFromPosition(clientX) {
+        const rect = meter.getBoundingClientRect();
+        const x = clientX - rect.left;
+        const percent = Math.max(0, Math.min(100, (x / rect.width) * 100));
+
+        // Convert percent to dB (-60 to -20 range)
+        const db = Math.round(-60 + (percent / 100) * 40);
+
+        // Update handle position
+        handle.style.left = `${percent}%`;
+
+        // Update hidden input and display
+        threshold.value = db;
+        if (valueDisplay) {
+            valueDisplay.textContent = `${db} dB`;
+        }
+
+        // Save to config
+        saveSetting('noise_gate_threshold_db', db);
+    }
+
+    handle.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        handle.classList.add('dragging');
+        e.preventDefault();
+    });
+
+    meter.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        handle.classList.add('dragging');
+        updateFromPosition(e.clientX);
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            updateFromPosition(e.clientX);
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (isDragging) {
+            isDragging = false;
+            handle.classList.remove('dragging');
+        }
+    });
+
+    // Initialize handle position
+    updateThresholdHandle();
 }
 
 /**
@@ -120,7 +173,7 @@ async function toggleMicTest() {
         }
         isMicTesting = false;
         if (btn) {
-            btn.textContent = 'Test Microphone';
+            btn.textContent = 'Test';
             btn.classList.remove('testing');
         }
         if (fill) {
@@ -133,7 +186,7 @@ async function toggleMicTest() {
             if (result.success) {
                 isMicTesting = true;
                 if (btn) {
-                    btn.textContent = 'Stop Test';
+                    btn.textContent = 'Stop';
                     btn.classList.add('testing');
                 }
             } else {
@@ -370,8 +423,9 @@ function populateForm() {
     setDropdown('sample-rate', settings.sample_rate ?? 16000);
     setCheckbox('noise-gate-enabled', settings.noise_gate_enabled ?? true);
     setSlider('noise-gate-threshold', settings.noise_gate_threshold_db ?? -40, 'dB');
-    // Convert 0.0-1.0 to 0-100 for display
-    const volumePercent = Math.round((settings.audio_feedback_volume ?? 0.5) * 100);
+    // Handle both 0.0-1.0 (legacy) and 0-100 formats
+    let volumePercent = settings.audio_feedback_volume ?? 50;
+    if (volumePercent <= 1) volumePercent = Math.round(volumePercent * 100);
     setSlider('feedback-volume', volumePercent, '%');
     setCheckbox('audio-feedback-enabled', settings.audio_feedback ?? true);
     setCheckbox('sound-processing', settings.sound_processing ?? true);
@@ -383,8 +437,8 @@ function populateForm() {
     updateNoiseGateVisibility();
     updateAudioFeedbackVisibility();
 
-    // Update threshold marker position
-    updateThresholdMarker();
+    // Setup draggable threshold handle
+    setupThresholdDrag();
 
     // Load audio devices
     loadAudioDevices();
@@ -485,14 +539,10 @@ function setupFormListeners() {
         saveSetting('noise_gate_enabled', checked);
         updateNoiseGateVisibility();
     });
-    addSliderListener('noise-gate-threshold', (value) => {
-        saveSetting('noise_gate_threshold_db', parseInt(value));
-        updateThresholdMarker();
-    }, 'dB');
-    // Convert 0-100 to 0.0-1.0 for storage
+    // noise-gate-threshold is now handled by setupThresholdDrag()
+    // Save as 0-100 directly
     addSliderListener('feedback-volume', (value) => {
-        const configValue = parseInt(value) / 100.0;
-        saveSetting('audio_feedback_volume', configValue);
+        saveSetting('audio_feedback_volume', parseInt(value));
     }, '%');
     addCheckboxListener('audio-feedback-enabled', (checked) => {
         saveSetting('audio_feedback', checked);
@@ -509,8 +559,7 @@ function setupFormListeners() {
         micTestBtn.addEventListener('click', toggleMicTest);
     }
 
-    // Update threshold marker on load
-    updateThresholdMarker();
+    // Threshold handle is initialized in setupThresholdDrag()
 
     // Refresh devices button
     const refreshBtn = document.getElementById('refresh-devices-btn');
