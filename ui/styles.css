@@ -1837,10 +1837,11 @@ body {
     font-size: 1rem;
 }
 
-.welcome-hint {
+.welcome-checkbox {
+    justify-content: center;
     margin-top: var(--space-md);
-    font-size: 0.75rem;
-    color: var(--text-tertiary);
+    font-size: var(--font-size-sm);
+    color: var(--slate-400);
 }
 
 /* ============================================

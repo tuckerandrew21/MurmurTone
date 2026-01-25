@@ -1302,7 +1302,7 @@ async function checkGpuStatus() {
         if (result.success && result.data.available) {
             badge.className = 'status-badge available';
             badge.querySelector('.status-text').textContent =
-                `GPU Available: ${result.data.name || 'CUDA'}`;
+                `GPU Available: ${result.data.name || 'GPU'}`;
             // Hide install button when GPU is available
             if (installRow) installRow.classList.add('hidden');
         } else {
@@ -2438,9 +2438,12 @@ function showWelcomeBanner() {
  */
 function hideWelcomeBanner() {
     const banner = document.getElementById('welcome-banner');
+    const dontShowAgain = document.getElementById('dont-show-again');
     if (banner) {
         banner.classList.remove('visible');
-        localStorage.setItem(FIRST_RUN_KEY, 'true');
+        if (dontShowAgain && dontShowAgain.checked) {
+            localStorage.setItem(FIRST_RUN_KEY, 'true');
+        }
     }
 }
 

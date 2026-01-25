@@ -358,7 +358,7 @@
                     <!-- Speech Recognition Section -->
                     <div class="settings-section">
                         <h3 class="section-title">Speech Recognition</h3>
-                        <p class="section-description">Choose the Whisper model and fine-tune recognition behavior.</p>
+                        <p class="section-description">Choose the AI model and fine-tune recognition behavior.</p>
 
                         <div class="setting-row">
                             <label class="setting-label">Model Size</label>
@@ -440,7 +440,7 @@
                                 </svg>
                                 Install GPU Support
                             </button>
-                            <p class="setting-help">Download and install CUDA libraries for GPU acceleration.</p>
+                            <p class="setting-help">Download and install GPU acceleration libraries.</p>
                         </div>
 
                         <a href="#" class="learn-more-link" id="processing-mode-learn-more">Learn more about processing modes</a>
@@ -736,7 +736,7 @@
                             <img src="assets/logo.png" alt="MurmurTone Logo" class="about-logo">
                             <div class="about-header-text">
                                 <h3 class="section-title">About MurmurTone</h3>
-                                <p class="section-description">Voice-to-text transcription powered by Whisper AI.</p>
+                                <p class="section-description">AI-powered voice-to-text transcription.</p>
                             </div>
                         </div>
 
@@ -851,7 +851,7 @@
             </div>
             <h2 class="welcome-title">Welcome to MurmurTone</h2>
             <p class="welcome-description">
-                Voice-to-text transcription powered by Whisper AI.
+                AI-powered voice-to-text transcription.
                 Press your hotkey to start recording, and your speech will be transcribed instantly.
             </p>
             <div class="welcome-features">
@@ -887,7 +887,11 @@
             <button class="btn btn-primary welcome-btn" onclick="hideWelcomeBanner()">
                 Get Started
             </button>
-            <p class="welcome-hint">Press Escape to close</p>
+            <label class="welcome-checkbox checkbox-label">
+                <input type="checkbox" id="dont-show-again" checked>
+                <span class="checkbox-custom"></span>
+                <span>Don't show this again</span>
+            </label>
         </div>
     </div>
 
