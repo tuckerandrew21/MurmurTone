@@ -659,7 +659,10 @@
                             </div>
 
                             <div class="setting-row">
-                                <label class="setting-label">Model</label>
+                                <div class="setting-info">
+                                    <label class="setting-label">Model</label>
+                                    <p class="setting-help">Select the Ollama model to use for processing.</p>
+                                </div>
                                 <select id="ollama-model" class="dropdown" aria-label="Ollama model" data-testid="ollama-model">
                                     <option value="llama3.2:3b">Llama 3.2 3B (Fast)</option>
                                     <option value="llama3.2:7b">Llama 3.2 7B</option>
@@ -669,7 +672,10 @@
                             </div>
 
                             <div class="setting-row">
-                                <label class="setting-label">Cleanup Mode</label>
+                                <div class="setting-info">
+                                    <label class="setting-label">Cleanup Mode</label>
+                                    <p class="setting-help">Choose what aspects to improve.</p>
+                                </div>
                                 <select id="ai-cleanup-mode" class="dropdown" aria-label="Cleanup mode" data-testid="ai-cleanup-mode">
                                     <option value="grammar">Grammar Only</option>
                                     <option value="formality">Formality Adjustment</option>
@@ -678,7 +684,10 @@
                             </div>
 
                             <div class="setting-row" id="formality-row">
-                                <label class="setting-label">Formality Level</label>
+                                <div class="setting-info">
+                                    <label class="setting-label">Formality Level</label>
+                                    <p class="setting-help">Target formality for adjusted text.</p>
+                                </div>
                                 <select id="ai-formality-level" class="dropdown" aria-label="Formality level" data-testid="ai-formality-level">
                                     <option value="casual">Casual</option>
                                     <option value="professional">Professional</option>
@@ -707,7 +716,10 @@
                         </div>
 
                         <div class="setting-row">
-                            <label class="setting-label">Transcription History</label>
+                            <div class="setting-info">
+                                <label class="setting-label">Transcription History</label>
+                                <span class="setting-sublabel" id="history-count">Loading...</span>
+                            </div>
                             <button type="button" id="view-history-btn" class="btn btn-secondary" data-testid="view-history-btn">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <circle cx="12" cy="12" r="10"></circle>
@@ -715,15 +727,16 @@
                                 </svg>
                                 View History
                             </button>
-                            <span class="setting-sublabel" id="history-count">Loading...</span>
                         </div>
 
                         <div class="setting-row">
-                            <label class="setting-label">Reset Settings</label>
+                            <div class="setting-info">
+                                <label class="setting-label">Reset Settings</label>
+                                <p class="setting-help">Restore all settings to their default values. This will not affect your license key.</p>
+                            </div>
                             <button type="button" id="reset-defaults-btn" class="btn btn-danger" data-testid="reset-defaults-btn">
                                 Reset to Defaults
                             </button>
-                            <p class="setting-help">Restore all settings to their default values. This will not affect your license key.</p>
                         </div>
                     </div>
                 </section>
