@@ -193,8 +193,8 @@ body {
 }
 
 .sidebar-footer {
-    padding-top: var(--space-lg);
-    border-top: 1px solid var(--slate-700);
+    padding-top: var(--space-xl);
+    margin-top: var(--space-lg);
 }
 
 .save-status {
@@ -351,9 +351,7 @@ body {
 .section-description {
     font-size: var(--font-size-sm);
     color: var(--slate-400);
-    margin-bottom: var(--space-md);
-    padding-bottom: var(--space-md);
-    border-bottom: 1px solid var(--slate-700);
+    margin-bottom: var(--space-lg);
 }
 
 .setting-row {
@@ -364,9 +362,8 @@ body {
 }
 
 .setting-row + .setting-row {
-    border-top: 1px solid var(--slate-700);
-    padding-top: var(--space-md);
-    margin-top: var(--space-sm);
+    padding-top: var(--space-lg);
+    margin-top: var(--space-md);
 }
 
 .setting-row.toggle-row {
@@ -1177,8 +1174,8 @@ body {
 }
 
 .child-setting .setting-row + .setting-row {
-    border-top: none;
-    padding-top: var(--space-xs);
+    padding-top: var(--space-sm);
+    margin-top: var(--space-xs);
 }
 
 .child-setting.disabled {
@@ -1200,11 +1197,10 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: var(--space-md) 0;
-    border-bottom: 1px solid var(--slate-700);
 }
 
-.about-row:last-child {
-    border-bottom: none;
+.about-row + .about-row {
+    margin-top: var(--space-sm);
 }
 
 .about-label {
@@ -1415,7 +1411,7 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: var(--space-lg);
-    border-bottom: 1px solid var(--slate-700);
+    padding-bottom: var(--space-md);
 }
 
 .modal-header h2 {
@@ -1527,7 +1523,7 @@ body {
     justify-content: flex-end;
     gap: var(--space-sm);
     padding: var(--space-lg);
-    border-top: 1px solid var(--slate-700);
+    padding-top: var(--space-md);
 }
 
 /* Large modal variant for history */
