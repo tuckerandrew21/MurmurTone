@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Features - MurmurTone | Privacy-First Voice-to-Text</title>
+    <meta name="description" content="Discover all MurmurTone features: 100% local processing, instant transcription, AI text cleanup, voice commands, 18+ languages, and more. All offline, all private.">
+    <meta property="og:title" content="MurmurTone Features - Complete Privacy, Complete Control">
+    <meta property="og:description" content="100% offline voice-to-text with AI text cleanup, voice commands, GPU acceleration, and 18+ languages.">
+    <meta property="og:image" content="/icon.png">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://murmurtone.com/features.html">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="MurmurTone Features - Complete Privacy, Complete Control">
+    <meta name="twitter:description" content="100% offline voice-to-text with AI text cleanup, voice commands, GPU acceleration, and 18+ languages.">
+    <meta name="twitter:image" content="https://murmurtone.com/icon.png">
+    <link rel="canonical" href="https://murmurtone.com/features.html">
+    <link rel="icon" type="image/png" href="/icon.png">
+    <style>
+        :root {
+            --primary: #0d9488;
+            --primary-dark: #0f766e;
+            --primary-light: #14b8a6;
+            --slate-900: #0f172a;
+            --slate-800: #1e293b;
+            --slate-700: #334155;
+            --slate-600: #475569;
+            --slate-500: #64748b;
+            --slate-400: #94a3b8;
+            --slate-300: #cbd5e1;
+            --slate-200: #e2e8f0;
+            --slate-100: #f1f5f9;
+            --slate-50: #f8fafc;
+            --white: #ffffff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: var(--slate-700);
+            background: var(--white);
+        }
+
+        .container { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
+
+        /* Navigation */
+        .nav-bar {
+            background: var(--white);
+            padding: 15px 0;
+            border-bottom: 1px solid var(--slate-200);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--slate-800);
+            font-weight: 700;
+            font-size: 1.2em;
+        }
+
+        .nav-logo img { height: 32px; width: 32px; }
+
+        .nav-links { display: flex; gap: 30px; align-items: center; }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--slate-600);
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover { color: var(--primary); }
+        .nav-links a.active { color: var(--primary); }
+
+        .nav-cta {
+            background: var(--primary);
+            color: var(--white) !important;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .nav-cta:hover { background: var(--primary-dark); }
+
+        .nav-hamburger {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .nav-hamburger span {
+            width: 25px;
+            height: 3px;
+            background: var(--slate-700);
+            border-radius: 2px;
+            transition: all 0.3s;
+        }
+
+        .mobile-menu {
+            display: none;
+            position: fixed;
+            top: 62px;
+            left: 0;
+            right: 0;
+            background: var(--white);
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            z-index: 99;
+        }
+
+        .mobile-menu.active { display: block; }
+
+        .mobile-menu a {
+            display: block;
+            padding: 12px 0;
+            color: var(--slate-700);
+            text-decoration: none;
+            font-weight: 500;
+            border-bottom: 1px solid var(--slate-200);
+        }
+
+        .mobile-menu a:last-child { border-bottom: none; }
+        .mobile-menu a:hover { color: var(--primary); }
+
+        .mobile-menu .nav-cta {
+            display: inline-block;
+            margin-top: 15px;
+            text-align: center;
+            color: var(--white);
+        }
+
+        a:focus-visible, button:focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+        /* Hero */
+        header {
+            padding: 80px 0;
+            text-align: center;
+            background: var(--slate-800);
+            color: var(--white);
+        }
+
+        .header-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(13, 148, 136, 0.15);
+            border: 1px solid rgba(13, 148, 136, 0.3);
+            color: var(--primary-light);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+            margin-bottom: 24px;
+        }
+
+        header h1 {
+            font-size: 2.8em;
+            margin-bottom: 16px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        header p {
+            font-size: 1.25em;
+            opacity: 0.85;
+            margin-bottom: 32px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 14px 32px;
+            background: var(--primary);
+            color: var(--white);
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: background 0.2s, transform 0.2s;
+            font-size: 1em;
+        }
+
+        .cta-button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .cta-secondary {
+            display: inline-block;
+            padding: 14px 32px;
+            background: transparent;
+            color: var(--white);
+            text-decoration: none;
+            border: 1px solid var(--slate-600);
+            border-radius: 6px;
+            font-weight: 500;
+            margin-left: 12px;
+            transition: border-color 0.2s;
+        }
+
+        .cta-secondary:hover { border-color: var(--slate-400); }
+
+        /* Trust Bar */
+        .trust-bar {
+            background: var(--slate-50);
+            border-bottom: 1px solid var(--slate-200);
+            padding: 20px 0;
+        }
+
+        .trust-items {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+
+        .trust-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--slate-600);
+            font-size: 0.9em;
+        }
+
+        .trust-item svg { color: var(--primary); }
+
+        /* Section Headers */
+        .section-header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .section-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(13, 148, 136, 0.1);
+            color: var(--primary);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+            margin-bottom: 16px;
+        }
+
+        .section-header h2 {
+            font-size: 2.2em;
+            color: var(--slate-800);
+            margin-bottom: 12px;
+            letter-spacing: -0.01em;
+        }
+
+        .section-header p {
+            font-size: 1.15em;
+            color: var(--slate-600);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Privacy Section - Large Feature Blocks */
+        .privacy-section {
+            padding: 80px 0;
+            background: var(--white);
+        }
+
+        .feature-large {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 48px;
+            align-items: center;
+            padding: 48px 0;
+            border-bottom: 1px solid var(--slate-200);
+        }
+
+        .feature-large:last-child { border-bottom: none; }
+
+        .feature-large.reversed { direction: rtl; }
+        .feature-large.reversed > * { direction: ltr; }
+
+        .feature-large-icon {
+            width: 64px;
+            height: 64px;
+            background: rgba(13, 148, 136, 0.1);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            color: var(--primary);
+        }
+
+        .feature-large-content h3 {
+            font-size: 1.7em;
+            color: var(--slate-800);
+            margin-bottom: 16px;
+            letter-spacing: -0.01em;
+        }
+
+        .feature-large-content p {
+            font-size: 1.1em;
+            color: var(--slate-600);
+            line-height: 1.7;
+        }
+
+        .feature-visual {
+            background: linear-gradient(135deg, var(--slate-100), var(--slate-50));
+            border-radius: 16px;
+            min-height: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--slate-200);
+            padding: 32px;
+        }
+
+        .visual-icon {
+            width: 120px;
+            height: 120px;
+            background: rgba(13, 148, 136, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+        }
+
+        /* Mid-Page CTA */
+        .cta-mid {
+            padding: 80px 0;
+            text-align: center;
+            background: var(--slate-800);
+            color: var(--white);
+        }
+
+        .cta-mid h2 {
+            font-size: 2em;
+            margin-bottom: 16px;
+        }
+
+        .cta-mid p {
+            font-size: 1.1em;
+            margin-bottom: 24px;
+            opacity: 0.85;
+        }
+
+        .cta-mid.teal-gradient {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+        }
+
+        .cta-mid.teal-gradient .cta-button {
+            background: var(--white);
+            color: var(--primary);
+        }
+
+        .cta-mid.teal-gradient .cta-button:hover {
+            background: var(--slate-100);
+        }
+
+        /* Productivity Section */
+        .productivity-section {
+            padding: 80px 0;
+            background: var(--slate-50);
+        }
+
+        .productivity-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+        }
+
+        .productivity-card {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 32px;
+            border: 1px solid var(--slate-200);
+        }
+
+        .productivity-card-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(13, 148, 136, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            color: var(--primary);
+        }
+
+        .productivity-card h3 {
+            font-size: 1.25em;
+            color: var(--slate-800);
+            margin-bottom: 12px;
+        }
+
+        .productivity-card p {
+            color: var(--slate-600);
+            font-size: 0.95em;
+            line-height: 1.7;
+            margin-bottom: 16px;
+        }
+
+        .stat-callout {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(13, 148, 136, 0.1);
+            color: var(--primary);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        /* Power Features Section */
+        .power-section {
+            padding: 80px 0;
+            background: var(--white);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        .feature {
+            text-align: left;
+            padding: 24px;
+            background: var(--slate-50);
+            border-radius: 8px;
+            border: 1px solid var(--slate-200);
+        }
+
+        .feature-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(13, 148, 136, 0.1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            color: var(--primary);
+        }
+
+        .feature h3 {
+            font-size: 1.1em;
+            margin-bottom: 8px;
+            color: var(--slate-800);
+        }
+
+        .feature p {
+            color: var(--slate-600);
+            font-size: 0.95em;
+            line-height: 1.7;
+        }
+
+        /* Comparison Section */
+        .comparison {
+            padding: 80px 0;
+            background: var(--slate-50);
+        }
+
+        .comparison h2 {
+            font-size: 2em;
+            text-align: center;
+            margin-bottom: 40px;
+            color: var(--slate-800);
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            margin: 0 -20px;
+            padding: 0 20px;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--white);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .comparison-table th {
+            background: var(--slate-800);
+            color: var(--white);
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .comparison-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--slate-200);
+        }
+
+        .comparison-table tr:last-child td { border-bottom: none; }
+
+        .checkmark { color: var(--primary); font-weight: bold; }
+        .xmark { color: var(--slate-400); }
+
+        /* Customization Section */
+        .customization-section {
+            padding: 80px 0;
+            background: var(--white);
+        }
+
+        .customization-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        .customization-card {
+            padding: 24px;
+            background: var(--slate-50);
+            border-radius: 8px;
+            border: 1px solid var(--slate-200);
+            text-align: center;
+        }
+
+        .customization-card-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(13, 148, 136, 0.1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            color: var(--primary);
+        }
+
+        .customization-card h3 {
+            font-size: 1em;
+            color: var(--slate-800);
+            margin-bottom: 8px;
+        }
+
+        .customization-card p {
+            font-size: 0.85em;
+            color: var(--slate-600);
+            line-height: 1.6;
+        }
+
+        /* Final CTA */
+        .cta-section {
+            background: var(--slate-800);
+            color: var(--white);
+            padding: 80px 0;
+            text-align: center;
+        }
+
+        .cta-section h2 { font-size: 2em; margin-bottom: 16px; }
+        .cta-section p { font-size: 1.1em; margin-bottom: 24px; opacity: 0.85; }
+
+        /* Footer */
+        footer {
+            background: var(--slate-900);
+            color: var(--slate-400);
+            padding: 60px 0 30px;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .footer-column h4 { color: var(--white); margin-bottom: 16px; font-weight: 600; }
+        .footer-column a { display: block; color: var(--slate-400); text-decoration: none; margin-bottom: 10px; font-size: 0.9em; }
+        .footer-column a:hover { color: var(--primary-light); }
+
+        .footer-bottom { border-top: 1px solid var(--slate-700); padding-top: 30px; text-align: center; font-size: 0.9em; }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .features-grid { grid-template-columns: repeat(2, 1fr); }
+            .productivity-grid { grid-template-columns: 1fr; }
+            .customization-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .nav-hamburger { display: flex; }
+            header h1 { font-size: 2em; }
+            .feature-large {
+                grid-template-columns: 1fr;
+                gap: 24px;
+                padding: 32px 0;
+            }
+            .feature-large.reversed { direction: ltr; }
+            .feature-visual { min-height: 200px; }
+            .features-grid { grid-template-columns: 1fr; }
+            .customization-grid { grid-template-columns: 1fr; }
+            .section-header h2 { font-size: 1.8em; }
+            .trust-items { gap: 20px; }
+            .footer-grid { grid-template-columns: repeat(2, 1fr); }
+            .cta-secondary { display: block; margin: 12px 0 0 0; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav-bar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M16 2L4 6V15C4 23 9 29 16 31C23 29 28 23 28 15V6L16 2Z" fill="#0d9488"/>
+                    <path d="M16 3.5L5.5 7V15C5.5 22 10 27.5 16 29.25C22 27.5 26.5 22 26.5 15V7L16 3.5Z" fill="#0f766e"/>
+                    <rect x="10" y="14" width="1.5" height="4" rx="0.75" fill="white"/>
+                    <rect x="12.5" y="12" width="1.5" height="8" rx="0.75" fill="white"/>
+                    <rect x="15.25" y="10" width="1.5" height="12" rx="0.75" fill="white"/>
+                    <rect x="18" y="12" width="1.5" height="8" rx="0.75" fill="white"/>
+                    <rect x="20.5" y="14" width="1.5" height="4" rx="0.75" fill="white"/>
+                </svg>
+                MurmurTone
+            </a>
+            <div class="nav-links">
+                <a href="/features.html" class="active">Features</a>
+                <a href="/pricing.html">Pricing</a>
+                <a href="/docs/">Docs</a>
+                <a href="/docs/faq.html">FAQ</a>
+                <a href="/install.html" class="nav-cta">Download</a>
+            </div>
+            <div class="nav-hamburger" onclick="toggleMobileMenu()" aria-label="Toggle menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="/features.html">Features</a>
+        <a href="/pricing.html">Pricing</a>
+        <a href="/docs/">Docs</a>
+        <a href="/docs/faq.html">FAQ</a>
+        <a href="/install.html" class="nav-cta">Download</a>
+    </div>
+
+    <header>
+        <div class="container">
+            <div class="header-badge">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                100% Local Processing
+            </div>
+            <h1>Privacy Isn't a Feature.<br>It's the Foundation.</h1>
+            <p>Everything runs on your machine. No servers. No uploads. No compromises.</p>
+            <a href="/install.html" class="cta-button">Start Free Trial</a>
+            <a href="#privacy" class="cta-secondary">Learn More</a>
+        </div>
+    </header>
+
+    <div class="trust-bar">
+        <div class="trust-items">
+            <div class="trust-item">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                Zero data collection
+            </div>
+            <div class="trust-item">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                Works offline
+            </div>
+            <div class="trust-item">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                Secure by design
+            </div>
+            <div class="trust-item">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="2" y1="12" x2="22" y2="12"/>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                </svg>
+                18+ languages
+            </div>
+        </div>
+    </div>
+
+    <!-- Privacy & Security Section -->
+    <section class="privacy-section" id="privacy">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                    Privacy & Security
+                </span>
+                <h2>Your Voice Stays Where It Belongs</h2>
+                <p>Built from the ground up with privacy as the core principle, not an afterthought.</p>
+            </div>
+
+            <div class="feature-large">
+                <div class="feature-large-content">
+                    <div class="feature-large-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                    </div>
+                    <h3>Your Voice Never Leaves Your Machine</h3>
+                    <p>Every sound you speak is processed by AI running directly on your computer. There's no server to send your data to - because it never goes anywhere. The recognition engine runs locally, the text stays local, and your privacy is guaranteed by architecture, not promises.</p>
+                </div>
+                <div class="feature-visual">
+                    <div class="visual-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                            <line x1="8" y1="21" x2="16" y2="21"/>
+                            <line x1="12" y1="17" x2="12" y2="21"/>
+                            <path d="M12 7v4M12 11l2-2M12 11l-2-2"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="feature-large reversed">
+                <div class="feature-large-content">
+                    <div class="feature-large-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                            <line x1="1" y1="1" x2="23" y2="23"/>
+                        </svg>
+                    </div>
+                    <h3>Invisible to the Cloud</h3>
+                    <p>No transcripts stored on remote servers. No audio files uploaded for "quality improvement." No usage data collected for advertising. MurmurTone doesn't even have a way to know what you said - there's no telemetry, no analytics, no tracking of any kind.</p>
+                </div>
+                <div class="feature-visual">
+                    <div class="visual-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+                            <line x1="1" y1="1" x2="23" y2="23"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="feature-large">
+                <div class="feature-large-content">
+                    <div class="feature-large-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="1" y1="1" x2="23" y2="23"/>
+                            <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+                            <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
+                            <path d="M10.71 5.05A16 16 0 0 1 22.58 9"/>
+                            <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
+                            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+                            <line x1="12" y1="20" x2="12.01" y2="20"/>
+                        </svg>
+                    </div>
+                    <h3>Anywhere You Go</h3>
+                    <p>Airplanes at 35,000 feet. Secure government facilities. Remote mountain cabins. Offshore drilling platforms. MurmurTone works exactly the same with zero internet connection - because it was designed that way from day one. No network means no vulnerabilities.</p>
+                </div>
+                <div class="feature-visual">
+                    <div class="visual-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                            <line x1="12" y1="22.08" x2="12" y2="12"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Mid CTA 1 -->
+    <section class="cta-mid">
+        <div class="container">
+            <h2>Your voice never leaves your machine.</h2>
+            <p>That's not marketing. It's architecture.</p>
+            <a href="/install.html" class="cta-button">Try It Free</a>
+        </div>
+    </section>
+
+    <!-- Productivity Section -->
+    <section class="productivity-section" id="productivity">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                    </svg>
+                    Speed & Productivity
+                </span>
+                <h2>Faster Than the Cloud</h2>
+                <p>No server round-trips means instant results. Speak and watch words appear.</p>
+            </div>
+
+            <div class="productivity-grid">
+                <div class="productivity-card">
+                    <div class="productivity-card-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                        </svg>
+                    </div>
+                    <h3>Results in Under a Second</h3>
+                    <p>No server latency. No upload time. No waiting for cloud processing. Speak, release your hotkey, and words appear instantly in any application.</p>
+                    <span class="stat-callout">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        &lt;1s average latency
+                    </span>
+                </div>
+
+                <div class="productivity-card">
+                    <div class="productivity-card-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                        </svg>
+                    </div>
+                    <h3>AI Text Cleanup</h3>
+                    <p>Local AI polishes your transcription automatically. Fixes grammar, removes filler words like "um" and "uh", adjusts formality - all without sending a single character to the cloud.</p>
+                    <span class="stat-callout">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                        100% local AI
+                    </span>
+                </div>
+
+                <div class="productivity-card">
+                    <div class="productivity-card-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                            <line x1="8" y1="21" x2="16" y2="21"/>
+                            <line x1="12" y1="17" x2="12" y2="21"/>
+                        </svg>
+                    </div>
+                    <h3>Types Into Any App</h3>
+                    <p>Word, Slack, your browser, email clients, code editors, games - MurmurTone types directly into whatever window is active. No copy-paste, no app switching, just speak and it's there.</p>
+                    <span class="stat-callout">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                        </svg>
+                        Universal compatibility
+                    </span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Power Features Section -->
+    <section class="power-section" id="power">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    Power Features
+                </span>
+                <h2>Built for Professionals</h2>
+                <p>Advanced capabilities that adapt to how you work.</p>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature">
+                    <div class="feature-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
+                            <rect x="9" y="9" width="6" height="6"/>
+                            <line x1="9" y1="1" x2="9" y2="4"/>
+                            <line x1="15" y1="1" x2="15" y2="4"/>
+                            <line x1="9" y1="20" x2="9" y2="23"/>
+                            <line x1="15" y1="20" x2="15" y2="23"/>
+                            <line x1="20" y1="9" x2="23" y2="9"/>
+                            <line x1="20" y1="14" x2="23" y2="14"/>
+                            <line x1="1" y1="9" x2="4" y2="9"/>
+                            <line x1="1" y1="14" x2="4" y2="14"/>
+                        </svg>
+                    </div>
+                    <h3>GPU Acceleration</h3>
+                    <p>Harness your graphics card for dramatically faster transcription. NVIDIA GPU owners see up to 10x speed improvements over CPU-only processing.</p>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                            <line x1="12" y1="19" x2="12" y2="23"/>
+                            <line x1="8" y1="23" x2="16" y2="23"/>
+                        </svg>
+                    </div>
+                    <h3>Voice Commands</h3>
+                    <p>Say "new line", "new paragraph", "period", or "select all" to control your text hands-free. Natural commands that feel like second nature.</p>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="2" y1="12" x2="22" y2="12"/>
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                        </svg>
+                    </div>
+                    <h3>18+ Languages</h3>
+                    <p>English, Spanish, French, German, Japanese, Chinese, Korean, and 12 more languages. All processed locally with automatic detection.</p>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/>
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                            <line x1="12" y1="22.08" x2="12" y2="12"/>
+                        </svg>
+                    </div>
+                    <h3>Translation Mode</h3>
+                    <p>Speak in any supported language, get English text output. Perfect for multilingual environments or non-native speakers drafting in English.</p>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                    </div>
+                    <h3>Multiple AI Models</h3>
+                    <p>Choose from tiny (fastest) to large (most accurate). Pick the right balance for your hardware and accuracy needs.</p>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 20h9"/>
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                        </svg>
+                    </div>
+                    <h3>Custom Vocabulary</h3>
+                    <p>Teach MurmurTone your jargon. Medical terms, legal language, company names, technical acronyms - add custom words that get recognized correctly.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Mid CTA 2 -->
+    <section class="cta-mid teal-gradient">
+        <div class="container">
+            <h2>Ready to speak freely?</h2>
+            <p>14-day free trial. No credit card required.</p>
+            <a href="/install.html" class="cta-button">Download MurmurTone</a>
+        </div>
+    </section>
+
+    <!-- Comparison Section -->
+    <section class="comparison" id="comparison">
+        <div class="container">
+            <h2>Why MurmurTone?</h2>
+            <div class="table-wrapper">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>MurmurTone</th>
+                            <th>Cloud Services</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Data Privacy</strong></td>
+                            <td><span class="checkmark">&#10003; Nothing leaves your PC</span></td>
+                            <td><span class="xmark">&#10007; Uploaded to servers</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Works Offline</strong></td>
+                            <td><span class="checkmark">&#10003; Always available</span></td>
+                            <td><span class="xmark">&#10007; Requires internet</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Response Time</strong></td>
+                            <td><span class="checkmark">&#10003; Under 1 second</span></td>
+                            <td><span class="xmark">&#10007; 2-5+ seconds typical</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Local AI Cleanup</strong></td>
+                            <td><span class="checkmark">&#10003; Built-in, private</span></td>
+                            <td><span class="xmark">&#10007; Cloud-only or none</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Languages</strong></td>
+                            <td><span class="checkmark">&#10003; 18+ local</span></td>
+                            <td><span class="checkmark">&#10003; Varies by service</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Translation</strong></td>
+                            <td><span class="checkmark">&#10003; Local processing</span></td>
+                            <td><span class="xmark">&#10007; Cloud-dependent</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Custom Vocabulary</strong></td>
+                            <td><span class="checkmark">&#10003; Included</span></td>
+                            <td><span class="xmark">&#10007; Paid tier or limited</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Annual Cost</strong></td>
+                            <td><span class="checkmark">$49/year</span></td>
+                            <td><span class="xmark">$96-180/year</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Customization Section -->
+    <section class="customization-section" id="customization">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    Customization
+                </span>
+                <h2>Make It Yours</h2>
+                <p>Fine-tune every aspect to match your workflow.</p>
+            </div>
+
+            <div class="customization-grid">
+                <div class="customization-card">
+                    <div class="customization-card-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="4" width="20" height="16" rx="2" ry="2"/>
+                            <path d="M6 8h.001M10 8h.001M6 12h.001M10 12h.001M14 12h.001M10 16h.001M14 16h.001M18 16h.001"/>
+                        </svg>
+                    </div>
+                    <h3>Flexible Hotkeys</h3>
+                    <p>Any key combination you want. Ctrl+Space, F13, or a mouse button - your choice.</p>
+                </div>
+
+                <div class="customization-card">
+                    <div class="customization-card-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 6 6"/>
+                            <line x1="10" y1="6" x2="21" y2="6"/>
+                            <polyline points="3 12 5 12 6 12"/>
+                            <line x1="10" y1="12" x2="21" y2="12"/>
+                            <polyline points="3 18 5 18 6 18"/>
+                            <line x1="10" y1="18" x2="21" y2="18"/>
+                        </svg>
+                    </div>
+                    <h3>Filler Word Removal</h3>
+                    <p>Automatically strip "um", "uh", "like", and other verbal fillers from your transcripts.</p>
+                </div>
+
+                <div class="customization-card">
+                    <div class="customization-card-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polygon points="10 8 16 12 10 16 10 8"/>
+                        </svg>
+                    </div>
+                    <h3>Recording Modes</h3>
+                    <p>Push-to-talk, toggle on/off, or auto-stop when you pause. Pick what feels natural.</p>
+                </div>
+
+                <div class="customization-card">
+                    <div class="customization-card-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="12" y1="18" x2="12" y2="12"/>
+                            <line x1="9" y1="15" x2="15" y2="15"/>
+                        </svg>
+                    </div>
+                    <h3>Audio File Transcription</h3>
+                    <p>Drop in audio files to transcribe meetings, interviews, or recordings. Same privacy, same accuracy.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="cta-section">
+        <div class="container">
+            <h2>Take back your privacy today.</h2>
+            <p>14-day free trial. No credit card required. No data collected.</p>
+            <a href="/install.html" class="cta-button">Download MurmurTone</a>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-column">
+                    <h4>Product</h4>
+                    <a href="/features.html">Features</a>
+                    <a href="/pricing.html">Pricing</a>
+                    <a href="/install.html">Download</a>
+                    <a href="/buy.html">Buy</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Resources</h4>
+                    <a href="/docs/">Documentation</a>
+                    <a href="/docs/voice-commands.html">Voice Commands</a>
+                    <a href="/docs/troubleshooting.html">Troubleshooting</a>
+                    <a href="/docs/faq.html">FAQ</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Company</h4>
+                    <a href="/support/contact.html">Support</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Legal</h4>
+                    <a href="/legal/privacy.html">Privacy Policy</a>
+                    <a href="/legal/terms.html">Terms of Service</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                &copy; 2025 MurmurTone. Your voice, locally.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            const hamburger = document.querySelector('.nav-hamburger');
+            menu.classList.toggle('active');
+            hamburger.classList.toggle('active');
+        }
+
+        document.querySelectorAll('.mobile-menu a').forEach(link => {
+            link.addEventListener('click', () => {
+                document.getElementById('mobileMenu').classList.remove('active');
+                document.querySelector('.nav-hamburger').classList.remove('active');
+            });
+        });
+    </script>
+</body>
+</html>

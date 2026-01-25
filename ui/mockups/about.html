@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About - MurmurTone Settings Mockup</title>
+    <link rel="stylesheet" href="../styles.css">
+    <style>
+        body { overflow: auto; }
+        .window { height: auto; min-height: 100vh; }
+    </style>
+</head>
+<body>
+    <div class="window">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="sidebar-logo-container">
+                <img src="../assets/logo.png" alt="MurmurTone" class="sidebar-logo">
+            </div>
+            <h1 class="sidebar-title">Settings</h1>
+
+            <div class="nav-items">
+                <button class="nav-item" onclick="location.href='general.html'">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                    </svg>
+                    <span>General</span>
+                </button>
+
+                <button class="nav-item" onclick="location.href='audio.html'">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <line x1="12" y1="19" x2="12" y2="23"/>
+                        <line x1="8" y1="23" x2="16" y2="23"/>
+                    </svg>
+                    <span>Audio</span>
+                </button>
+
+                <button class="nav-item" onclick="location.href='recognition.html'">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                        <polyline points="2 17 12 22 22 17"/>
+                        <polyline points="2 12 12 17 22 12"/>
+                    </svg>
+                    <span>Recognition</span>
+                </button>
+
+                <button class="nav-item" onclick="location.href='text.html'">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="4 7 4 4 20 4 20 7"/>
+                        <line x1="9" y1="20" x2="15" y2="20"/>
+                        <line x1="12" y1="4" x2="12" y2="20"/>
+                    </svg>
+                    <span>Text</span>
+                </button>
+
+                <button class="nav-item" onclick="location.href='advanced.html'">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    <span>Advanced</span>
+                </button>
+
+                <button class="nav-item active">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                    <span>About</span>
+                </button>
+            </div>
+
+            <div class="sidebar-spacer"></div>
+
+            <div class="sidebar-footer">
+                <div class="version-text">MurmurTone v1.0.0</div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="content">
+            <div class="content-body">
+                <header class="content-header">
+                    <h2 class="page-title">About</h2>
+                </header>
+
+                <!-- App Info Section -->
+                <div class="settings-section">
+                    <h3 class="section-title">App Info</h3>
+
+                    <div class="about-header">
+                        <img src="../assets/logo.png" alt="MurmurTone" class="about-logo">
+                        <div class="about-text">
+                            <h4 class="about-name">MurmurTone</h4>
+                            <p class="about-tagline">Voice-to-text for your desktop</p>
+                        </div>
+                    </div>
+
+                    <div class="setting-row toggle-row">
+                        <div class="setting-info">
+                            <label class="setting-label">Version</label>
+                            <p class="setting-help">Current application version.</p>
+                        </div>
+                        <span class="setting-value">1.0.0</span>
+                    </div>
+
+                    <div class="setting-row toggle-row">
+                        <div class="setting-info">
+                            <label class="setting-label">Auto Update</label>
+                            <p class="setting-help">Automatically download and install updates.</p>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-row toggle-row">
+                        <div class="setting-info">
+                            <label class="setting-label">Check for Updates</label>
+                            <p class="setting-help">Check if a newer version is available.</p>
+                        </div>
+                        <button type="button" class="btn btn-secondary">Check Now</button>
+                    </div>
+                </div>
+
+                <!-- License Section -->
+                <div class="settings-section">
+                    <h3 class="section-title">License</h3>
+
+                    <div class="setting-row toggle-row">
+                        <div class="setting-info">
+                            <label class="setting-label">License Status</label>
+                            <p class="setting-help">Your current license type.</p>
+                        </div>
+                        <div class="status-badge success">
+                            <span class="status-indicator"></span>
+                            <span class="status-text">Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Links Section -->
+                <div class="settings-section">
+                    <h3 class="section-title">Links</h3>
+
+                    <div class="setting-row toggle-row">
+                        <div class="setting-info">
+                            <label class="setting-label">Documentation</label>
+                            <p class="setting-help">Read the user guide and tutorials.</p>
+                        </div>
+                        <a href="#" class="btn btn-secondary">Open Docs</a>
+                    </div>
+
+                    <div class="setting-row toggle-row">
+                        <div class="setting-info">
+                            <label class="setting-label">Report Issue</label>
+                            <p class="setting-help">Found a bug? Let us know.</p>
+                        </div>
+                        <a href="#" class="btn btn-secondary">Report Bug</a>
+                    </div>
+
+                    <div class="setting-row toggle-row">
+                        <div class="setting-info">
+                            <label class="setting-label">Privacy Policy</label>
+                            <p class="setting-help">How we handle your data.</p>
+                        </div>
+                        <a href="#" class="btn btn-secondary">View Policy</a>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

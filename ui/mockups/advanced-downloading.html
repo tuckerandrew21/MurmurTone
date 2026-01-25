@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced (Downloading) - MurmurTone Settings Mockup</title>
+    <link rel="stylesheet" href="../styles.css">
+    <style>
+        body { overflow: auto; }
+        .window { height: auto; min-height: 100vh; }
+
+        /* Download progress row */
+        .download-progress-row {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+
+        .download-status {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-xs);
+            flex: 1;
+        }
+
+        .download-status-text {
+            font-size: var(--font-size-sm);
+            color: var(--slate-300);
+        }
+
+        .download-progress {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+
+        .download-progress .progress-bar {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .download-progress .progress-fill {
+            width: 45%;
+        }
+
+        .download-cancel {
+            background: none;
+            border: none;
+            color: var(--slate-400);
+            cursor: pointer;
+            padding: var(--space-xs);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .download-cancel:hover {
+            background: var(--slate-700);
+            color: var(--error);
+        }
+    </style>
+</head>
+<body>
+    <div class="window">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="sidebar-logo-container">
+                <img src="../assets/logo.png" alt="MurmurTone" class="sidebar-logo">
+            </div>
+            <h1 class="sidebar-title">Settings</h1>
+
+            <div class="nav-items">
+                <button class="nav-item" onclick="location.href='general.html'">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                    </svg>
+                    <span>General</span>
+                </button>
+
+                <button class="nav-item" onclick="location.href='audio.html'">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <line x1="12" y1="19" x2="12" y2="23"/>
+                        <line x1="8" y1="23" x2="16" y2="23"/>
+                    </svg>
+                    <span>Audio</span>
+                </button>
+
+                <button class="nav-item" onclick="location.href='recognition.html'">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                        <polyline points="2 17 12 22 22 17"/>
+                        <polyline points="2 12 12 17 22 12"/>
+                    </svg>
+                    <span>Recognition</span>
+                </button>
+
+                <button class="nav-item" onclick="location.href='text.html'">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="4 7 4 4 20 4 20 7"/>
+                        <line x1="9" y1="20" x2="15" y2="20"/>
+                        <line x1="12" y1="4" x2="12" y2="20"/>
+                    </svg>
+                    <span>Text</span>
+                </button>
+
+                <button class="nav-item active">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    <span>Advanced</span>
+                </button>
+
+                <button class="nav-item" onclick="location.href='about.html'">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                    <span>About</span>
+                </button>
+            </div>
+
+            <div class="sidebar-spacer"></div>
+
+            <div class="sidebar-footer">
+                <div class="version-text">MurmurTone v1.0.0</div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="content">
+            <div class="content-body">
+                <header class="content-header">
+                    <h2 class="page-title">Advanced</h2>
+                </header>
+
+                <!-- AI Text Cleanup Section -->
+                <div class="settings-section">
+                    <h3 class="section-title">AI Text Cleanup</h3>
+
+                    <div class="setting-row toggle-row">
+                        <div class="setting-info">
+                            <label class="setting-label">Enable AI Cleanup</label>
+                            <p class="setting-help">Process transcriptions through AI for grammar and clarity.</p>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="child-settings">
+                        <div class="setting-row toggle-row">
+                            <div class="setting-info">
+                                <label class="setting-label">AI Model</label>
+                                <p class="setting-help">Downloading AI model...</p>
+                            </div>
+                            <div class="download-progress-row">
+                                <div class="download-progress">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill"></div>
+                                    </div>
+                                    <span class="progress-text">45%</span>
+                                </div>
+                                <button class="download-cancel" title="Cancel download">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                        <line x1="18" y1="6" x2="6" y2="18"/>
+                                        <line x1="6" y1="6" x2="18" y2="18"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="setting-row toggle-row disabled">
+                            <div class="setting-info">
+                                <label class="setting-label">Cleanup Mode</label>
+                                <p class="setting-help">Choose what aspects to improve.</p>
+                            </div>
+                            <select class="dropdown" disabled>
+                                <option value="grammar">Grammar Only</option>
+                                <option value="formality" selected>Formality Only</option>
+                                <option value="both">Grammar + Formality</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-row toggle-row disabled">
+                            <div class="setting-info">
+                                <label class="setting-label">Formality Level</label>
+                                <p class="setting-help">Target formality for adjusted text.</p>
+                            </div>
+                            <select class="dropdown" disabled>
+                                <option value="casual" selected>Casual</option>
+                                <option value="professional">Professional</option>
+                                <option value="formal">Formal</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <a href="#" class="learn-more-link">Learn more about AI cleanup</a>
+                </div>
+
+                <!-- Maintenance Section -->
+                <div class="settings-section">
+                    <h3 class="section-title">Maintenance</h3>
+
+                    <div class="setting-row toggle-row">
+                        <div class="setting-info">
+                            <label class="setting-label">Start with Windows</label>
+                            <p class="setting-help">Launch MurmurTone automatically when you log in.</p>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-row toggle-row">
+                        <div class="setting-info">
+                            <label class="setting-label">Transcription History</label>
+                            <p class="setting-help">View and search past transcriptions.</p>
+                        </div>
+                        <button type="button" class="btn btn-secondary">View History</button>
+                    </div>
+
+                    <div class="setting-row toggle-row">
+                        <div class="setting-info">
+                            <label class="setting-label">Reset Settings</label>
+                            <p class="setting-help">Restore all settings to their default values.</p>
+                        </div>
+                        <button type="button" class="btn btn-danger">Reset to Defaults</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

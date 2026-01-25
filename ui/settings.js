@@ -467,6 +467,8 @@ function populateForm() {
     // Update editor counts
     updateDictionaryCount();
     updateShortcutsCount();
+    updateVocabularyCount();
+    updateFillerCount();
 
     // Check GPU status
     checkGpuStatus();
@@ -780,6 +782,8 @@ function setupFormListeners() {
     // Modal editors
     setupDictionaryModal();
     setupShortcutsModal();
+    setupVocabularyModal();
+    setupFillersModal();
     setupHistoryModal();
 
     // About page - License activation
@@ -1798,7 +1802,127 @@ function updateShortcutsCount() {
     const countEl = document.getElementById('shortcuts-count');
     const count = (settings.custom_commands || []).filter(s => s.trigger && s.replacement).length;
     if (countEl) {
-        countEl.textContent = `${count} shortcut${count !== 1 ? 's' : ''} defined`;
+        countEl.textContent = count;
+    }
+}
+
+// ============================================
+// Vocabulary Modal
+// ============================================
+
+/**
+ * Setup vocabulary editor modal
+ */
+function setupVocabularyModal() {
+    const editBtn = document.getElementById('edit-vocabulary-btn');
+    const modal = document.getElementById('vocabulary-modal');
+    const closeBtn = document.getElementById('vocabulary-modal-close');
+    const cancelBtn = document.getElementById('vocabulary-cancel');
+    const saveBtn = document.getElementById('vocabulary-save');
+    const addBtn = document.getElementById('add-vocabulary-btn');
+    const input = document.getElementById('vocabulary-input');
+
+    if (editBtn) {
+        editBtn.addEventListener('click', () => {
+            loadVocabularyList();
+            openModal('vocabulary-modal');
+        });
+    }
+
+    if (closeBtn) closeBtn.addEventListener('click', () => closeModal('vocabulary-modal'));
+    if (cancelBtn) cancelBtn.addEventListener('click', () => closeModal('vocabulary-modal'));
+
+    if (saveBtn) {
+        saveBtn.addEventListener('click', () => {
+            updateVocabularyCount();
+            closeModal('vocabulary-modal');
+            showToast('Vocabulary saved', 'success');
+        });
+    }
+
+    if (addBtn && input) {
+        addBtn.addEventListener('click', () => addVocabularyWord(input.value));
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addVocabularyWord(input.value);
+        });
+    }
+
+    // Close on overlay click
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal('vocabulary-modal');
+        });
+    }
+}
+
+/**
+ * Update vocabulary count display
+ */
+function updateVocabularyCount() {
+    const countEl = document.getElementById('vocabulary-count');
+    const count = (settings.custom_vocabulary || []).length;
+    if (countEl) {
+        countEl.textContent = count;
+    }
+}
+
+// ============================================
+// Filler Words Modal
+// ============================================
+
+/**
+ * Setup filler words editor modal
+ */
+function setupFillersModal() {
+    const editBtn = document.getElementById('edit-fillers-btn');
+    const modal = document.getElementById('fillers-modal');
+    const closeBtn = document.getElementById('fillers-modal-close');
+    const cancelBtn = document.getElementById('fillers-cancel');
+    const saveBtn = document.getElementById('fillers-save');
+    const addBtn = document.getElementById('add-filler-btn');
+    const input = document.getElementById('filler-input');
+
+    if (editBtn) {
+        editBtn.addEventListener('click', () => {
+            loadFillerList();
+            openModal('fillers-modal');
+        });
+    }
+
+    if (closeBtn) closeBtn.addEventListener('click', () => closeModal('fillers-modal'));
+    if (cancelBtn) cancelBtn.addEventListener('click', () => closeModal('fillers-modal'));
+
+    if (saveBtn) {
+        saveBtn.addEventListener('click', () => {
+            updateFillerCount();
+            closeModal('fillers-modal');
+            showToast('Filler words saved', 'success');
+        });
+    }
+
+    if (addBtn && input) {
+        addBtn.addEventListener('click', () => addFillerWord(input.value));
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addFillerWord(input.value);
+        });
+    }
+
+    // Close on overlay click
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal('fillers-modal');
+        });
+    }
+}
+
+/**
+ * Update filler count display
+ */
+function updateFillerCount() {
+    const countEl = document.getElementById('filler-count');
+    const count = (settings.custom_fillers || []).length;
+    if (countEl) {
+        countEl.textContent = count;
     }
 }
 

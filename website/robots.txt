@@ -1,0 +1,8 @@
+# MurmurTone robots.txt
+# https://murmurtone.com
+
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://murmurtone.com/sitemap.xml

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>General - MurmurTone Settings Mockup</title>
+    <link rel="stylesheet" href="../styles.css">
+    <style>
+        /* Mockup-specific: remove pywebview dependencies */
+        body { overflow: auto; }
+        .window { height: auto; min-height: 100vh; }
+    </style>
+</head>
+<body>
+    <div class="window">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="sidebar-logo-container">
+                <img src="../assets/logo.png" alt="MurmurTone" class="sidebar-logo">
+            </div>
+            <h1 class="sidebar-title">Settings</h1>
+
+            <div class="nav-items">
+                <button class="nav-item active" data-page="general">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                    </svg>
+                    <span>General</span>
+                </button>
+
+                <button class="nav-item" onclick="location.href='audio.html'">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <line x1="12" y1="19" x2="12" y2="23"/>
+                        <line x1="8" y1="23" x2="16" y2="23"/>
+                    </svg>
+                    <span>Audio</span>
+                </button>
+
+                <button class="nav-item" onclick="location.href='recognition.html'">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                        <polyline points="2 17 12 22 22 17"/>
+                        <polyline points="2 12 12 17 22 12"/>
+                    </svg>
+                    <span>Recognition</span>
+                </button>
+
+                <button class="nav-item" onclick="location.href='text.html'">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="4 7 4 4 20 4 20 7"/>
+                        <line x1="9" y1="20" x2="15" y2="20"/>
+                        <line x1="12" y1="4" x2="12" y2="20"/>
+                    </svg>
+                    <span>Text</span>
+                </button>
+
+                <button class="nav-item" onclick="location.href='advanced.html'">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    <span>Advanced</span>
+                </button>
+
+                <button class="nav-item" onclick="location.href='about.html'">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                    <span>About</span>
+                </button>
+            </div>
+
+            <div class="sidebar-spacer"></div>
+
+            <div class="sidebar-footer">
+                <div class="version-text">MurmurTone v1.0.0</div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="content">
+            <div class="content-body">
+                <header class="content-header">
+                    <h2 class="page-title">General</h2>
+                </header>
+
+                <!-- Recording Section -->
+                <div class="settings-section">
+                    <h3 class="section-title">Recording</h3>
+
+                    <div class="setting-row toggle-row">
+                        <div class="setting-info">
+                            <label class="setting-label">Activation Hotkey</label>
+                            <p class="setting-help">Press your preferred key combination to start recording.</p>
+                        </div>
+                        <button type="button" class="hotkey-capture-btn">
+                            <span class="hotkey-display">Ctrl + Shift + Space</span>
+                        </button>
+                    </div>
+
+                    <div class="setting-row toggle-row">
+                        <div class="setting-info">
+                            <label class="setting-label">Recording Mode</label>
+                            <p class="setting-help">How recording starts and stops.</p>
+                        </div>
+                        <select class="dropdown">
+                            <option value="push_to_talk">Push to Talk</option>
+                            <option value="toggle">Toggle</option>
+                            <option value="auto_stop">Auto Stop</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-row toggle-row">
+                        <div class="setting-info">
+                            <label class="setting-label">Language</label>
+                            <p class="setting-help">Language for speech recognition. Auto-detect works for most cases.</p>
+                        </div>
+                        <select class="dropdown">
+                            <option value="auto">Auto Detect</option>
+                            <option value="en">English</option>
+                            <option value="es">Spanish</option>
+                            <option value="fr">French</option>
+                            <option value="de">German</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Output Section -->
+                <div class="settings-section">
+                    <h3 class="section-title">Output</h3>
+
+                    <div class="setting-row toggle-row">
+                        <div class="setting-info">
+                            <label class="setting-label">Auto-paste</label>
+                            <p class="setting-help">Automatically paste transcribed text into the active application.</p>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-row toggle-row">
+                        <div class="setting-info">
+                            <label class="setting-label">Paste Mode</label>
+                            <p class="setting-help">How text is inserted: clipboard paste or simulated typing.</p>
+                        </div>
+                        <select class="dropdown">
+                            <option value="clipboard">Clipboard (Ctrl+V)</option>
+                            <option value="direct">Direct Typing</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-row toggle-row">
+                        <div class="setting-info">
+                            <label class="setting-label">Preview Window</label>
+                            <p class="setting-help">Display transcription in a floating overlay before pasting.</p>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" id="preview-toggle" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="child-settings" id="preview-options">
+                        <div class="setting-row toggle-row">
+                            <div class="setting-info">
+                                <label class="setting-label">Position</label>
+                                <p class="setting-help">Where the preview window appears on screen.</p>
+                            </div>
+                            <select class="dropdown">
+                                <option value="cursor">Near Cursor</option>
+                                <option value="center">Center Screen</option>
+                                <option value="top-right">Top Right</option>
+                                <option value="bottom-right">Bottom Right</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-row toggle-row">
+                            <div class="setting-info">
+                                <label class="setting-label">Auto-hide Delay</label>
+                                <p class="setting-help">Seconds before the preview window automatically closes.</p>
+                            </div>
+                            <div class="slider-row">
+                                <input type="range" class="slider" min="1" max="10" step="0.5" value="3">
+                                <span class="slider-value">3s</span>
+                            </div>
+                        </div>
+
+                        <div class="setting-row toggle-row">
+                            <div class="setting-info">
+                                <label class="setting-label">Theme</label>
+                                <p class="setting-help">Visual style for the preview window.</p>
+                            </div>
+                            <select class="dropdown">
+                                <option value="dark">Dark</option>
+                                <option value="light">Light</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-row toggle-row">
+                            <div class="setting-info">
+                                <label class="setting-label">Font Size</label>
+                                <p class="setting-help">Text size in the preview window.</p>
+                            </div>
+                            <div class="slider-row">
+                                <input type="range" class="slider" min="8" max="18" step="1" value="13">
+                                <span class="slider-value">13pt</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
