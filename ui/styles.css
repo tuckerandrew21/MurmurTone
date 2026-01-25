@@ -345,13 +345,29 @@ body {
     font-size: var(--font-size-md);
     font-weight: 600;
     color: var(--slate-100);
-    margin-bottom: var(--space-xs);
+    margin-bottom: var(--space-sm);
+    padding-bottom: var(--space-sm);
+    position: relative;
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        var(--primary) 20%,
+        var(--primary) 80%,
+        transparent 100%
+    );
+    opacity: 0.5;
 }
 
 .section-description {
-    font-size: var(--font-size-sm);
-    color: var(--slate-400);
-    margin-bottom: var(--space-lg);
+    display: none;
 }
 
 .setting-row {
@@ -1165,20 +1181,19 @@ body {
 }
 
 /* ============================================
-   Child Settings (indent only, no border)
+   Child Settings (indent only, no dividers)
    ============================================ */
-.child-setting {
+.child-settings {
     margin-left: var(--space-xl);
     margin-top: var(--space-sm);
     transition: opacity var(--transition-normal);
 }
 
-.child-setting .setting-row + .setting-row {
-    padding-top: var(--space-sm);
-    margin-top: var(--space-xs);
+.child-settings .setting-row + .setting-row {
+    padding-top: var(--space-md);
 }
 
-.child-setting.disabled {
+.child-settings.disabled {
     opacity: 0.5;
     pointer-events: none;
 }

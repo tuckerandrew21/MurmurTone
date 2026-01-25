@@ -86,38 +86,29 @@
                 </header>
                 <!-- General Page -->
                 <section class="page active" id="page-general">
-                    <!-- Hotkey Section -->
+                    <!-- Recording Section -->
                     <div class="settings-section">
-                        <h3 class="section-title">Activation Hotkey</h3>
-                        <p class="section-description">Choose your preferred key combination to start recording.</p>
+                        <h3 class="section-title">Recording</h3>
+                        <p class="section-description">Configure how recording is triggered and what language to recognize.</p>
 
                         <div class="setting-row">
+                            <label class="setting-label">Activation Hotkey</label>
                             <button type="button" id="hotkey-capture" class="hotkey-capture-btn" data-testid="hotkey-capture">
                                 <span class="hotkey-display">Ctrl + Shift + Space</span>
                             </button>
                         </div>
-                    </div>
-
-                    <!-- Recording Mode Section -->
-                    <div class="settings-section">
-                        <h3 class="section-title">Recording Mode</h3>
-                        <p class="section-description">How recording starts and stops.</p>
 
                         <div class="setting-row">
+                            <label class="setting-label">Recording Mode</label>
                             <select id="recording-mode" class="dropdown" aria-label="Recording mode" data-testid="recording-mode">
                                 <option value="push_to_talk">Push to Talk</option>
                                 <option value="toggle">Toggle</option>
                                 <option value="auto_stop">Auto Stop</option>
                             </select>
                         </div>
-                    </div>
-
-                    <!-- Language Section -->
-                    <div class="settings-section">
-                        <h3 class="section-title">Language</h3>
-                        <p class="section-description">Speech recognition language.</p>
 
                         <div class="setting-row">
+                            <label class="setting-label">Language</label>
                             <select id="language" class="dropdown" aria-label="Language" data-testid="language">
                                 <option value="auto">Auto Detect</option>
                                 <option value="en">English</option>
@@ -139,7 +130,7 @@
                     <!-- Output Section -->
                     <div class="settings-section">
                         <h3 class="section-title">Output</h3>
-                        <p class="section-description">How transcribed text is delivered to your applications.</p>
+                        <p class="section-description">How transcribed text is delivered and displayed.</p>
 
                         <div class="setting-row toggle-row">
                             <div class="setting-info">
@@ -160,17 +151,11 @@
                             </select>
                             <p class="setting-help" id="paste-mode-help">Copies text to clipboard and pastes with Ctrl+V</p>
                         </div>
-                    </div>
-
-                    <!-- Preview Window Section -->
-                    <div class="settings-section">
-                        <h3 class="section-title">Preview Window</h3>
-                        <p class="section-description">Show a floating preview of transcriptions before pasting.</p>
 
                         <div class="setting-row toggle-row">
                             <div class="setting-info">
-                                <label class="setting-label">Enable Preview</label>
-                                <p class="setting-help">Display transcription in a small overlay window.</p>
+                                <label class="setting-label">Preview Window</label>
+                                <p class="setting-help">Display transcription in a floating overlay before pasting.</p>
                             </div>
                             <label class="toggle">
                                 <input type="checkbox" id="preview-enabled" aria-label="Preview enabled" data-testid="preview-enabled">
@@ -178,7 +163,7 @@
                             </label>
                         </div>
 
-                        <div class="child-setting" id="preview-options">
+                        <div class="child-settings" id="preview-options">
                             <div class="setting-row">
                                 <label class="setting-label">Position</label>
                                 <select id="preview-position" class="dropdown" aria-label="Preview position" data-testid="preview-position">
@@ -219,23 +204,6 @@
                                     <span class="slider-value" id="preview-font-size-value">11pt</span>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- Startup Section -->
-                    <div class="settings-section">
-                        <h3 class="section-title">Startup</h3>
-                        <p class="section-description">Application startup behavior.</p>
-
-                        <div class="setting-row toggle-row">
-                            <div class="setting-info">
-                                <label class="setting-label">Start with Windows</label>
-                                <p class="setting-help">Launch MurmurTone automatically when you sign in.</p>
-                            </div>
-                            <label class="toggle">
-                                <input type="checkbox" id="start-with-windows" data-testid="start-with-windows">
-                                <span class="toggle-slider"></span>
-                            </label>
                         </div>
                     </div>
                 </section>
@@ -288,7 +256,7 @@
                             </label>
                         </div>
 
-                        <div class="setting-row conditional-setting child-setting" id="noise-gate-options">
+                        <div class="setting-row conditional-setting child-settings" id="noise-gate-options">
                             <label class="setting-label">Threshold</label>
                             <div class="threshold-meter-container">
                                 <div class="threshold-meter" id="threshold-meter" data-testid="noise-gate-threshold">
@@ -326,7 +294,7 @@
                         </div>
 
                         <!-- Conditional container for audio feedback options -->
-                        <div id="audio-feedback-options" class="conditional-setting child-setting">
+                        <div id="audio-feedback-options" class="conditional-setting child-settings">
                             <div class="setting-row">
                                 <label class="setting-label">Feedback Volume</label>
                             <div class="slider-row">
@@ -387,10 +355,10 @@
 
                 <!-- Recognition Page -->
                 <section class="page" id="page-recognition">
-                    <!-- Model Section -->
+                    <!-- Speech Recognition Section -->
                     <div class="settings-section">
-                        <h3 class="section-title">Speech Recognition Model</h3>
-                        <p class="section-description">Choose the Whisper model for transcription accuracy vs speed.</p>
+                        <h3 class="section-title">Speech Recognition</h3>
+                        <p class="section-description">Choose the Whisper model and fine-tune recognition behavior.</p>
 
                         <div class="setting-row">
                             <label class="setting-label">Model Size</label>
@@ -418,6 +386,18 @@
                                 <div class="progress-fill" id="download-progress"></div>
                             </div>
                             <span class="progress-text" id="download-progress-text">0%</span>
+                        </div>
+
+                        <div class="setting-row">
+                            <label class="setting-label">Silence Duration</label>
+                            <div class="slider-row">
+                                <input type="range" id="silence-duration" class="slider"
+                                    min="0.5" max="5" step="0.5" value="2"
+                                    aria-label="Silence duration"
+                                    data-testid="silence-duration">
+                                <span class="slider-value" id="silence-duration-value">2.0s</span>
+                            </div>
+                            <p class="setting-help">How long to wait for silence before stopping.</p>
                         </div>
 
                         <a href="#" class="learn-more-link" id="model-learn-more">Learn more about model selection</a>
@@ -464,48 +444,6 @@
                         </div>
 
                         <a href="#" class="learn-more-link" id="processing-mode-learn-more">Learn more about processing modes</a>
-                    </div>
-
-                    <!-- Recognition Options Section -->
-                    <div class="settings-section">
-                        <h3 class="section-title">Recognition Options</h3>
-                        <p class="section-description">Fine-tune speech recognition behavior.</p>
-
-                        <div class="setting-row">
-                            <label class="setting-label">Silence Duration</label>
-                            <div class="slider-row">
-                                <input type="range" id="silence-duration" class="slider"
-                                    min="0.5" max="5" step="0.5" value="2"
-                                    aria-label="Silence duration"
-                                    data-testid="silence-duration">
-                                <span class="slider-value" id="silence-duration-value">2.0s</span>
-                            </div>
-                            <p class="setting-help">How long to wait for silence before stopping.</p>
-                        </div>
-                    </div>
-
-                    <!-- Custom Vocabulary Section -->
-                    <div class="settings-section">
-                        <h3 class="section-title">Custom Vocabulary</h3>
-                        <p class="section-description">Add words or phrases to improve recognition accuracy.</p>
-
-                        <div class="list-input-container">
-                            <div class="list-input-row">
-                                <input type="text" id="vocabulary-input" class="text-input"
-                                    placeholder="Enter a word or phrase..."
-                                    aria-label="New vocabulary word"
-                                    data-testid="vocabulary-input">
-                                <button type="button" id="add-vocabulary-btn" class="btn btn-secondary" data-testid="add-vocabulary-btn">Add</button>
-                            </div>
-                            <input type="text" id="vocabulary-search" class="list-search-input"
-                                placeholder="Filter vocabulary..."
-                                aria-label="Filter vocabulary list"
-                                data-testid="vocabulary-search">
-                            <ul class="editable-list" id="vocabulary-list" data-testid="vocabulary-list">
-                                <!-- Items added dynamically -->
-                            </ul>
-                            <p class="list-empty-state" id="vocabulary-empty">No custom vocabulary added yet.</p>
-                        </div>
                     </div>
 
                     <!-- Translation Section -->
@@ -566,7 +504,7 @@
                             </label>
                         </div>
 
-                        <div class="setting-row toggle-row child-setting" id="scratch-that-row">
+                        <div class="setting-row toggle-row child-settings" id="scratch-that-row">
                             <div class="setting-info">
                                 <label class="setting-label">Scratch That</label>
                                 <p class="setting-help">Say "scratch that" to undo the last transcription.</p>
@@ -594,7 +532,7 @@
                             </label>
                         </div>
 
-                        <div class="setting-row toggle-row child-setting" id="filler-aggressive-row">
+                        <div class="setting-row toggle-row child-settings" id="filler-aggressive-row">
                             <div class="setting-info">
                                 <label class="setting-label">Aggressive Mode</label>
                                 <p class="setting-help">Remove more words including "like", "you know", "basically".</p>
@@ -605,7 +543,7 @@
                             </label>
                         </div>
 
-                        <div class="child-setting" id="custom-fillers-section">
+                        <div class="child-settings" id="custom-fillers-section">
                             <div class="list-input-container">
                                 <label class="setting-label">Custom Filler Words</label>
                                 <div class="list-input-row">
@@ -627,12 +565,33 @@
                         </div>
                     </div>
 
-                    <!-- Custom Dictionary Section -->
+                    <!-- Word Customization Section -->
                     <div class="settings-section">
-                        <h3 class="section-title">Custom Dictionary</h3>
-                        <p class="section-description">Define word replacements to automatically fix common transcription errors.</p>
+                        <h3 class="section-title">Word Customization</h3>
+                        <p class="section-description">Customize vocabulary, word replacements, and text shortcuts.</p>
+
+                        <div class="list-input-container">
+                            <label class="setting-label">Custom Vocabulary</label>
+                            <p class="setting-help">Add words or phrases to improve recognition accuracy.</p>
+                            <div class="list-input-row">
+                                <input type="text" id="vocabulary-input" class="text-input"
+                                    placeholder="Enter a word or phrase..."
+                                    aria-label="New vocabulary word"
+                                    data-testid="vocabulary-input">
+                                <button type="button" id="add-vocabulary-btn" class="btn btn-secondary" data-testid="add-vocabulary-btn">Add</button>
+                            </div>
+                            <input type="text" id="vocabulary-search" class="list-search-input"
+                                placeholder="Filter vocabulary..."
+                                aria-label="Filter vocabulary list"
+                                data-testid="vocabulary-search">
+                            <ul class="editable-list" id="vocabulary-list" data-testid="vocabulary-list">
+                                <!-- Items added dynamically -->
+                            </ul>
+                            <p class="list-empty-state" id="vocabulary-empty">No custom vocabulary added yet.</p>
+                        </div>
 
                         <div class="setting-row">
+                            <label class="setting-label">Word Replacements</label>
                             <button type="button" id="edit-dictionary-btn" class="btn btn-secondary" data-testid="edit-dictionary-btn">
                                 <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -642,14 +601,9 @@
                             </button>
                             <span class="setting-help" id="dictionary-count">0 replacements defined</span>
                         </div>
-                    </div>
-
-                    <!-- Text Shortcuts Section -->
-                    <div class="settings-section">
-                        <h3 class="section-title">Text Shortcuts</h3>
-                        <p class="section-description">Create trigger phrases that expand into longer text blocks.</p>
 
                         <div class="setting-row">
+                            <label class="setting-label">Text Shortcuts</label>
                             <button type="button" id="edit-shortcuts-btn" class="btn btn-secondary" data-testid="edit-shortcuts-btn">
                                 <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -680,7 +634,7 @@
                             </label>
                         </div>
 
-                        <div class="child-setting" id="ai-cleanup-options">
+                        <div class="child-settings" id="ai-cleanup-options">
                             <div class="setting-row">
                                 <label class="setting-label">Ollama URL</label>
                                 <div class="input-with-button">
@@ -736,12 +690,24 @@
                         <a href="#" class="learn-more-link" id="ai-cleanup-learn-more">Learn more about AI cleanup</a>
                     </div>
 
-                    <!-- History Section -->
+                    <!-- Maintenance Section -->
                     <div class="settings-section">
-                        <h3 class="section-title">Transcription History</h3>
-                        <p class="section-description">View, export, or clear your recent transcription history.</p>
+                        <h3 class="section-title">Maintenance</h3>
+                        <p class="section-description">Manage startup behavior, history, and application data.</p>
+
+                        <div class="setting-row toggle-row">
+                            <div class="setting-info">
+                                <label class="setting-label">Start with Windows</label>
+                                <p class="setting-help">Launch MurmurTone automatically when you sign in.</p>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="start-with-windows" data-testid="start-with-windows">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
 
                         <div class="setting-row">
+                            <label class="setting-label">Transcription History</label>
                             <button type="button" id="view-history-btn" class="btn btn-secondary" data-testid="view-history-btn">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <circle cx="12" cy="12" r="10"></circle>
@@ -751,18 +717,13 @@
                             </button>
                             <span class="setting-sublabel" id="history-count">Loading...</span>
                         </div>
-                    </div>
-
-                    <!-- Reset Section -->
-                    <div class="settings-section">
-                        <h3 class="section-title">Reset Settings</h3>
-                        <p class="section-description">Restore all settings to their default values.</p>
 
                         <div class="setting-row">
+                            <label class="setting-label">Reset Settings</label>
                             <button type="button" id="reset-defaults-btn" class="btn btn-danger" data-testid="reset-defaults-btn">
                                 Reset to Defaults
                             </button>
-                            <p class="setting-help">This will not affect your license key.</p>
+                            <p class="setting-help">Restore all settings to their default values. This will not affect your license key.</p>
                         </div>
                     </div>
                 </section>
@@ -834,6 +795,7 @@
                     <!-- Links Section -->
                     <div class="settings-section">
                         <h3 class="section-title">Resources</h3>
+                        <p class="section-description">Documentation, support, and helpful links.</p>
                         <div class="link-buttons">
                             <button type="button" class="link-btn" data-url="https://murmurtone.com/docs">
                                 <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
