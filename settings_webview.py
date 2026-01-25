@@ -8,6 +8,7 @@ import os
 import sys
 import json
 import math
+import ctypes
 
 import sounddevice as sd
 import numpy as np
@@ -724,6 +725,55 @@ class SettingsAPI:
             return {"success": False, "error": str(e)}
 
 
+def apply_dark_titlebar_and_icon(window):
+    """Apply dark title bar and custom icon on Windows 10/11."""
+    if sys.platform != "win32":
+        return
+
+    try:
+        native = window.native
+
+        # Set icon on the WinForms Form
+        icon_path = os.path.join(os.path.dirname(__file__), "assets", "logo", "murmurtone-icon.ico")
+        if os.path.exists(icon_path):
+            try:
+                import clr
+                clr.AddReference("System.Drawing")
+                from System.Drawing import Icon
+                native.Icon = Icon(icon_path)
+            except Exception:
+                pass  # Icon setting failed, continue anyway
+
+        # Get window handle
+        hwnd = native.Handle.ToInt64()
+        dwm = ctypes.windll.dwmapi
+
+        # DWMWA_USE_IMMERSIVE_DARK_MODE (20 for Win10 1903+, 19 for 1809)
+        dark_value = ctypes.c_int(1)
+        if dwm.DwmSetWindowAttribute(hwnd, 20, ctypes.byref(dark_value), 4) != 0:
+            dwm.DwmSetWindowAttribute(hwnd, 19, ctypes.byref(dark_value), 4)
+
+        # Windows 11: DWMWA_CAPTION_COLOR (35) - set title bar to dark color
+        dark_color = ctypes.c_uint(0x002A170F)  # #0f172a in BGR format
+        dwm.DwmSetWindowAttribute(hwnd, 35, ctypes.byref(dark_color), 4)
+
+        # Force window frame redraw
+        user32 = ctypes.windll.user32
+        SWP_FRAMECHANGED = 0x0020
+        SWP_NOMOVE = 0x0002
+        SWP_NOSIZE = 0x0001
+        SWP_NOZORDER = 0x0004
+        user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0,
+                            SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER)
+
+        # Send WM_NCACTIVATE to force non-client area repaint
+        user32.SendMessageW(hwnd, 0x0086, 0, 0)
+        user32.SendMessageW(hwnd, 0x0086, 1, 0)
+
+    except Exception:
+        pass  # Silently fail on older Windows versions
+
+
 def create_window():
     """Create and run the PyWebView window."""
     api = SettingsAPI()
@@ -750,8 +800,11 @@ def main():
     """Entry point for the settings GUI."""
     window = create_window()
 
+    # Apply dark title bar and icon after window is shown
+    window.events.shown += lambda: apply_dark_titlebar_and_icon(window)
+
     # Start webview (blocks until window is closed)
-    webview.start(debug=True)  # debug=True for development
+    webview.start(debug=True)
 
 
 if __name__ == "__main__":
