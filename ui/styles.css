@@ -1168,6 +1168,25 @@ body {
 }
 
 /* ============================================
+   Child Settings (indent only, no border)
+   ============================================ */
+.child-setting {
+    margin-left: var(--space-xl);
+    margin-top: var(--space-sm);
+    transition: opacity var(--transition-normal);
+}
+
+.child-setting .setting-row + .setting-row {
+    border-top: none;
+    padding-top: var(--space-xs);
+}
+
+.child-setting.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* ============================================
    About Page Styles
    ============================================ */
 .about-info {
