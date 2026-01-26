@@ -11,6 +11,20 @@ let currentPage = 'general';
 let settings = {};
 let saveTimeout = null;
 let isDownloading = false;
+let modelDownloadStatus = {}; // Cache: { modelName: boolean }
+
+/**
+ * Update Download button visibility based on model installation status
+ */
+function updateDownloadButtonVisibility(modelName) {
+    const downloadBtn = document.getElementById('download-model-btn');
+    if (!downloadBtn) return;
+
+    const bundledModels = ['tiny', 'base'];
+    const isInstalled = bundledModels.includes(modelName) || modelDownloadStatus[modelName];
+
+    downloadBtn.style.display = isInstalled ? 'none' : '';
+}
 
 // ============================================
 // Model Download Callbacks (called from Python)
@@ -43,6 +57,12 @@ window.onModelDownloadComplete = function(success) {
 
     if (success) {
         showToast('Model downloaded successfully!', 'success');
+        // Update cache so button hides
+        const modelSelect = document.getElementById('model-size');
+        if (modelSelect) {
+            modelDownloadStatus[modelSelect.value] = true;
+            updateDownloadButtonVisibility(modelSelect.value);
+        }
         // Hide progress after a delay
         setTimeout(() => {
             if (progressRow) progressRow.classList.add('hidden');
@@ -280,7 +300,7 @@ async function loadSettings() {
         const result = await pywebview.api.get_all_settings();
         if (result.success) {
             settings = result.data;
-            populateForm();
+            await populateForm();
         } else {
             showToast('Failed to load settings: ' + result.error, 'error');
         }
@@ -422,7 +442,7 @@ function restoreActiveTab() {
 /**
  * Populate form fields with current settings
  */
-function populateForm() {
+async function populateForm() {
     // Hotkey combo
     setHotkeyDisplay('hotkey-capture', settings.hotkey ?? { ctrl: true, shift: true, alt: false, key: 'space' });
 
@@ -472,6 +492,19 @@ function populateForm() {
     // Recognition settings
     setDropdown('model-size', settings.model_size ?? 'tiny');
     setSlider('silence-duration', settings.silence_duration_sec ?? 2.0, 's');
+
+    // Fetch model download status and update button visibility
+    try {
+        const modelResult = await pywebview.api.get_available_models();
+        if (modelResult.success) {
+            modelResult.data.forEach(model => {
+                modelDownloadStatus[model.name] = model.is_downloaded;
+            });
+        }
+    } catch (e) {
+        console.warn('Could not fetch model status:', e);
+    }
+    updateDownloadButtonVisibility(settings.model_size ?? 'tiny');
 
     // Translation settings
     setCheckbox('translation-enabled', settings.translation_enabled ?? false);
@@ -588,7 +621,10 @@ function setupFormListeners() {
     }
 
     // Recognition settings
-    addDropdownListener('model-size', (value) => saveSetting('model_size', value));
+    addDropdownListener('model-size', (value) => {
+        saveSetting('model_size', value);
+        updateDownloadButtonVisibility(value);
+    });
     addDropdownListener('processing-mode', (value) => saveSetting('processing_mode', value));
     addSliderListener('silence-duration', (value) => saveSetting('silence_duration_sec', parseFloat(value)), 's');
 
