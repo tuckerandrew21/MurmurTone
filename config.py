@@ -71,7 +71,8 @@ DEFAULTS = {
     "ai_cleanup_mode": "grammar",  # grammar, formality, or both
     "ai_formality_level": "professional",  # casual, professional, or formal
     # Updates
-    "auto_update": True,  # Check for updates automatically on startup
+    "auto_update": False,  # Check for updates automatically on startup
+    "last_update_check": 0,  # Unix timestamp of last update check
     # License and trial system
     # SECURITY: License key is encrypted using Windows DPAPI before storage.
     # DPAPI uses the current Windows user's credentials, so only that user can decrypt.

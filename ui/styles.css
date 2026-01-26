@@ -1951,6 +1951,32 @@ body {
     max-width: 320px;
 }
 
+/* Update Modal */
+.update-version-text,
+.update-current-text,
+.update-info-text {
+    color: var(--slate-300);
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.update-version-text {
+    font-size: 1rem;
+    margin-bottom: var(--space-xs);
+}
+
+.update-version-text strong,
+.update-current-text strong {
+    color: var(--slate-100);
+}
+
+.update-info-text {
+    font-size: 0.875rem;
+    color: var(--slate-400);
+    margin-top: var(--space-sm);
+}
+
 /* Add Item Form */
 .add-item-form {
     display: flex;

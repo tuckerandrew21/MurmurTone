@@ -680,7 +680,6 @@ class SettingsAPI:
 
     def check_for_updates(self):
         """Check GitHub releases for newer version."""
-        print("DEBUG: check_for_updates() called")
         try:
             import urllib.request
 

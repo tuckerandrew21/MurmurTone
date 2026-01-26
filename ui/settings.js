@@ -211,10 +211,26 @@ function init() {
     if (typeof pywebview !== 'undefined') {
         window.addEventListener('pywebviewready', onApiReady);
     } else {
-        // Running in browser for testing - use mock API
-        console.log('Running in browser mode with mock API');
-        window.pywebview = createMockApi();
-        onApiReady();
+        // PyWebView may not have injected yet - wait up to 2 seconds before falling back to mock
+        let attempts = 0;
+        const maxAttempts = 20; // 20 * 100ms = 2 seconds
+        const checkPyWebView = setInterval(() => {
+            attempts++;
+            if (typeof pywebview !== 'undefined') {
+                clearInterval(checkPyWebView);
+                window.addEventListener('pywebviewready', onApiReady);
+                // If pywebviewready already fired, trigger manually
+                if (pywebview.api) {
+                    onApiReady();
+                }
+            } else if (attempts >= maxAttempts) {
+                clearInterval(checkPyWebView);
+                // Running in browser for testing - use mock API
+                console.log('Running in browser mode with mock API');
+                window.pywebview = createMockApi();
+                onApiReady();
+            }
+        }, 100);
     }
 }
 
@@ -515,7 +531,7 @@ function populateForm() {
     hideOllamaConfigRows();
 
     // About page
-    setCheckbox('auto-update', settings.auto_update ?? true);
+    setCheckbox('auto-update', settings.auto_update ?? false);
     loadAboutInfo();
     loadLicenseStatus();
 }
@@ -814,24 +830,36 @@ function setupFormListeners() {
 
     // About page - Check for updates button
     const checkUpdatesBtn = document.getElementById('check-updates-btn');
+    console.log('Check updates button element:', checkUpdatesBtn);
     if (checkUpdatesBtn) {
         checkUpdatesBtn.addEventListener('click', async () => {
+            console.log('Check updates button clicked');
             checkUpdatesBtn.disabled = true;
             checkUpdatesBtn.textContent = 'Checking...';
             try {
+                console.log('Calling pywebview.api.check_for_updates()...');
                 const result = await pywebview.api.check_for_updates();
+                console.log('Update check result:', result);
                 if (result.success && result.data.update_available) {
-                    showToast(`Update available: v${result.data.latest_version}`, 'info');
+                    console.log('Update available, showing modal');
+                    // Show branded modal instead of toast
+                    showUpdateModal(result.data);
                 } else if (result.success) {
+                    console.log('No update available, showing success toast');
                     showToast('You have the latest version', 'success');
                 } else {
+                    console.log('Update check unsuccessful, showing error toast');
                     showToast('Could not check for updates', 'error');
                 }
             } catch (error) {
+                console.error('Update check error:', error);
                 showToast('Update check failed', 'error');
             } finally {
+                console.log('Resetting button state');
                 checkUpdatesBtn.disabled = false;
-                checkUpdatesBtn.textContent = 'Check Now';
+                setTimeout(() => {
+                    checkUpdatesBtn.textContent = 'Check Now';
+                }, 3000);
             }
         });
     }
@@ -1671,6 +1699,61 @@ function closeModal(modalId) {
         modal.classList.remove('visible');
         document.body.style.overflow = '';
     }
+}
+
+/**
+ * Show update available modal
+ */
+function showUpdateModal(updateData) {
+    const modal = document.getElementById('update-modal');
+    const versionEl = document.getElementById('update-version-number');
+    const currentEl = document.getElementById('current-version-number');
+    const downloadBtn = document.getElementById('update-download-btn');
+    const laterBtn = document.getElementById('update-later-btn');
+    const closeBtn = document.getElementById('update-modal-close');
+
+    if (!modal || !versionEl || !currentEl) return;
+
+    // Populate version numbers
+    versionEl.textContent = updateData.latest_version;
+    currentEl.textContent = updateData.current_version;
+
+    // Show modal
+    modal.classList.add('visible');
+    document.body.style.overflow = 'hidden';
+
+    // Handle download button
+    const handleDownload = () => {
+        if (updateData.download_url) {
+            pywebview.api.open_url(updateData.download_url);
+        }
+        modal.classList.remove('visible');
+        document.body.style.overflow = '';
+        cleanup();
+    };
+
+    // Handle later button and close
+    const handleClose = () => {
+        modal.classList.remove('visible');
+        document.body.style.overflow = '';
+        cleanup();
+    };
+
+    const cleanup = () => {
+        downloadBtn.removeEventListener('click', handleDownload);
+        laterBtn.removeEventListener('click', handleClose);
+        closeBtn.removeEventListener('click', handleClose);
+    };
+
+    // Attach event listeners
+    downloadBtn.addEventListener('click', handleDownload);
+    laterBtn.addEventListener('click', handleClose);
+    closeBtn.addEventListener('click', handleClose);
+}
+
+// Expose to Python backend
+if (typeof window !== 'undefined') {
+    window.showUpdateModal = showUpdateModal;
 }
 
 /**
@@ -2520,7 +2603,9 @@ function showSaveStatus() {
 let toastTimeout = null;
 
 function showToast(message, type = 'info') {
+    console.log('showToast called with:', message, type);
     const toast = document.getElementById('toast');
+    console.log('Toast element:', toast);
     if (toast) {
         // Clear any existing timeout
         if (toastTimeout) {
@@ -2529,11 +2614,14 @@ function showToast(message, type = 'info') {
 
         toast.textContent = message;
         toast.className = 'toast visible ' + type;
+        console.log('Toast shown with classes:', toast.className);
 
         // Auto-dismiss after 3 seconds
         toastTimeout = setTimeout(() => {
             toast.classList.remove('visible');
         }, 3000);
+    } else {
+        console.error('Toast element not found!');
     }
 }
 
@@ -2616,14 +2704,13 @@ function setupKeyboardNavigation() {
 // Welcome Banner
 // ============================================
 
-const FIRST_RUN_KEY = 'murmurtone_first_run_shown';
-
 /**
  * Check if this is first run and show welcome banner
+ * Now reads from backend config instead of localStorage for reliable persistence
  */
-function checkFirstRun() {
-    const hasSeenWelcome = localStorage.getItem(FIRST_RUN_KEY);
-    if (!hasSeenWelcome) {
+async function checkFirstRun() {
+    // Check backend config instead of localStorage
+    if (!settings.onboarding_complete) {
         showWelcomeBanner();
     }
 }
@@ -2640,23 +2727,18 @@ function showWelcomeBanner() {
 
 /**
  * Hide the welcome banner and mark as seen
+ * Now saves to backend config instead of localStorage for reliable persistence
  */
-function hideWelcomeBanner() {
+async function hideWelcomeBanner() {
     const banner = document.getElementById('welcome-banner');
     const dontShowAgain = document.getElementById('dont-show-again');
     if (banner) {
         banner.classList.remove('visible');
         if (dontShowAgain && dontShowAgain.checked) {
-            localStorage.setItem(FIRST_RUN_KEY, 'true');
+            // Save to backend config instead of localStorage
+            await saveSetting('onboarding_complete', true);
         }
     }
-}
-
-/**
- * Reset first run state (for testing)
- */
-function resetFirstRun() {
-    localStorage.removeItem(FIRST_RUN_KEY);
 }
 
 // ============================================

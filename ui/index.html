@@ -768,11 +768,11 @@
 
                         <div class="setting-row toggle-row">
                             <div class="setting-info">
-                                <label class="setting-label">Auto Update</label>
-                                <p class="setting-help">Automatically download and install updates.</p>
+                                <label class="setting-label">Check for Updates on Startup</label>
+                                <p class="setting-help">Check for new versions when app launches. Requires internet connection.</p>
                             </div>
                             <label class="toggle">
-                                <input type="checkbox" id="auto-update" aria-label="Auto update" data-testid="auto-update" checked>
+                                <input type="checkbox" id="auto-update" aria-label="Auto update" data-testid="auto-update">
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
@@ -1147,6 +1147,37 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" id="confirm-cancel">Cancel</button>
                 <button type="button" class="btn btn-danger" id="confirm-reset">Reset Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Update Available Modal -->
+    <div class="modal-overlay" id="update-modal" style="display: none;">
+        <div class="modal modal-small">
+            <div class="modal-header">
+                <h3 class="modal-title">Update Available</h3>
+                <button type="button" class="modal-close" id="update-modal-close" title="Close">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body modal-body-centered">
+                <div class="modal-icon info">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48">
+                        <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                        <path d="M12 8v4"/>
+                        <path d="M12 16h.01"/>
+                    </svg>
+                </div>
+                <p class="update-version-text">Version <strong id="update-version-number"></strong> is now available</p>
+                <p class="update-current-text">You're currently running version <strong id="current-version-number"></strong></p>
+                <p class="update-info-text">This update includes bug fixes and new features.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="update-later-btn">Remind Me Later</button>
+                <button type="button" class="btn btn-primary" id="update-download-btn">Download Update</button>
             </div>
         </div>
     </div>
