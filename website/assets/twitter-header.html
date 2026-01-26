@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>MurmurTone Twitter Header</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        .header {
+            width: 1500px;
+            height: 500px;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Subtle grid pattern */
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                linear-gradient(rgba(13, 148, 136, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(13, 148, 136, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        /* Glowing orb effect */
+        .glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(13, 148, 136, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .content {
+            text-align: center;
+            z-index: 1;
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .tagline {
+            font-size: 48px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 16px;
+        }
+
+        .tagline .highlight {
+            color: #14b8a6;
+        }
+
+        .subtitle {
+            font-size: 24px;
+            color: #94a3b8;
+            font-weight: 400;
+        }
+
+        /* Sound wave decoration */
+        .wave {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            align-items: end;
+        }
+
+        .wave span {
+            width: 4px;
+            background: #0d9488;
+            border-radius: 2px;
+            opacity: 0.6;
+        }
+
+        .wave span:nth-child(1) { height: 20px; }
+        .wave span:nth-child(2) { height: 35px; }
+        .wave span:nth-child(3) { height: 50px; }
+        .wave span:nth-child(4) { height: 70px; }
+        .wave span:nth-child(5) { height: 50px; }
+        .wave span:nth-child(6) { height: 35px; }
+        .wave span:nth-child(7) { height: 20px; }
+
+        /* Shield icon */
+        .shield {
+            position: absolute;
+            top: 40px;
+            right: 80px;
+            opacity: 0.1;
+        }
+
+        .shield svg {
+            width: 120px;
+            height: 120px;
+            fill: #0d9488;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="glow"></div>
+
+        <div class="shield">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+        </div>
+
+        <div class="content">
+            <div class="tagline">Your voice <span class="highlight">stays local</span></div>
+            <div class="subtitle">Private voice-to-text for Windows</div>
+        </div>
+
+        <div class="wave">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </div>
+</body>
+</html>
