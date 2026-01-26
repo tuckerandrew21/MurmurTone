@@ -512,6 +512,7 @@ function populateForm() {
     updateAiCleanupVisibility();
     updatePreviewVisibility();
     toggleFormalityRow();
+    hideOllamaConfigRows();
 
     // About page
     loadAboutInfo();
@@ -722,7 +723,7 @@ function setupFormListeners() {
         } else {
             // Hide action row when disabled
             const actionRow = document.getElementById('ollama-action-row');
-            if (actionRow) actionRow.classList.remove('visible');
+            if (actionRow) actionRow.style.display = 'none';
         }
     });
     addInputListener('ollama-url', (value) => saveSetting('ollama_url', value), 1000);
@@ -743,6 +744,27 @@ function setupFormListeners() {
     const retryOllamaBtn = document.getElementById('retry-ollama-btn');
     if (retryOllamaBtn) {
         retryOllamaBtn.addEventListener('click', testOllamaConnection);
+    }
+
+    // Download Ollama button
+    const downloadOllamaBtn = document.getElementById('download-ollama-btn');
+    if (downloadOllamaBtn) {
+        downloadOllamaBtn.addEventListener('click', () => {
+            window.open('https://ollama.ai/download', '_blank');
+        });
+    }
+
+    // Show Ollama config button
+    const showOllamaConfigBtn = document.getElementById('show-ollama-config-btn');
+    if (showOllamaConfigBtn) {
+        showOllamaConfigBtn.addEventListener('click', () => {
+            showOllamaConfigRows();
+            // Auto-scroll to the URL input
+            const urlRow = document.getElementById('ollama-url-row');
+            if (urlRow) {
+                urlRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        });
     }
 
     // Advanced settings - Preview
@@ -1532,6 +1554,37 @@ function toggleFormalityRow() {
 }
 
 /**
+ * Hide Ollama configuration rows (URL, status, model)
+ * These are technical settings that most users don't need to see
+ */
+function hideOllamaConfigRows() {
+    const urlRow = document.getElementById('ollama-url-row');
+    const statusRow = document.getElementById('ollama-status-row');
+    const modelRow = document.getElementById('ollama-model-row');
+    const actionRow = document.getElementById('ollama-action-row');
+
+    if (urlRow) urlRow.style.display = 'none';
+    if (statusRow) statusRow.style.display = 'none';
+    if (modelRow) modelRow.style.display = 'none';
+    if (actionRow) actionRow.style.display = 'none';
+}
+
+/**
+ * Show Ollama configuration rows (for troubleshooting)
+ */
+function showOllamaConfigRows() {
+    const urlRow = document.getElementById('ollama-url-row');
+    const statusRow = document.getElementById('ollama-status-row');
+    const modelRow = document.getElementById('ollama-model-row');
+    const actionRow = document.getElementById('ollama-action-row');
+
+    if (urlRow) urlRow.style.display = 'flex';
+    if (statusRow) statusRow.style.display = 'flex';
+    if (modelRow) modelRow.style.display = 'flex';
+    if (actionRow) actionRow.style.display = 'none'; // Hide action row when showing config
+}
+
+/**
  * Update preview sub-options visibility
  */
 function updatePreviewVisibility() {
@@ -2267,7 +2320,7 @@ async function testOllamaConnection() {
     badge.className = 'status-badge checking';
     badge.querySelector('.status-text').textContent = 'Testing...';
     if (btn) btn.disabled = true;
-    if (actionRow) actionRow.classList.remove('visible');
+    if (actionRow) actionRow.style.display = 'none';
 
     try {
         const result = await pywebview.api.test_ollama_connection(url);
@@ -2275,19 +2328,19 @@ async function testOllamaConnection() {
             badge.className = 'status-badge available';
             badge.querySelector('.status-text').textContent = 'Connected';
             showToast('Ollama connection successful', 'success');
-            if (actionRow) actionRow.classList.remove('visible');
+            if (actionRow) actionRow.style.display = 'none';
         } else {
             badge.className = 'status-badge unavailable';
             badge.querySelector('.status-text').textContent = result.error || 'Connection failed';
             showToast('Could not connect to Ollama', 'error');
-            if (actionRow) actionRow.classList.add('visible');
+            if (actionRow) actionRow.style.display = 'flex';
         }
     } catch (error) {
         console.error('Error testing Ollama:', error);
         badge.className = 'status-badge unavailable';
         badge.querySelector('.status-text').textContent = 'Error';
         showToast('Connection test failed', 'error');
-        if (actionRow) actionRow.classList.add('visible');
+        if (actionRow) actionRow.style.display = 'flex';
     } finally {
         if (btn) btn.disabled = false;
     }
