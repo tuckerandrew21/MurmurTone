@@ -1,0 +1,586 @@
+{
+  "name": "MurmurTone - Automated Blog Publishing",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 */3 * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Every 3 Days",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://raw.githubusercontent.com/tuckerandrew21/MurmurTone/master/website/blog-state.json",
+        "method": "GET",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "fetch-state",
+      "name": "Fetch blog-state.json",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse or initialize blog state\nconst response = $input.item.json;\n\nif (response.statusCode === 404 || !response.body) {\n  return {\n    posts: [],\n    totalPosts: 0,\n    lastPublished: null,\n    previousTitles: []\n  };\n}\n\nconst state = typeof response.body === 'string' ? JSON.parse(response.body) : response.body;\nconst previousTitles = state.posts ? state.posts.map(p => p.title) : [];\n\nreturn {\n  ...state,\n  previousTitles\n};"
+      },
+      "id": "parse-state",
+      "name": "Parse or Initialize State",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-4o"
+            },
+            {
+              "name": "temperature",
+              "value": "0.8"
+            },
+            {
+              "name": "max_tokens",
+              "value": "500"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [{\"role\": \"system\", \"content\": $json.systemPrompt}, {\"role\": \"user\", \"content\": $json.userPrompt}] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "topic-generation",
+      "name": "Generate Topic with OpenAI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1020, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Y9V7ZtGMXYd5M6Ky",
+          "name": "OpenAI Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build OpenAI prompt for topic generation\nconst state = $input.item.json;\nconst previousTitles = state.previousTitles || [];\n\nconst systemPrompt = `You are a content strategist for MurmurTone, a privacy-first voice-to-text application.\n\nBrand Voice:\n- Privacy-first (not fear-based)\n- Professional and technical  \n- Confident, not salesy\n- No emojis or superlatives\n\nMessaging Pillars:\n1. Privacy: 100% local processing, no cloud\n2. Speed: Real-time transcription, GPU acceleration\n3. Accuracy: Whisper AI model, 18+ languages\n4. Control: Works offline, no external dependencies\n\nTarget Audience:\n- Primary: Professionals with sensitive data (lawyers, doctors, therapists, journalists)\n- Secondary: Privacy-conscious power users, developers, remote workers\n\nGenerate ONE blog post topic that:\n- Aligns with messaging pillars\n- Addresses a real user pain point\n- Is educational, not promotional\n- Avoids already covered topics\n\nAlready published:\n${previousTitles.map(t => `- ${t}`).join('\\n') || 'None yet (first post)'}\n\nOutput ONLY valid JSON (no markdown, no code blocks):\n{\n  \"title\": \"Article title (under 60 chars)\",\n  \"slug\": \"url-friendly-slug\",\n  \"description\": \"One sentence (150-160 chars)\",\n  \"targetKeywords\": [\"keyword1\", \"keyword2\", \"keyword3\"]\n}`;\n\nconst userPrompt = 'Generate a new blog post topic for MurmurTone.';\n\nreturn {\n  ...state,\n  systemPrompt,\n  userPrompt\n};"
+      },
+      "id": "build-topic-prompt",
+      "name": "Build Topic Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate and parse OpenAI topic response\nconst response = $input.item.json;\nconst content = response.choices[0].message.content.trim();\n\n// Remove markdown code blocks if present\nconst cleanContent = content.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\n\nlet topic;\ntry {\n  topic = JSON.parse(cleanContent);\n} catch (e) {\n  throw new Error(`Failed to parse topic JSON: ${e.message}\\n\\nContent: ${cleanContent}`);\n}\n\n// Validate required fields\nif (!topic.title || topic.title.length < 10) {\n  throw new Error('Topic title is missing or too short');\n}\nif (!topic.slug || topic.slug.length < 3) {\n  throw new Error('Topic slug is missing or too short');\n}\nif (!topic.description || topic.description.length < 50) {\n  throw new Error('Topic description is missing or too short');\n}\n\n// Get state from previous node\nconst state = $('Build Topic Prompt').item.json;\n\nreturn {\n  ...state,\n  topic\n};"
+      },
+      "id": "validate-topic",
+      "name": "Validate Topic",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1140, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build OpenAI prompt for article generation\nconst data = $input.item.json;\nconst topic = data.topic;\n\nconst systemPrompt = `You are a technical content writer for MurmurTone.\n\nWrite an 800-1200 word blog post that:\n- Uses clear H2 and H3 headings\n- Includes practical examples\n- Stays technical and accurate\n- Avoids marketing fluff\n- Follows brand voice (privacy-first, professional, no emojis)\n\nStructure:\n1. Hook paragraph (problem statement)\n2. 3-4 main sections with H2 headings\n3. Practical examples or use cases\n4. Conclusion with actionable takeaway\n\nOutput clean HTML (h2, h3, p, ul, ol, code, strong only). \nDO NOT include <article>, <header>, <html>, or <body> tags. \nJust the content HTML.\n\nTitle: ${topic.title}\nDescription: ${topic.description}\nTarget keywords: ${topic.targetKeywords.join(', ')}`;\n\nconst userPrompt = 'Write the full article.';\n\nreturn {\n  ...data,\n  articleSystemPrompt: systemPrompt,\n  articleUserPrompt: userPrompt\n};"
+      },
+      "id": "build-article-prompt",
+      "name": "Build Article Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1260, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-4o"
+            },
+            {
+              "name": "temperature",
+              "value": "0.7"
+            },
+            {
+              "name": "max_tokens",
+              "value": "3000"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [{\"role\": \"system\", \"content\": $json.articleSystemPrompt}, {\"role\": \"user\", \"content\": $json.articleUserPrompt}] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "article-generation",
+      "name": "Generate Article with OpenAI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1380, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Y9V7ZtGMXYd5M6Ky",
+          "name": "OpenAI Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate metadata from article\nconst response = $input.item.json;\nconst articleHtml = response.choices[0].message.content.trim();\n\n// Get topic and state from previous nodes\nconst data = $('Build Article Prompt').item.json;\nconst topic = data.topic;\n\n// Calculate word count (strip HTML)\nconst textOnly = articleHtml.replace(/<[^>]*>/g, ' ').replace(/\\s+/g, ' ');\nconst wordCount = textOnly.trim().split(/\\s+/).length;\nconst readTime = Math.max(1, Math.ceil(wordCount / 200)); // 200 WPM\n\n// Generate filename with date\nconst date = new Date();\nconst dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD\nconst filename = `${dateStr}-${topic.slug}.html`;\n\n// Format date for display\nconst formattedDate = date.toLocaleDateString('en-US', { \n  year: 'numeric', \n  month: 'long', \n  day: 'numeric' \n});\n\n// ISO date for structured data\nconst isoDate = date.toISOString();\n\n// URL encode title for Twitter\nconst encodedTitle = encodeURIComponent(topic.title);\n\nreturn {\n  ...data,\n  article: {\n    html: articleHtml,\n    wordCount,\n    readTime,\n    filename,\n    formattedDate,\n    isoDate,\n    encodedTitle,\n    url: `https://murmurtone.com/blog/${filename}`\n  }\n};"
+      },
+      "id": "calculate-metadata",
+      "name": "Calculate Metadata",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1500, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://raw.githubusercontent.com/tuckerandrew21/MurmurTone/master/website/blog-template.html",
+        "method": "GET",
+        "options": {}
+      },
+      "id": "fetch-template",
+      "name": "Fetch Template",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1620, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build complete post HTML from template\nconst templateResponse = $input.item.json;\nconst template = templateResponse.body || templateResponse;\n\n// Get data from previous nodes\nconst data = $('Calculate Metadata').item.json;\nconst topic = data.topic;\nconst article = data.article;\n\n// Replace all placeholders\nlet postHtml = template\n  .replace(/{{POST_TITLE}}/g, topic.title)\n  .replace(/{{META_DESCRIPTION}}/g, topic.description)\n  .replace(/{{ARTICLE_HTML}}/g, article.html)\n  .replace(/{{FILENAME}}/g, article.filename)\n  .replace(/{{FORMATTED_DATE}}/g, article.formattedDate)\n  .replace(/{{ISO_DATE}}/g, article.isoDate)\n  .replace(/{{READ_TIME}}/g, article.readTime)\n  .replace(/{{ENCODED_TITLE}}/g, article.encodedTitle);\n\nreturn {\n  ...data,\n  postHtml\n};"
+      },
+      "id": "build-post-html",
+      "name": "Build Post HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1740, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Update blog-state.json with new post\nconst data = $input.item.json;\nconst topic = data.topic;\nconst article = data.article;\nconst state = data;\n\nconst newPost = {\n  title: topic.title,\n  description: topic.description,\n  filename: article.filename,\n  publishDate: article.isoDate,\n  wordCount: article.wordCount,\n  readTime: article.readTime\n};\n\nconst updatedState = {\n  posts: [newPost, ...(state.posts || [])],\n  totalPosts: (state.totalPosts || 0) + 1,\n  lastPublished: article.isoDate\n};\n\nreturn {\n  ...data,\n  updatedState,\n  stateJson: JSON.stringify(updatedState, null, 2)\n};"
+      },
+      "id": "update-state",
+      "name": "Update State",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1860, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Regenerate blog.html with new post\nconst data = $input.item.json;\nconst state = data.updatedState;\n\n// Generate post cards HTML\nconst postsHtml = state.posts.map(post => {\n  const date = new Date(post.publishDate).toLocaleDateString('en-US', {\n    year: 'numeric',\n    month: 'long',\n    day: 'numeric'\n  });\n  \n  return `\n                <div class=\"post-card\">\n                    <span class=\"post-date\">${date}</span>\n                    <h2><a href=\"/blog/${post.filename}\">${post.title}</a></h2>\n                    <p class=\"post-excerpt\">${post.description}</p>\n                    <div class=\"post-meta\">\n                        <span class=\"meta-item\">\n                            <svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\">\n                                <circle cx=\"12\" cy=\"12\" r=\"10\"/>\n                                <polyline points=\"12 6 12 12 16 14\"/>\n                            </svg>\n                            ${post.readTime} min read\n                        </span>\n                        <a href=\"/blog/${post.filename}\" class=\"read-more\">\n                            Read more\n                            <svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\">\n                                <line x1=\"5\" y1=\"12\" x2=\"19\" y2=\"12\"/>\n                                <polyline points=\"12 5 19 12 12 19\"/>\n                            </svg>\n                        </a>\n                    </div>\n                </div>`;\n}).join('\\n');\n\n// Read the base blog.html structure (we'll need to fetch it)\n// For now, generate the posts section that replaces the empty state\nconst postsGridHtml = `            <div class=\"posts-grid\">\n${postsHtml}\n            </div>`;\n\nreturn {\n  ...data,\n  postsGridHtml\n};"
+      },
+      "id": "regenerate-blog-index",
+      "name": "Regenerate blog.html",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1980, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://raw.githubusercontent.com/tuckerandrew21/MurmurTone/master/website/blog.html",
+        "method": "GET",
+        "options": {}
+      },
+      "id": "fetch-blog-template",
+      "name": "Fetch blog.html Template",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2100, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Replace posts section in blog.html\nconst blogTemplateResponse = $input.item.json;\nconst blogTemplate = blogTemplateResponse.body || blogTemplateResponse;\n\nconst data = $('Regenerate blog.html').item.json;\nconst postsGridHtml = data.postsGridHtml;\n\n// Find and replace the posts grid section (including empty state)\nconst emptyStatePattern = /<div class=\"posts-grid\">\\s*<div class=\"empty-state\">.*?<\\/div>\\s*<\\/div>/s;\nconst existingPostsPattern = /<div class=\"posts-grid\">.*?<\\/div>\\s*<\\/div>\\s*<\\/section>/s;\n\nlet updatedBlogHtml;\nif (blogTemplate.match(emptyStatePattern)) {\n  updatedBlogHtml = blogTemplate.replace(emptyStatePattern, postsGridHtml + '\\n            </div>\\n        </div>\\n    </section>');\n} else if (blogTemplate.match(existingPostsPattern)) {\n  updatedBlogHtml = blogTemplate.replace(/<div class=\"posts-grid\">.*?<\\/div>(?=\\s*<\\/div>\\s*<\\/section>)/s, postsGridHtml);\n} else {\n  throw new Error('Could not find posts-grid section in blog.html template');\n}\n\nreturn {\n  ...data,\n  blogHtml: updatedBlogHtml\n};"
+      },
+      "id": "update-blog-html",
+      "name": "Update blog.html",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2220, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate RSS feed.xml\nconst data = $input.item.json;\nconst state = data.updatedState;\n\n// Get 10 most recent posts for RSS\nconst recentPosts = state.posts.slice(0, 10);\n\nconst items = recentPosts.map(post => {\n  const pubDate = new Date(post.publishDate).toUTCString();\n  return `    <item>\n      <title>${post.title}</title>\n      <link>https://murmurtone.com/blog/${post.filename}</link>\n      <description>${post.description}</description>\n      <pubDate>${pubDate}</pubDate>\n      <guid>https://murmurtone.com/blog/${post.filename}</guid>\n    </item>`;\n}).join('\\n');\n\nconst now = new Date().toUTCString();\n\nconst feedXml = `<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\" xmlns:atom=\"http://www.w3.org/2005/Atom\">\n  <channel>\n    <title>MurmurTone Blog</title>\n    <link>https://murmurtone.com/blog.html</link>\n    <description>Privacy-first insights on local voice recognition, AI transcription, and data sovereignty.</description>\n    <language>en-us</language>\n    <atom:link href=\"https://murmurtone.com/feed.xml\" rel=\"self\" type=\"application/rss+xml\"/>\n    <lastBuildDate>${now}</lastBuildDate>\n${items}\n  </channel>\n</rss>`;\n\nreturn {\n  ...data,\n  feedXml\n};"
+      },
+      "id": "generate-feed",
+      "name": "Generate feed.xml",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2340, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://raw.githubusercontent.com/tuckerandrew21/MurmurTone/master/website/sitemap.xml",
+        "method": "GET",
+        "options": {}
+      },
+      "id": "fetch-sitemap",
+      "name": "Fetch sitemap.xml",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Update sitemap.xml with new blog post\nconst sitemapResponse = $input.item.json;\nconst sitemap = sitemapResponse.body || sitemapResponse;\n\nconst data = $('Generate feed.xml').item.json;\nconst article = data.article;\n\n// Create new URL entry\nconst today = new Date().toISOString().split('T')[0];\nconst newEntry = `  <url>\n    <loc>${article.url}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.7</priority>\n  </url>`;\n\n// Find the Blog Posts comment and add entry after it\nconst blogPostsComment = '<!-- Individual blog posts will be added here by n8n workflow -->';\nconst updatedSitemap = sitemap.replace(\n  blogPostsComment,\n  blogPostsComment + '\\n' + newEntry\n);\n\nreturn {\n  ...data,\n  sitemapXml: updatedSitemap\n};"
+      },
+      "id": "update-sitemap",
+      "name": "Update sitemap.xml",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2580, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/repos/tuckerandrew21/MurmurTone/git/ref/heads/master",
+        "method": "GET",
+        "options": {}
+      },
+      "id": "get-latest-commit",
+      "name": "Get Latest Commit SHA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2700, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Yc0tIZxQTaV6u8Ms",
+          "name": "RV GitHub Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare all 5 files for blob creation\nconst refResponse = $input.item.json;\nconst commitSha = refResponse.object.sha;\n\n// Get all the generated files from previous nodes\nconst data = $('Update sitemap.xml').item.json;\nconst article = data.article;\nconst postHtml = data.postHtml;\nconst stateJson = data.stateJson;\nconst blogHtml = data.blogHtml;\nconst feedXml = data.feedXml;\nconst sitemapXml = data.sitemapXml;\n\n// Base64 encode all files\nconst files = [\n  {\n    path: `website/blog/${article.filename}`,\n    content: Buffer.from(postHtml).toString('base64'),\n    name: 'post'\n  },\n  {\n    path: 'website/blog-state.json',\n    content: Buffer.from(stateJson).toString('base64'),\n    name: 'state'\n  },\n  {\n    path: 'website/blog.html',\n    content: Buffer.from(blogHtml).toString('base64'),\n    name: 'blog-index'\n  },\n  {\n    path: 'website/feed.xml',\n    content: Buffer.from(feedXml).toString('base64'),\n    name: 'feed'\n  },\n  {\n    path: 'website/sitemap.xml',\n    content: Buffer.from(sitemapXml).toString('base64'),\n    name: 'sitemap'\n  }\n];\n\n// Return array of items (one per file) for next node to process\nreturn files.map(file => ({\n  ...data,\n  commitSha,\n  file\n}));"
+      },
+      "id": "prepare-blobs",
+      "name": "Prepare All Blobs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2820, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/repos/tuckerandrew21/MurmurTone/git/blobs",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ $json.file.content }}"
+            },
+            {
+              "name": "encoding",
+              "value": "base64"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "create-blobs",
+      "name": "Create All Blobs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2940, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Yc0tIZxQTaV6u8Ms",
+          "name": "RV GitHub Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Collect all blob SHAs from the 5 blob creation responses\nconst items = $input.all();\n\n// Get commit SHA from first item\nconst commitSha = items[0].json.commitSha;\n\n// Get original data from first item\nconst data = items[0].json;\n\n// Build tree array with blob SHAs\nconst tree = items.map(item => ({\n  path: item.json.file.path,\n  mode: '100644',\n  type: 'blob',\n  sha: item.json.sha\n}));\n\nreturn {\n  ...data,\n  commitSha,\n  tree\n};"
+      },
+      "id": "collect-blob-shas",
+      "name": "Collect Blob SHAs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3060, 300]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/tuckerandrew21/MurmurTone/git/commits/{{ $json.commitSha }}",
+        "method": "GET",
+        "options": {}
+      },
+      "id": "get-base-tree",
+      "name": "Get Base Tree SHA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3180, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Yc0tIZxQTaV6u8Ms",
+          "name": "RV GitHub Header Auth"
+        }
+      },
+      "continueOnFail": false
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/repos/tuckerandrew21/MurmurTone/git/trees",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "base_tree",
+              "value": "={{ $json.tree.sha }}"
+            },
+            {
+              "name": "tree",
+              "value": "={{ $('Collect Blob SHAs').item.json.tree }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "create-tree",
+      "name": "Create Tree",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3300, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Yc0tIZxQTaV6u8Ms",
+          "name": "RV GitHub Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/repos/tuckerandrew21/MurmurTone/git/commits",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "=chore: publish blog post - {{ $('Collect Blob SHAs').item.json.topic.title }}\\n\\nCo-Authored-By: n8n Automation <noreply@n8n.io>"
+            },
+            {
+              "name": "tree",
+              "value": "={{ $json.sha }}"
+            },
+            {
+              "name": "parents",
+              "value": "={{ [$('Collect Blob SHAs').item.json.commitSha] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "create-commit",
+      "name": "Create Commit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3420, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Yc0tIZxQTaV6u8Ms",
+          "name": "RV GitHub Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/repos/tuckerandrew21/MurmurTone/git/refs/heads/master",
+        "method": "PATCH",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "sha",
+              "value": "={{ $json.sha }}"
+            },
+            {
+              "name": "force",
+              "value": "false"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-master-ref",
+      "name": "Update Master Ref",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3540, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Yc0tIZxQTaV6u8Ms",
+          "name": "RV GitHub Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "slack-message",
+              "name": "slackMessage",
+              "value": "=🎉 New blog post published!\n\n**{{ $('Collect Blob SHAs').item.json.topic.title }}**\n{{ $('Collect Blob SHAs').item.json.article.url }}\n\n📊 Stats:\n- {{ $('Collect Blob SHAs').item.json.article.wordCount }} words\n- {{ $('Collect Blob SHAs').item.json.article.readTime }} min read\n- Keywords: {{ $('Collect Blob SHAs').item.json.topic.targetKeywords.join(', ') }}\n\n✅ Committed to GitHub: {{ $json.object.url }}\n\n🐦 **Pre-written tweet** (copy & paste to Twitter):\n{{ $('Collect Blob SHAs').item.json.topic.title }}\n\n{{ $('Collect Blob SHAs').item.json.article.url }}\n\n#privacy #voicetotext #AI",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "prepare-slack-message",
+      "name": "Prepare Slack Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [3660, 300]
+    },
+    {
+      "parameters": {
+        "channel": "new-tickets",
+        "text": "={{ $json.slackMessage }}",
+        "otherOptions": {}
+      },
+      "id": "send-slack-notification",
+      "name": "Send Slack Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [3780, 300],
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "Hn7aAZDO8tem9skO",
+          "name": "Slack OAuth"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Every 3 Days": {
+      "main": [[{"node": "Fetch blog-state.json", "type": "main", "index": 0}]]
+    },
+    "Fetch blog-state.json": {
+      "main": [[{"node": "Parse or Initialize State", "type": "main", "index": 0}]]
+    },
+    "Parse or Initialize State": {
+      "main": [[{"node": "Build Topic Prompt", "type": "main", "index": 0}]]
+    },
+    "Build Topic Prompt": {
+      "main": [[{"node": "Generate Topic with OpenAI", "type": "main", "index": 0}]]
+    },
+    "Generate Topic with OpenAI": {
+      "main": [[{"node": "Validate Topic", "type": "main", "index": 0}]]
+    },
+    "Validate Topic": {
+      "main": [[{"node": "Build Article Prompt", "type": "main", "index": 0}]]
+    },
+    "Build Article Prompt": {
+      "main": [[{"node": "Generate Article with OpenAI", "type": "main", "index": 0}]]
+    },
+    "Generate Article with OpenAI": {
+      "main": [[{"node": "Calculate Metadata", "type": "main", "index": 0}]]
+    },
+    "Calculate Metadata": {
+      "main": [[{"node": "Fetch Template", "type": "main", "index": 0}]]
+    },
+    "Fetch Template": {
+      "main": [[{"node": "Build Post HTML", "type": "main", "index": 0}]]
+    },
+    "Build Post HTML": {
+      "main": [[{"node": "Update State", "type": "main", "index": 0}]]
+    },
+    "Update State": {
+      "main": [[{"node": "Regenerate blog.html", "type": "main", "index": 0}]]
+    },
+    "Regenerate blog.html": {
+      "main": [[{"node": "Fetch blog.html Template", "type": "main", "index": 0}]]
+    },
+    "Fetch blog.html Template": {
+      "main": [[{"node": "Update blog.html", "type": "main", "index": 0}]]
+    },
+    "Update blog.html": {
+      "main": [[{"node": "Generate feed.xml", "type": "main", "index": 0}]]
+    },
+    "Generate feed.xml": {
+      "main": [[{"node": "Fetch sitemap.xml", "type": "main", "index": 0}]]
+    },
+    "Fetch sitemap.xml": {
+      "main": [[{"node": "Update sitemap.xml", "type": "main", "index": 0}]]
+    },
+    "Update sitemap.xml": {
+      "main": [[{"node": "Get Latest Commit SHA", "type": "main", "index": 0}]]
+    },
+    "Get Latest Commit SHA": {
+      "main": [[{"node": "Prepare All Blobs", "type": "main", "index": 0}]]
+    },
+    "Prepare All Blobs": {
+      "main": [[{"node": "Create All Blobs", "type": "main", "index": 0}]]
+    },
+    "Create All Blobs": {
+      "main": [[{"node": "Collect Blob SHAs", "type": "main", "index": 0}]]
+    },
+    "Collect Blob SHAs": {
+      "main": [[{"node": "Get Base Tree SHA", "type": "main", "index": 0}]]
+    },
+    "Get Base Tree SHA": {
+      "main": [[{"node": "Create Tree", "type": "main", "index": 0}]]
+    },
+    "Create Tree": {
+      "main": [[{"node": "Create Commit", "type": "main", "index": 0}]]
+    },
+    "Create Commit": {
+      "main": [[{"node": "Update Master Ref", "type": "main", "index": 0}]]
+    },
+    "Update Master Ref": {
+      "main": [[{"node": "Prepare Slack Message", "type": "main", "index": 0}]]
+    },
+    "Prepare Slack Message": {
+      "main": [[{"node": "Send Slack Notification", "type": "main", "index": 0}]]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-01-26T00:00:00.000Z",
+  "versionId": ""
+}
