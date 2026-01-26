@@ -70,6 +70,8 @@ DEFAULTS = {
     "ollama_url": "http://localhost:11434",  # Ollama API URL
     "ai_cleanup_mode": "grammar",  # grammar, formality, or both
     "ai_formality_level": "professional",  # casual, professional, or formal
+    # Updates
+    "auto_update": True,  # Check for updates automatically on startup
     # License and trial system
     # SECURITY: License key is encrypted using Windows DPAPI before storage.
     # DPAPI uses the current Windows user's credentials, so only that user can decrypt.

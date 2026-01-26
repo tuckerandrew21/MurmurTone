@@ -9,6 +9,7 @@ import sys
 import json
 import math
 import ctypes
+import urllib.error
 
 import sounddevice as sd
 import numpy as np
@@ -674,6 +675,48 @@ class SettingsAPI:
                 "data": {"connected": False},
                 "error": str(e.reason)
             }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def check_for_updates(self):
+        """Check GitHub releases for newer version."""
+        try:
+            import urllib.request
+
+            url = "https://api.github.com/repos/tuckerandrew21/MurmurTone/releases/latest"
+            req = urllib.request.Request(url)
+            req.add_header('Accept', 'application/vnd.github.v3+json')
+            req.add_header('User-Agent', 'MurmurTone')
+
+            with urllib.request.urlopen(req, timeout=10) as response:
+                data = json.loads(response.read().decode())
+                latest_version = data.get('tag_name', '').lstrip('v')
+                current_version = config.VERSION
+
+                # Simple version comparison (works for semantic versions)
+                is_newer = latest_version > current_version
+
+                return {
+                    "success": True,
+                    "data": {
+                        "current_version": current_version,
+                        "latest_version": latest_version,
+                        "update_available": is_newer,
+                        "download_url": data.get('html_url', '')
+                    }
+                }
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                return {
+                    "success": True,
+                    "data": {
+                        "current_version": config.VERSION,
+                        "latest_version": config.VERSION,
+                        "update_available": False,
+                        "download_url": ""
+                    }
+                }
+            return {"success": False, "error": f"HTTP {e.code}"}
         except Exception as e:
             return {"success": False, "error": str(e)}
 

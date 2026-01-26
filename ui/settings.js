@@ -514,6 +514,7 @@ function populateForm() {
     toggleFormalityRow();
 
     // About page
+    setCheckbox('auto-update', settings.auto_update ?? true);
     loadAboutInfo();
     loadLicenseStatus();
 }
@@ -785,6 +786,33 @@ function setupFormListeners() {
     setupVocabularyModal();
     setupFillersModal();
     setupHistoryModal();
+
+    // About page - Auto update toggle
+    addCheckboxListener('auto-update', (checked) => saveSetting('auto_update', checked));
+
+    // About page - Check for updates button
+    const checkUpdatesBtn = document.getElementById('check-updates-btn');
+    if (checkUpdatesBtn) {
+        checkUpdatesBtn.addEventListener('click', async () => {
+            checkUpdatesBtn.disabled = true;
+            checkUpdatesBtn.textContent = 'Checking...';
+            try {
+                const result = await pywebview.api.check_for_updates();
+                if (result.success && result.data.update_available) {
+                    showToast(`Update available: v${result.data.latest_version}`, 'info');
+                } else if (result.success) {
+                    showToast('You have the latest version', 'success');
+                } else {
+                    showToast('Could not check for updates', 'error');
+                }
+            } catch (error) {
+                showToast('Update check failed', 'error');
+            } finally {
+                checkUpdatesBtn.disabled = false;
+                checkUpdatesBtn.textContent = 'Check Now';
+            }
+        });
+    }
 
     // About page - License activation
     const activateBtn = document.getElementById('activate-license-btn');
@@ -1295,7 +1323,7 @@ function filterList(listId, searchTerm) {
  */
 async function checkGpuStatus() {
     const badge = document.getElementById('gpu-status');
-    const installRow = document.getElementById('gpu-install-row');
+    const installRow = document.getElementById('install-gpu-row');
     if (!badge) return;
 
     badge.className = 'status-badge checking';
