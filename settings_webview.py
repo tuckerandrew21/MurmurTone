@@ -726,23 +726,15 @@ class SettingsAPI:
 
 
 def apply_dark_titlebar_and_icon(window):
-    """Apply dark title bar and custom icon on Windows 10/11."""
+    """Apply dark title bar on Windows 10/11."""
     if sys.platform != "win32":
         return
 
     try:
         native = window.native
 
-        # Set icon on the WinForms Form
-        icon_path = os.path.join(os.path.dirname(__file__), "assets", "logo", "murmurtone-icon.ico")
-        if os.path.exists(icon_path):
-            try:
-                import clr
-                clr.AddReference("System.Drawing")
-                from System.Drawing import Icon
-                native.Icon = Icon(icon_path)
-            except Exception:
-                pass  # Icon setting failed, continue anyway
+        # NOTE: Icon setting via pythonnet/clr causes deadlock with pywebview
+        # The icon is set via the WinForms Form's Icon property in a future fix
 
         # Get window handle
         hwnd = native.Handle.ToInt64()
