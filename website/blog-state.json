@@ -1,5 +1,14 @@
 {
-  "posts": [],
-  "totalPosts": 0,
-  "lastPublished": null
+  "posts": [
+    {
+      "title": "Ensuring Data Privacy in Voice Transcription",
+      "description": "Explore how local processing and offline capabilities protect sensitive data in voice-to-text applications for professionals.",
+      "filename": "2026-01-26-ensuring-data-privacy-in-voice-transcription.html",
+      "publishDate": "2026-01-26T07:45:40.219Z",
+      "wordCount": 620,
+      "readTime": 4
+    }
+  ],
+  "totalPosts": 1,
+  "lastPublished": "2026-01-26T07:45:40.219Z"
 }

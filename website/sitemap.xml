@@ -40,6 +40,12 @@
 
   <!-- Blog Posts -->
   <!-- Individual blog posts will be added here by n8n workflow -->
+  <url>
+    <loc>https://murmurtone.com/blog/2026-01-26-ensuring-data-privacy-in-voice-transcription.html</loc>
+    <lastmod>2026-01-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
 
   <!-- Press -->
   <url>

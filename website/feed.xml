@@ -6,6 +6,13 @@
     <description>Privacy-first insights on local voice recognition, AI transcription, and data sovereignty.</description>
     <language>en-us</language>
     <atom:link href="https://murmurtone.com/feed.xml" rel="self" type="application/rss+xml"/>
-    <lastBuildDate>Sat, 25 Jan 2026 00:00:00 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 26 Jan 2026 07:45:40 GMT</lastBuildDate>
+    <item>
+      <title>Ensuring Data Privacy in Voice Transcription</title>
+      <link>https://murmurtone.com/blog/2026-01-26-ensuring-data-privacy-in-voice-transcription.html</link>
+      <description>Explore how local processing and offline capabilities protect sensitive data in voice-to-text applications for professionals.</description>
+      <pubDate>Mon, 26 Jan 2026 07:45:40 GMT</pubDate>
+      <guid>https://murmurtone.com/blog/2026-01-26-ensuring-data-privacy-in-voice-transcription.html</guid>
+    </item>
   </channel>
 </rss>
