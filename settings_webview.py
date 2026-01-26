@@ -680,6 +680,7 @@ class SettingsAPI:
 
     def check_for_updates(self):
         """Check GitHub releases for newer version."""
+        print("DEBUG: check_for_updates() called")
         try:
             import urllib.request
 
@@ -719,6 +720,43 @@ class SettingsAPI:
             return {"success": False, "error": f"HTTP {e.code}"}
         except Exception as e:
             return {"success": False, "error": str(e)}
+
+    def check_updates_on_startup(self):
+        """Check for updates on startup if enabled in config."""
+        import time
+        import threading
+
+        cfg = config.load_config()
+        if not cfg.get('auto_update', True):
+            return  # User disabled startup checks
+
+        # Check last check timestamp to avoid hammering API
+        last_check = cfg.get('last_update_check', 0)
+        now = time.time()
+        if now - last_check < 86400:  # 24 hours
+            return  # Checked recently
+
+        # Perform check in background thread
+        threading.Thread(target=self._background_update_check, daemon=True).start()
+
+    def _background_update_check(self):
+        """Background thread for update checking."""
+        import time
+
+        result = self.check_for_updates()
+
+        # Save check timestamp
+        cfg = config.load_config()
+        cfg['last_update_check'] = time.time()
+        config.save_config(cfg)
+
+        if result.get('success') and result['data'].get('update_available'):
+            # Show notification in UI
+            self.show_update_notification(result['data'])
+
+    def show_update_notification(self, update_data):
+        """Show update modal in UI."""
+        self._window.evaluate_js(f"window.showUpdateModal({json.dumps(update_data)})")
 
     def open_url(self, url):
         """Open a URL in the default browser."""
@@ -833,7 +871,7 @@ def apply_dark_titlebar_and_icon(window):
 
 
 def create_window():
-    """Create and run the PyWebView window."""
+    """Create and run the PyWebView window. Returns (api, window) tuple."""
     api = SettingsAPI()
 
     # Create window
@@ -851,15 +889,25 @@ def create_window():
     # Store window reference in API for evaluate_js calls
     api.set_window(window)
 
-    return window
+    return api, window
+
+def create_window_with_api():
+    """Deprecated: Use create_window() which now returns (api, window)."""
+    return create_window()
 
 
 def main():
     """Entry point for the settings GUI."""
-    window = create_window()
+    api, window = create_window_with_api()
 
     # Apply dark title bar and icon after window is shown
     window.events.shown += lambda: apply_dark_titlebar_and_icon(window)
+
+    # Check for updates on startup if enabled
+    window.events.shown += lambda: api.check_updates_on_startup()
+
+    # Enable CDP for Playwright to connect to actual PyWebView window
+    webview.settings['REMOTE_DEBUGGING_PORT'] = 9222
 
     # Start webview (blocks until window is closed)
     webview.start(debug=True)
