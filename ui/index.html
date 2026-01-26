@@ -636,7 +636,7 @@
                         </div>
 
                         <div class="child-settings" id="ai-cleanup-options">
-                            <div class="setting-row toggle-row">
+                            <div class="setting-row toggle-row" id="ollama-url-row">
                                 <div class="setting-info">
                                     <label class="setting-label">Ollama URL</label>
                                     <p class="setting-help">Connection URL for your local Ollama instance.</p>
@@ -661,7 +661,18 @@
                                 </div>
                             </div>
 
-                            <div class="setting-row toggle-row">
+                            <div class="setting-row toggle-row" id="ollama-action-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Ollama Not Available</label>
+                                    <p class="setting-help">Ollama is required for AI text cleanup. Download it or check your connection.</p>
+                                </div>
+                                <div class="input-with-button">
+                                    <button type="button" id="download-ollama-btn" class="btn btn-primary" data-testid="download-ollama-btn">Download Ollama</button>
+                                    <button type="button" id="show-ollama-config-btn" class="btn btn-secondary" data-testid="show-ollama-config-btn">Configure</button>
+                                </div>
+                            </div>
+
+                            <div class="setting-row toggle-row" id="ollama-model-row">
                                 <div class="setting-info">
                                     <label class="setting-label">Model</label>
                                     <p class="setting-help">Select the Ollama model to use for processing.</p>
