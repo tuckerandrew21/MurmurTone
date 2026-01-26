@@ -31,6 +31,15 @@
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
+  <url>
+    <loc>https://murmurtone.com/blog.html</loc>
+    <lastmod>2026-01-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Blog Posts -->
+  <!-- Individual blog posts will be added here by n8n workflow -->
 
   <!-- Press -->
   <url>
