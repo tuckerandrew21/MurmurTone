@@ -726,18 +726,41 @@ class SettingsAPI:
 
 
 def apply_dark_titlebar_and_icon(window):
-    """Apply dark title bar on Windows 10/11."""
+    """Apply dark title bar and custom icon on Windows 10/11."""
     if sys.platform != "win32":
         return
 
     try:
         native = window.native
-
-        # NOTE: Icon setting via pythonnet/clr causes deadlock with pywebview
-        # The icon is set via the WinForms Form's Icon property in a future fix
-
-        # Get window handle
         hwnd = native.Handle.ToInt64()
+
+        # Set window icon using Win32 API via ctypes (not pythonnet to avoid deadlock)
+        icon_path = os.path.join(os.path.dirname(__file__), "assets", "logo", "murmurtone-icon.ico")
+        if os.path.exists(icon_path):
+            user32 = ctypes.windll.user32
+            IMAGE_ICON = 1
+            LR_LOADFROMFILE = 0x00000010
+            LR_DEFAULTSIZE = 0x00000040
+
+            # Load icon from file
+            hicon = user32.LoadImageW(
+                None,  # hInstance (NULL for loading from file)
+                icon_path,  # lpszName (file path)
+                IMAGE_ICON,  # uType
+                0,  # cxDesired (0 = default size)
+                0,  # cyDesired (0 = default size)
+                LR_LOADFROMFILE | LR_DEFAULTSIZE  # fuLoad
+            )
+
+            if hicon:
+                # Set both large and small icons
+                WM_SETICON = 0x0080
+                ICON_SMALL = 0
+                ICON_BIG = 1
+                user32.SendMessageW(hwnd, WM_SETICON, ICON_SMALL, hicon)
+                user32.SendMessageW(hwnd, WM_SETICON, ICON_BIG, hicon)
+
+        # Apply dark title bar
         dwm = ctypes.windll.dwmapi
 
         # DWMWA_USE_IMMERSIVE_DARK_MODE (20 for Win10 1903+, 19 for 1809)
