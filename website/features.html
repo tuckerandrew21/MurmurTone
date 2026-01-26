@@ -326,25 +326,15 @@
         }
 
         .feature-visual {
-            background: linear-gradient(135deg, var(--slate-100), var(--slate-50));
             border-radius: 16px;
-            min-height: 280px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            overflow: hidden;
             border: 1px solid var(--slate-200);
-            padding: 32px;
         }
 
-        .visual-icon {
-            width: 120px;
-            height: 120px;
-            background: rgba(13, 148, 136, 0.1);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--primary);
+        .feature-visual img {
+            width: 100%;
+            height: auto;
+            display: block;
         }
 
         /* Mid-Page CTA */
@@ -617,7 +607,6 @@
                 padding: 32px 0;
             }
             .feature-large.reversed { direction: ltr; }
-            .feature-visual { min-height: 200px; }
             .features-grid { grid-template-columns: 1fr; }
             .customization-grid { grid-template-columns: 1fr; }
             .section-header h2 { font-size: 1.8em; }
@@ -741,14 +730,7 @@
                     <p>Every sound you speak is processed by AI running directly on your computer. There's no server to send your data to - because it never goes anywhere. The recognition engine runs locally, the text stays local, and your privacy is guaranteed by architecture, not promises.</p>
                 </div>
                 <div class="feature-visual">
-                    <div class="visual-icon">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-                            <line x1="8" y1="21" x2="16" y2="21"/>
-                            <line x1="12" y1="17" x2="12" y2="21"/>
-                            <path d="M12 7v4M12 11l2-2M12 11l-2-2"/>
-                        </svg>
-                    </div>
+                    <img src="assets/Features-box1.png" alt="Your voice never leaves your machine">
                 </div>
             </div>
 
@@ -764,12 +746,7 @@
                     <p>No transcripts stored on remote servers. No audio files uploaded for "quality improvement." No usage data collected for advertising. MurmurTone doesn't even have a way to know what you said - there's no telemetry, no analytics, no tracking of any kind.</p>
                 </div>
                 <div class="feature-visual">
-                    <div class="visual-icon">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                            <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
-                            <line x1="1" y1="1" x2="23" y2="23"/>
-                        </svg>
-                    </div>
+                    <img src="assets/Features-box2.png" alt="Invisible to the cloud">
                 </div>
             </div>
 
@@ -790,13 +767,7 @@
                     <p>Airplanes at 35,000 feet. Secure government facilities. Remote mountain cabins. Offshore drilling platforms. MurmurTone works exactly the same with zero internet connection - because it was designed that way from day one. No network means no vulnerabilities.</p>
                 </div>
                 <div class="feature-visual">
-                    <div class="visual-icon">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-                            <line x1="12" y1="22.08" x2="12" y2="12"/>
-                        </svg>
-                    </div>
+                    <img src="assets/Features-box3.png" alt="Works anywhere you go">
                 </div>
             </div>
         </div>
