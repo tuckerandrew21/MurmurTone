@@ -1437,8 +1437,8 @@ def open_settings_window():
         command = [executable, "--settings"]
         log.info(f"Running from PyInstaller bundle: {executable}")
     else:
-        # Running from source - launch settings_gui.py directly
-        settings_script = os.path.join(app_dir, "settings_gui.py")
+        # Running from source - launch settings_webview.py directly
+        settings_script = os.path.join(app_dir, "settings_webview.py")
 
         # Verify settings script exists
         if not os.path.exists(settings_script):
@@ -1661,9 +1661,8 @@ def main():
     # Open settings on startup if requested
     if args.settings:
         # When launched with --settings, show GUI directly (don't spawn subprocess)
-        import settings_gui
-        gui = settings_gui.SettingsWindow(app_config, on_save_callback=on_settings_saved)
-        gui.show()
+        import settings_webview
+        settings_webview.main()
         return  # Exit after settings window closes
 
     # Create and run tray icon (blocks)
