@@ -264,6 +264,7 @@ async function onApiReady() {
     await loadSettings();
 
     // Set up event listeners
+    initCustomDropdowns();
     setupNavigation();
     setupFormListeners();
     setupKeyboardNavigation();
@@ -950,7 +951,14 @@ function setCheckbox(id, checked) {
 
 function setDropdown(id, value) {
     const el = document.getElementById(id);
-    if (el) el.value = value;
+    if (!el) return;
+
+    // Check if it's a custom dropdown
+    if (el.classList.contains('custom-dropdown')) {
+        setCustomDropdownValue(el, value);
+    } else {
+        el.value = value;
+    }
 }
 
 function setInput(id, value) {
@@ -967,8 +975,197 @@ function addCheckboxListener(id, callback) {
 
 function addDropdownListener(id, callback) {
     const el = document.getElementById(id);
-    if (el) {
+    if (!el) return;
+
+    // Check if it's a custom dropdown
+    if (el.classList.contains('custom-dropdown')) {
+        el._onChangeCallback = callback;
+    } else {
         el.addEventListener('change', () => callback(el.value));
+    }
+}
+
+// ============================================
+// Custom Dropdown Component
+// ============================================
+
+function initCustomDropdowns() {
+    const dropdowns = document.querySelectorAll('.custom-dropdown');
+
+    dropdowns.forEach(dropdown => {
+        const button = dropdown.querySelector('.custom-dropdown-button');
+        const menu = dropdown.querySelector('.custom-dropdown-menu');
+        const options = dropdown.querySelectorAll('.custom-dropdown-option');
+
+        if (!button || !menu) return;
+
+        // Toggle dropdown on button click
+        button.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeAllDropdowns(dropdown);
+            dropdown.classList.toggle('open');
+        });
+
+        // Handle option selection
+        options.forEach(option => {
+            option.addEventListener('click', (e) => {
+                e.stopPropagation();
+                selectCustomDropdownOption(dropdown, option);
+            });
+        });
+
+        // Keyboard navigation
+        button.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                dropdown.classList.remove('open');
+            } else if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                dropdown.classList.toggle('open');
+            } else if (e.key === 'ArrowDown' && dropdown.classList.contains('open')) {
+                e.preventDefault();
+                focusNextOption(dropdown, 1);
+            } else if (e.key === 'ArrowUp' && dropdown.classList.contains('open')) {
+                e.preventDefault();
+                focusNextOption(dropdown, -1);
+            }
+        });
+
+        menu.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                dropdown.classList.remove('open');
+                button.focus();
+            } else if (e.key === 'Enter') {
+                const focused = menu.querySelector('.custom-dropdown-option.focused');
+                if (focused) {
+                    selectCustomDropdownOption(dropdown, focused);
+                }
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                focusNextOption(dropdown, 1);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                focusNextOption(dropdown, -1);
+            }
+        });
+    });
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', () => closeAllDropdowns());
+}
+
+function closeAllDropdowns(except = null) {
+    document.querySelectorAll('.custom-dropdown.open').forEach(d => {
+        if (d !== except) d.classList.remove('open');
+    });
+}
+
+function selectCustomDropdownOption(dropdown, option) {
+    const value = option.dataset.value;
+    const text = option.textContent;
+    const valueSpan = dropdown.querySelector('.custom-dropdown-value');
+
+    // Update display
+    if (valueSpan) valueSpan.textContent = text;
+
+    // Update selected state
+    dropdown.querySelectorAll('.custom-dropdown-option').forEach(opt => {
+        opt.classList.remove('selected', 'focused');
+    });
+    option.classList.add('selected');
+
+    // Store value
+    dropdown.dataset.value = value;
+
+    // Close dropdown
+    dropdown.classList.remove('open');
+
+    // Trigger callback
+    if (dropdown._onChangeCallback) {
+        dropdown._onChangeCallback(value);
+    }
+}
+
+function setCustomDropdownValue(dropdown, value) {
+    const option = dropdown.querySelector(`.custom-dropdown-option[data-value="${value}"]`);
+    if (option) {
+        const valueSpan = dropdown.querySelector('.custom-dropdown-value');
+        if (valueSpan) valueSpan.textContent = option.textContent;
+
+        dropdown.querySelectorAll('.custom-dropdown-option').forEach(opt => {
+            opt.classList.remove('selected');
+        });
+        option.classList.add('selected');
+        dropdown.dataset.value = value;
+    }
+}
+
+function focusNextOption(dropdown, direction) {
+    const options = Array.from(dropdown.querySelectorAll('.custom-dropdown-option'));
+    const focused = dropdown.querySelector('.custom-dropdown-option.focused');
+    let index = focused ? options.indexOf(focused) : -1;
+
+    options.forEach(opt => opt.classList.remove('focused'));
+
+    index += direction;
+    if (index < 0) index = options.length - 1;
+    if (index >= options.length) index = 0;
+
+    options[index].classList.add('focused');
+    options[index].scrollIntoView({ block: 'nearest' });
+}
+
+/**
+ * Populate dropdown options (works with both native select and custom dropdown)
+ * @param {HTMLElement} dropdown - The dropdown element
+ * @param {Array} options - Array of {value, label} objects
+ */
+function populateDropdownOptions(dropdown, options) {
+    if (!dropdown) return;
+
+    if (dropdown.classList.contains('custom-dropdown')) {
+        // Custom dropdown
+        const menu = dropdown.querySelector('.custom-dropdown-menu');
+        if (!menu) return;
+
+        const currentValue = dropdown.dataset.value || '';
+        menu.innerHTML = '';
+
+        options.forEach(opt => {
+            const div = document.createElement('div');
+            div.className = 'custom-dropdown-option';
+            div.dataset.value = opt.value;
+            div.textContent = opt.label;
+            div.setAttribute('role', 'option');
+            if (opt.value === currentValue) {
+                div.classList.add('selected');
+            }
+            // Add click listener
+            div.addEventListener('click', (e) => {
+                e.stopPropagation();
+                selectCustomDropdownOption(dropdown, div);
+            });
+            menu.appendChild(div);
+        });
+
+        // Update displayed value if we have a selection
+        const selected = options.find(o => o.value === currentValue);
+        if (selected) {
+            const valueSpan = dropdown.querySelector('.custom-dropdown-value');
+            if (valueSpan) valueSpan.textContent = selected.label;
+        }
+    } else {
+        // Native select
+        const currentValue = dropdown.value;
+        dropdown.innerHTML = '';
+
+        options.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.value;
+            option.textContent = opt.label;
+            dropdown.appendChild(option);
+        });
+
+        if (currentValue) dropdown.value = currentValue;
     }
 }
 
@@ -1131,22 +1328,20 @@ async function loadAudioDevices() {
             const defaultEntry = result.data.find(d => !d.id);
             const defaultLabel = defaultEntry?.name || 'System Default';
 
-            // Clear existing options and add default
-            dropdown.innerHTML = `<option value="">${defaultLabel}</option>`;
-
-            // Add devices
+            // Build options array
+            const options = [{ value: '', label: defaultLabel }];
             result.data.forEach(device => {
-                if (device.id) {  // Skip the default entry
-                    const option = document.createElement('option');
-                    option.value = device.id;
-                    option.textContent = device.name;
-                    dropdown.appendChild(option);
+                if (device.id) {
+                    options.push({ value: device.id, label: device.name });
                 }
             });
 
+            // Populate dropdown (works with both native and custom)
+            populateDropdownOptions(dropdown, options);
+
             // Select current device
             if (settings.input_device) {
-                dropdown.value = settings.input_device;
+                setDropdown('input-device', settings.input_device);
             }
         } else {
             showToast('Failed to load audio devices: ' + result.error, 'error');
@@ -1173,31 +1368,18 @@ async function loadLanguageOptions() {
     try {
         const result = await pywebview.api.get_language_options();
         if (result.success && result.data) {
-            const currentLanguage = languageDropdown?.value;
-            const currentTranslation = translationDropdown?.value;
+            // Build options array
+            const options = result.data.map(opt => ({
+                value: opt.code,
+                label: opt.label
+            }));
 
-            // Update language dropdown
+            // Update both dropdowns (works with both native and custom)
             if (languageDropdown) {
-                languageDropdown.innerHTML = '';
-                result.data.forEach(opt => {
-                    const option = document.createElement('option');
-                    option.value = opt.code;
-                    option.textContent = opt.label;
-                    languageDropdown.appendChild(option);
-                });
-                if (currentLanguage) languageDropdown.value = currentLanguage;
+                populateDropdownOptions(languageDropdown, options);
             }
-
-            // Update translation source dropdown (same options)
             if (translationDropdown) {
-                translationDropdown.innerHTML = '';
-                result.data.forEach(opt => {
-                    const option = document.createElement('option');
-                    option.value = opt.code;
-                    option.textContent = opt.label;
-                    translationDropdown.appendChild(option);
-                });
-                if (currentTranslation) translationDropdown.value = currentTranslation;
+                populateDropdownOptions(translationDropdown, options);
             }
         }
     } catch (error) {
@@ -1216,20 +1398,13 @@ async function loadProcessingModeOptions() {
     try {
         const result = await pywebview.api.get_processing_mode_options();
         if (result.success && result.data) {
-            const currentValue = dropdown.value;
+            // Build options array
+            const options = result.data.map(opt => ({
+                value: opt.code,
+                label: opt.code === 'auto' ? opt.label + ' (Recommended)' : opt.label
+            }));
 
-            dropdown.innerHTML = '';
-            result.data.forEach(opt => {
-                const option = document.createElement('option');
-                option.value = opt.code;
-                option.textContent = opt.label;
-                if (opt.code === 'auto') {
-                    option.textContent += ' (Recommended)';
-                }
-                dropdown.appendChild(option);
-            });
-
-            if (currentValue) dropdown.value = currentValue;
+            populateDropdownOptions(dropdown, options);
         }
     } catch (error) {
         console.error('Error loading processing mode options:', error);

@@ -595,6 +595,120 @@ body {
 }
 
 /* ============================================
+   Form Controls: Custom Dropdown (Themed)
+   ============================================ */
+.custom-dropdown {
+    position: relative;
+    display: inline-block;
+    min-width: 180px;
+    max-width: 320px;
+}
+
+.custom-dropdown.wide {
+    max-width: 400px;
+}
+
+.custom-dropdown-button {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: var(--slate-700);
+    border: 1px solid var(--slate-600);
+    border-radius: var(--radius-md);
+    padding: var(--space-sm) var(--space-lg);
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
+    color: var(--slate-200);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-align: left;
+}
+
+.custom-dropdown-button:hover {
+    border-color: var(--slate-500);
+    background-color: var(--slate-600);
+}
+
+.custom-dropdown-button:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-alpha);
+}
+
+.custom-dropdown.open .custom-dropdown-button {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-alpha);
+}
+
+.custom-dropdown-value {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.custom-dropdown-arrow {
+    width: 16px;
+    height: 16px;
+    margin-left: var(--space-sm);
+    transition: transform var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.custom-dropdown.open .custom-dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.custom-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--slate-800);
+    border: 1px solid var(--slate-600);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    max-height: 240px;
+    overflow-y: auto;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: opacity var(--transition-fast), transform var(--transition-fast), visibility var(--transition-fast);
+}
+
+.custom-dropdown.open .custom-dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.custom-dropdown-option {
+    padding: var(--space-sm) var(--space-lg);
+    color: var(--slate-200);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.custom-dropdown-option:hover {
+    background-color: var(--slate-700);
+}
+
+.custom-dropdown-option.selected {
+    background-color: var(--primary-alpha);
+    color: var(--primary-light);
+}
+
+.custom-dropdown-option.selected:hover {
+    background-color: var(--slate-700);
+}
+
+.custom-dropdown-option.focused {
+    background-color: var(--slate-700);
+}
+
+/* ============================================
    Form Controls: Hotkey Capture Button
    ============================================ */
 .hotkey-capture-btn {
