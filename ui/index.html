@@ -7,6 +7,25 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- Custom Title Bar (frameless window) -->
+    <div class="custom-titlebar">
+        <div class="titlebar-drag-region pywebview-drag-region">
+            <img src="assets/logo.png" alt="" class="titlebar-icon">
+            <span class="titlebar-title">MurmurTone Settings</span>
+        </div>
+        <div class="titlebar-controls">
+            <button class="titlebar-btn minimize-btn" onclick="window.pywebview.api.minimize_window()" title="Minimize">
+                <svg viewBox="0 0 12 12"><path d="M2 6h8" stroke="currentColor" stroke-width="1.5"/></svg>
+            </button>
+            <button class="titlebar-btn maximize-btn" onclick="window.pywebview.api.toggle_maximize_window()" title="Maximize">
+                <svg viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+            </button>
+            <button class="titlebar-btn close-btn" onclick="window.pywebview.api.close_window()" title="Close">
+                <svg viewBox="0 0 12 12"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.5"/></svg>
+            </button>
+        </div>
+    </div>
+
     <div class="window">
         <!-- Sidebar Navigation -->
         <nav class="sidebar">

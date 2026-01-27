@@ -41,6 +41,25 @@ class SettingsAPI:
         self._window = window
 
     # =========================================================================
+    # Window Control Methods (for frameless window)
+    # =========================================================================
+
+    def minimize_window(self):
+        """Minimize the window."""
+        if self._window:
+            self._window.minimize()
+
+    def toggle_maximize_window(self):
+        """Toggle maximize/restore the window."""
+        if self._window:
+            self._window.toggle_fullscreen()
+
+    def close_window(self):
+        """Close the window."""
+        if self._window:
+            self._window.destroy()
+
+    # =========================================================================
     # Core Settings Methods
     # =========================================================================
 
@@ -927,9 +946,9 @@ def apply_dark_titlebar_and_icon(window):
         if dwm.DwmSetWindowAttribute(hwnd, 20, ctypes.byref(dark_value), 4) != 0:
             dwm.DwmSetWindowAttribute(hwnd, 19, ctypes.byref(dark_value), 4)
 
-        # Windows 11: DWMWA_CAPTION_COLOR (35) - set title bar to dark color
-        dark_color = ctypes.c_uint(0x002A170F)  # #0f172a in BGR format
-        dwm.DwmSetWindowAttribute(hwnd, 35, ctypes.byref(dark_color), 4)
+        # Windows 11: DWMWA_CAPTION_COLOR (35) - commented out, Windows default dark mode matches better
+        # dark_color = ctypes.c_uint(0x003B291E)  # #1e293b in BGR format
+        # dwm.DwmSetWindowAttribute(hwnd, 35, ctypes.byref(dark_color), 4)
 
         # Force window frame redraw
         user32 = ctypes.windll.user32
@@ -952,7 +971,7 @@ def create_window():
     """Create and run the PyWebView window. Returns (api, window) tuple."""
     api = SettingsAPI()
 
-    # Create window
+    # Create frameless window with custom title bar
     window = webview.create_window(
         title=f"{config.APP_NAME} Settings",
         url=os.path.join(UI_DIR, "index.html"),
@@ -961,7 +980,9 @@ def create_window():
         height=650,
         min_size=(800, 500),
         resizable=True,
-        background_color="#0f172a"  # Match dark theme
+        frameless=True,
+        easy_drag=False,
+        background_color="#1e293b"
     )
 
     # Store window reference in API for evaluate_js calls
@@ -986,8 +1007,8 @@ def main():
 
     api, window = create_window_with_api()
 
-    # Apply dark title bar and icon after window is shown
-    window.events.shown += lambda: apply_dark_titlebar_and_icon(window)
+    # Skip DWM title bar code for frameless windows - we use custom HTML titlebar
+    # window.events.shown += lambda: apply_dark_titlebar_and_icon(window)
 
     # Check for updates on startup if enabled
     window.events.shown += lambda: api.check_updates_on_startup()
@@ -1000,7 +1021,7 @@ def main():
 
     # Start webview (blocks until window is closed)
     # debug=False hides DevTools window, CDP still works via REMOTE_DEBUGGING_PORT
-    webview.start(debug=False)
+    webview.start(debug=False, gui='edgechromium')
 
 
 if __name__ == "__main__":

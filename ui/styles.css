@@ -92,11 +92,82 @@ body {
 }
 
 /* ============================================
+   Custom Title Bar (Frameless Window)
+   ============================================ */
+.custom-titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 32px;
+    background: var(--slate-800);
+    border-bottom: 1px solid var(--slate-700);
+    -webkit-user-select: none;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.titlebar-drag-region {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding-left: var(--space-md);
+    height: 100%;
+    -webkit-app-region: drag;
+}
+
+.titlebar-icon {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+}
+
+.titlebar-title {
+    font-size: var(--font-size-sm);
+    color: var(--slate-400);
+    font-weight: 500;
+}
+
+.titlebar-controls {
+    display: flex;
+    height: 100%;
+    -webkit-app-region: no-drag;
+}
+
+.titlebar-btn {
+    width: 46px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--slate-400);
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.titlebar-btn:hover {
+    background: var(--slate-700);
+    color: var(--slate-100);
+}
+
+.titlebar-btn.close-btn:hover {
+    background: var(--error);
+    color: white;
+}
+
+.titlebar-btn svg {
+    width: 12px;
+    height: 12px;
+}
+
+/* ============================================
    Layout: Window Container
    ============================================ */
 .window {
     display: flex;
-    height: 100vh;
+    height: calc(100vh - 32px);
     width: 100vw;
     overflow: hidden;
 }
