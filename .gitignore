@@ -37,3 +37,4 @@ tmpclaude-*
 .playwright-mcp/
 test_mcp.py
 Slack Examples/
+ollama/

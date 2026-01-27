@@ -16,6 +16,7 @@ import numpy as np
 
 import config
 import settings_logic
+import ollama_manager
 
 # Get the directory containing this script
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -974,6 +975,14 @@ def create_window_with_api():
 
 def main():
     """Entry point for the settings GUI."""
+    # Start bundled Ollama subprocess (for AI features)
+    # This is a no-op if Ollama is already running (e.g., user has it installed)
+    ollama_started = ollama_manager.start_ollama()
+    if ollama_started:
+        print("[main] Ollama is available for AI features")
+    else:
+        print("[main] Ollama not available - AI features disabled")
+
     api, window = create_window_with_api()
 
     # Apply dark title bar and icon after window is shown
@@ -981,6 +990,9 @@ def main():
 
     # Check for updates on startup if enabled
     window.events.shown += lambda: api.check_updates_on_startup()
+
+    # Stop Ollama when window closes (if we started it)
+    window.events.closing += lambda: ollama_manager.stop_ollama()
 
     # Enable CDP for Playwright to connect to actual PyWebView window
     webview.settings['REMOTE_DEBUGGING_PORT'] = 9222
