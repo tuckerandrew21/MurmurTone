@@ -627,7 +627,7 @@
                         <div class="setting-row toggle-row">
                             <div class="setting-info">
                                 <label class="setting-label">Enable AI Cleanup</label>
-                                <p class="setting-help">Process transcriptions through Ollama for grammar and clarity.</p>
+                                <p class="setting-help">Use AI to fix grammar and improve clarity (runs locally).</p>
                             </div>
                             <label class="toggle">
                                 <input type="checkbox" id="ai-cleanup" aria-label="AI cleanup" data-testid="ai-cleanup">
@@ -636,83 +636,39 @@
                         </div>
 
                         <div class="child-settings" id="ai-cleanup-options">
-                            <div class="setting-row toggle-row" id="ollama-url-row">
-                                <div class="setting-info">
-                                    <label class="setting-label">Ollama URL</label>
-                                    <p class="setting-help">Connection URL for your local Ollama instance.</p>
-                                </div>
-                                <div class="input-with-button">
-                                    <input type="text" id="ollama-url" class="text-input"
-                                        placeholder="http://localhost:11434"
-                                        aria-label="Ollama URL"
-                                        data-testid="ollama-url">
-                                    <button type="button" id="test-ollama-btn" class="btn btn-secondary" data-testid="test-ollama-btn">Test</button>
-                                </div>
-                            </div>
+                            <!-- Hidden elements for JS compatibility -->
+                            <input type="hidden" id="ollama-url" value="http://localhost:11434">
+                            <input type="hidden" id="ollama-model" value="llama3.2:3b">
 
-                            <div class="setting-row toggle-row" id="ollama-status-row">
+                            <!-- AI Status Row -->
+                            <div class="setting-row toggle-row" id="ai-status-row">
                                 <div class="setting-info">
-                                    <label class="setting-label">Connection Status</label>
-                                    <p class="setting-help">Current connection to Ollama.</p>
+                                    <label class="setting-label">AI Status</label>
+                                    <p class="setting-help" id="ai-status-help">Checking AI availability...</p>
                                 </div>
                                 <div class="status-badge" id="ollama-status">
                                     <span class="status-indicator"></span>
-                                    <span class="status-text">Not tested</span>
+                                    <span class="status-text">Checking...</span>
                                 </div>
                             </div>
 
-                            <div class="setting-row toggle-row" id="ollama-action-row">
+                            <!-- Setup Required Row (shown when AI not available) -->
+                            <div class="setting-row toggle-row hidden" id="ai-setup-row">
                                 <div class="setting-info">
-                                    <label class="setting-label">Ollama Not Available</label>
-                                    <p class="setting-help">Ollama is required for AI text cleanup. Download it or check your connection.</p>
+                                    <label class="setting-label">Setup Required</label>
+                                    <p class="setting-help">AI components need to be installed for this feature.</p>
                                 </div>
-                                <div class="input-with-button">
-                                    <button type="button" id="download-ollama-btn" class="btn btn-primary" data-testid="download-ollama-btn">Download Ollama</button>
-                                    <button type="button" id="show-ollama-config-btn" class="btn btn-secondary" data-testid="show-ollama-config-btn">Configure</button>
-                                </div>
+                                <button type="button" id="setup-ai-btn" class="btn btn-primary" data-testid="setup-ai-btn">Setup AI</button>
                             </div>
 
-                            <div class="setting-row toggle-row" id="ollama-model-row">
+                            <!-- Download Progress (shown during setup) -->
+                            <div class="setting-row toggle-row hidden" id="ai-download-progress-row">
                                 <div class="setting-info">
-                                    <label class="setting-label">Model</label>
-                                    <p class="setting-help">Select the Ollama model to use for processing.</p>
-                                </div>
-                                <select id="ollama-model" class="dropdown" aria-label="Ollama model" data-testid="ollama-model">
-                                    <option value="llama3.2:3b">Llama 3.2 3B (Fast)</option>
-                                    <option value="llama3.2:7b">Llama 3.2 7B</option>
-                                    <option value="mistral:7b">Mistral 7B</option>
-                                    <option value="phi3:mini">Phi-3 Mini</option>
-                                </select>
-                            </div>
-
-                            <!-- Model Download Prompt (shown when model not installed) -->
-                            <div class="setting-row toggle-row hidden" id="ollama-model-download-row">
-                                <div class="setting-info">
-                                    <label class="setting-label">Model Not Installed</label>
-                                    <p class="setting-help">Model <strong id="ollama-model-name">llama3.2:3b</strong> needs to be downloaded (~2 GB).</p>
-                                </div>
-                                <button type="button" id="download-ollama-model-btn" class="btn btn-primary" data-testid="download-ollama-model-btn">Download Model</button>
-                            </div>
-
-                            <!-- Model Download Progress (shown during download) -->
-                            <div class="setting-row toggle-row hidden" id="ollama-download-progress-row">
-                                <div class="setting-info">
-                                    <label class="setting-label">Downloading Model</label>
-                                    <p class="setting-help" id="ollama-download-progress-text">Connecting...</p>
+                                    <label class="setting-label">Setting Up AI</label>
+                                    <p class="setting-help" id="ai-download-progress-text">Downloading components...</p>
                                 </div>
                                 <div class="progress-bar-container">
-                                    <div class="progress-bar" id="ollama-download-progress" style="width: 0%"></div>
-                                </div>
-                            </div>
-
-                            <!-- Installed Models List -->
-                            <div class="setting-row toggle-row" id="ollama-installed-models-row">
-                                <div class="setting-info">
-                                    <label class="setting-label">Installed Models</label>
-                                    <p class="setting-help">Manage downloaded AI models.</p>
-                                </div>
-                                <div id="ollama-installed-models" class="model-list">
-                                    <p class="setting-help">Loading...</p>
+                                    <div class="progress-bar" id="ai-download-progress" style="width: 0%"></div>
                                 </div>
                             </div>
 

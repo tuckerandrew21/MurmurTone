@@ -813,31 +813,10 @@ function setupFormListeners() {
         });
     }
 
-    // Download Ollama model button (downloads model via API)
-    const downloadOllamaModelBtn = document.getElementById('download-ollama-model-btn');
-    if (downloadOllamaModelBtn) {
-        downloadOllamaModelBtn.addEventListener('click', downloadOllamaModel);
-    }
-
-    // Refresh models when model dropdown changes
-    const ollamaModelSelect = document.getElementById('ollama-model');
-    if (ollamaModelSelect) {
-        ollamaModelSelect.addEventListener('change', () => {
-            checkAndPromptModelDownload();
-        });
-    }
-
-    // Show Ollama config button
-    const showOllamaConfigBtn = document.getElementById('show-ollama-config-btn');
-    if (showOllamaConfigBtn) {
-        showOllamaConfigBtn.addEventListener('click', () => {
-            showOllamaConfigRows();
-            // Auto-scroll to the URL input
-            const urlRow = document.getElementById('ollama-url-row');
-            if (urlRow) {
-                urlRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-        });
+    // Setup AI button
+    const setupAIBtn = document.getElementById('setup-ai-btn');
+    if (setupAIBtn) {
+        setupAIBtn.addEventListener('click', setupAI);
     }
 
     // Advanced settings - Preview
@@ -1666,34 +1645,10 @@ function toggleFormalityRow() {
 }
 
 /**
- * Hide Ollama configuration rows (URL, status, model)
- * These are technical settings that most users don't need to see
+ * Initialize AI status display (no-op, kept for compatibility)
  */
 function hideOllamaConfigRows() {
-    const urlRow = document.getElementById('ollama-url-row');
-    const statusRow = document.getElementById('ollama-status-row');
-    const modelRow = document.getElementById('ollama-model-row');
-    const actionRow = document.getElementById('ollama-action-row');
-
-    if (urlRow) urlRow.style.display = 'none';
-    if (statusRow) statusRow.style.display = 'none';
-    if (modelRow) modelRow.style.display = 'none';
-    if (actionRow) actionRow.style.display = 'none';
-}
-
-/**
- * Show Ollama configuration rows (for troubleshooting)
- */
-function showOllamaConfigRows() {
-    const urlRow = document.getElementById('ollama-url-row');
-    const statusRow = document.getElementById('ollama-status-row');
-    const modelRow = document.getElementById('ollama-model-row');
-    const actionRow = document.getElementById('ollama-action-row');
-
-    if (urlRow) urlRow.style.display = 'flex';
-    if (statusRow) statusRow.style.display = 'flex';
-    if (modelRow) modelRow.style.display = 'flex';
-    if (actionRow) actionRow.style.display = 'none'; // Hide action row when showing config
+    // No longer needed - UI is simplified
 }
 
 /**
@@ -2463,301 +2418,169 @@ function escapeHtml(text) {
 }
 
 // ============================================
-// Ollama Connection Test
+// AI Connection Test (internal use)
 // ============================================
 
 /**
- * Test Ollama connection
+ * Test AI connection (called internally, not exposed in UI)
  */
 async function testOllamaConnection() {
-    const urlInput = document.getElementById('ollama-url');
-    const badge = document.getElementById('ollama-status');
-    const btn = document.getElementById('test-ollama-btn');
-    const actionRow = document.getElementById('ollama-action-row');
-
-    if (!urlInput || !badge) return;
-
-    const url = urlInput.value.trim();
-    if (!url) {
-        showToast('Please enter an Ollama URL', 'error');
-        return;
-    }
-
-    // Update UI to testing state
-    badge.className = 'status-badge checking';
-    badge.querySelector('.status-text').textContent = 'Testing...';
-    if (btn) btn.disabled = true;
-    if (actionRow) actionRow.style.display = 'none';
-
-    try {
-        const result = await pywebview.api.test_ollama_connection(url);
-        if (result.success && result.data.connected) {
-            badge.className = 'status-badge available';
-            badge.querySelector('.status-text').textContent = 'Connected';
-            showToast('Ollama connection successful', 'success');
-            if (actionRow) actionRow.style.display = 'none';
-        } else {
-            badge.className = 'status-badge unavailable';
-            badge.querySelector('.status-text').textContent = result.error || 'Connection failed';
-            showToast('Could not connect to Ollama', 'error');
-            if (actionRow) actionRow.style.display = 'flex';
-        }
-    } catch (error) {
-        console.error('Error testing Ollama:', error);
-        badge.className = 'status-badge unavailable';
-        badge.querySelector('.status-text').textContent = 'Error';
-        showToast('Connection test failed', 'error');
-        if (actionRow) actionRow.style.display = 'flex';
-    } finally {
-        if (btn) btn.disabled = false;
-    }
-
-    // After successful connection, check models
-    if (badge && badge.classList.contains('available')) {
-        await checkAndPromptModelDownload();
-    }
+    // Redirect to checkAIStatus for simplified UI
+    await checkAIStatus();
 }
 
 // ============================================
-// Ollama Model Management
+// AI Setup Management
 // ============================================
 
-let isOllamaDownloading = false;
+let isAIDownloading = false;
 
 /**
- * Callback from Python: Update download progress
+ * Callback from Python: Update AI setup progress
  */
 window.onOllamaModelProgress = function(percent, status) {
-    const progressRow = document.getElementById('ollama-download-progress-row');
-    const downloadRow = document.getElementById('ollama-model-download-row');
-    const progressBar = document.getElementById('ollama-download-progress');
-    const progressText = document.getElementById('ollama-download-progress-text');
-    const downloadBtn = document.getElementById('download-ollama-model-btn');
+    const progressRow = document.getElementById('ai-download-progress-row');
+    const setupRow = document.getElementById('ai-setup-row');
+    const progressBar = document.getElementById('ai-download-progress');
+    const progressText = document.getElementById('ai-download-progress-text');
+    const setupBtn = document.getElementById('setup-ai-btn');
 
-    // Show progress, hide download prompt
+    // Show progress, hide setup prompt
     if (progressRow) progressRow.classList.remove('hidden');
-    if (downloadRow) downloadRow.classList.add('hidden');
+    if (setupRow) setupRow.classList.add('hidden');
 
     if (progressBar) {
         if (percent >= 0) {
             progressBar.style.width = `${percent}%`;
             progressBar.classList.remove('indeterminate');
         } else {
-            // Indeterminate state
             progressBar.classList.add('indeterminate');
         }
     }
     if (progressText) progressText.textContent = status;
-    if (downloadBtn) {
-        downloadBtn.disabled = true;
-        downloadBtn.textContent = 'Downloading...';
+    if (setupBtn) {
+        setupBtn.disabled = true;
+        setupBtn.textContent = 'Setting up...';
     }
 };
 
 /**
- * Callback from Python: Download complete
+ * Callback from Python: AI setup complete
  */
 window.onOllamaModelComplete = function(success) {
-    isOllamaDownloading = false;
-    const progressRow = document.getElementById('ollama-download-progress-row');
-    const downloadRow = document.getElementById('ollama-model-download-row');
-    const downloadBtn = document.getElementById('download-ollama-model-btn');
+    isAIDownloading = false;
+    const progressRow = document.getElementById('ai-download-progress-row');
+    const setupRow = document.getElementById('ai-setup-row');
+    const setupBtn = document.getElementById('setup-ai-btn');
 
-    if (downloadBtn) {
-        downloadBtn.disabled = false;
-        downloadBtn.textContent = 'Download Model';
+    if (setupBtn) {
+        setupBtn.disabled = false;
+        setupBtn.textContent = 'Setup AI';
     }
 
     if (success) {
-        showToast('Model downloaded successfully!', 'success');
-        // Refresh model list
-        refreshOllamaModels();
-        // Hide progress and download prompt
+        showToast('AI setup complete!', 'success');
+        // Refresh status
+        checkAIStatus();
         setTimeout(() => {
             if (progressRow) progressRow.classList.add('hidden');
-            if (downloadRow) downloadRow.classList.add('hidden');
         }, 1500);
     }
 };
 
 /**
- * Callback from Python: Download error
+ * Callback from Python: AI setup error
  */
 window.onOllamaModelError = function(error) {
-    isOllamaDownloading = false;
-    const progressRow = document.getElementById('ollama-download-progress-row');
-    const downloadRow = document.getElementById('ollama-model-download-row');
-    const downloadBtn = document.getElementById('download-ollama-model-btn');
+    isAIDownloading = false;
+    const progressRow = document.getElementById('ai-download-progress-row');
+    const setupRow = document.getElementById('ai-setup-row');
+    const setupBtn = document.getElementById('setup-ai-btn');
 
     if (progressRow) progressRow.classList.add('hidden');
-    if (downloadRow) downloadRow.classList.remove('hidden');
-    if (downloadBtn) {
-        downloadBtn.disabled = false;
-        downloadBtn.textContent = 'Download Model';
+    if (setupRow) setupRow.classList.remove('hidden');
+    if (setupBtn) {
+        setupBtn.disabled = false;
+        setupBtn.textContent = 'Setup AI';
     }
 
-    showToast(`Model download failed: ${error}`, 'error');
+    showToast('AI setup failed. Please try again.', 'error');
 };
 
 /**
- * Check if selected model is installed, prompt download if not
+ * Check AI availability and update status
  */
-async function checkAndPromptModelDownload() {
-    const aiCleanupEnabled = document.getElementById('ai-cleanup')?.checked;
-    if (!aiCleanupEnabled) {
-        hideModelDownloadPrompt();
-        return;
-    }
+async function checkAIStatus() {
+    const statusBadge = document.getElementById('ollama-status');
+    const statusText = statusBadge?.querySelector('.status-text');
+    const statusIndicator = statusBadge?.querySelector('.status-indicator');
+    const statusHelp = document.getElementById('ai-status-help');
+    const setupRow = document.getElementById('ai-setup-row');
 
     try {
         const result = await pywebview.api.get_ollama_models();
-        if (!result.success) {
-            console.error('Failed to get Ollama models:', result.error);
-            return;
-        }
 
-        const models = result.data.models || [];
-        const selectedModel = document.getElementById('ollama-model')?.value || 'llama3.2:3b';
+        if (result.success) {
+            const models = result.data.models || [];
+            const selectedModel = document.getElementById('ollama-model')?.value || 'llama3.2:3b';
+            const modelBase = selectedModel.split(':')[0];
+            const hasModel = models.some(m => m.name === selectedModel || m.name.startsWith(modelBase + ':'));
 
-        // Check if selected model is installed
-        const modelBase = selectedModel.split(':')[0];
-        const modelInstalled = models.some(m => m.name === selectedModel || m.name.startsWith(modelBase + ':'));
-
-        if (!modelInstalled) {
-            showModelDownloadPrompt(selectedModel);
+            if (hasModel) {
+                // AI is ready
+                if (statusText) statusText.textContent = 'Ready';
+                if (statusIndicator) statusIndicator.style.background = 'var(--success)';
+                if (statusHelp) statusHelp.textContent = 'AI processing is available.';
+                if (setupRow) setupRow.classList.add('hidden');
+                statusBadge?.classList.remove('status-error');
+                statusBadge?.classList.add('status-success');
+            } else {
+                // Service available but needs model
+                if (statusText) statusText.textContent = 'Setup Required';
+                if (statusIndicator) statusIndicator.style.background = 'var(--warning)';
+                if (statusHelp) statusHelp.textContent = 'AI components need to be downloaded.';
+                if (setupRow) setupRow.classList.remove('hidden');
+                statusBadge?.classList.remove('status-success');
+            }
         } else {
-            hideModelDownloadPrompt();
+            // Service not available
+            if (statusText) statusText.textContent = 'Not Available';
+            if (statusIndicator) statusIndicator.style.background = 'var(--error)';
+            if (statusHelp) statusHelp.textContent = 'AI service is not running. Click Setup to install.';
+            if (setupRow) setupRow.classList.remove('hidden');
+            statusBadge?.classList.remove('status-success');
+            statusBadge?.classList.add('status-error');
         }
-
-        // Update installed models list
-        updateOllamaModelList(models);
     } catch (error) {
-        console.error('Error checking Ollama models:', error);
+        console.error('Error checking AI status:', error);
+        if (statusText) statusText.textContent = 'Not Available';
+        if (statusIndicator) statusIndicator.style.background = 'var(--error)';
+        if (statusHelp) statusHelp.textContent = 'AI service is not running.';
+        if (setupRow) setupRow.classList.remove('hidden');
     }
 }
 
 /**
- * Show prompt to download missing model
+ * Start AI setup (download required components)
  */
-function showModelDownloadPrompt(modelName) {
-    const downloadRow = document.getElementById('ollama-model-download-row');
-    const modelNameSpan = document.getElementById('ollama-model-name');
+async function setupAI() {
+    if (isAIDownloading) return;
 
-    if (downloadRow) downloadRow.classList.remove('hidden');
-    if (modelNameSpan) modelNameSpan.textContent = modelName;
-}
-
-/**
- * Hide model download prompt
- */
-function hideModelDownloadPrompt() {
-    const downloadRow = document.getElementById('ollama-model-download-row');
-    const progressRow = document.getElementById('ollama-download-progress-row');
-
-    if (downloadRow) downloadRow.classList.add('hidden');
-    if (progressRow) progressRow.classList.add('hidden');
-}
-
-/**
- * Download the selected Ollama model
- */
-async function downloadOllamaModel() {
-    if (isOllamaDownloading) return;
-
-    const modelSelect = document.getElementById('ollama-model');
-    const model = modelSelect?.value || 'llama3.2:3b';
-
-    isOllamaDownloading = true;
+    const model = document.getElementById('ollama-model')?.value || 'llama3.2:3b';
+    isAIDownloading = true;
 
     try {
         await pywebview.api.pull_ollama_model(model);
         // Progress will be reported via callbacks
     } catch (error) {
-        console.error('Error starting Ollama model download:', error);
+        console.error('Error starting AI setup:', error);
         window.onOllamaModelError(error.message || 'Unknown error');
     }
 }
 
-/**
- * Refresh list of installed Ollama models
- */
+// Legacy function name for compatibility
 async function refreshOllamaModels() {
-    try {
-        const result = await pywebview.api.get_ollama_models();
-        if (result.success) {
-            updateOllamaModelList(result.data.models || []);
-            // Also check if we need to show download prompt
-            await checkAndPromptModelDownload();
-        } else {
-            // Ollama not available or error
-            updateOllamaModelList(null, result.error || 'Could not connect to Ollama');
-        }
-    } catch (error) {
-        console.error('Error refreshing Ollama models:', error);
-        updateOllamaModelList(null, 'Ollama not running');
-    }
-}
-
-/**
- * Delete an Ollama model
- */
-async function deleteOllamaModel(modelName) {
-    if (!confirm(`Delete model "${modelName}"?\n\nThis will free up disk space but the model will need to be re-downloaded to use again.`)) {
-        return;
-    }
-
-    try {
-        const result = await pywebview.api.delete_ollama_model(modelName);
-        if (result.success) {
-            showToast(`Model ${modelName} deleted`, 'success');
-            await refreshOllamaModels();
-        } else {
-            showToast(`Failed to delete: ${result.error || result.message}`, 'error');
-        }
-    } catch (error) {
-        console.error('Error deleting Ollama model:', error);
-        showToast('Failed to delete model', 'error');
-    }
-}
-
-/**
- * Update the installed models list in the UI
- * @param {Array|null} models - List of models, or null if error
- * @param {string} errorMessage - Error message to display if models is null
- */
-function updateOllamaModelList(models, errorMessage = null) {
-    const modelList = document.getElementById('ollama-installed-models');
-    if (!modelList) return;
-
-    modelList.innerHTML = '';
-
-    // Handle error state
-    if (models === null) {
-        modelList.innerHTML = `<p class="setting-help" style="color: var(--slate-400);">${errorMessage || 'Could not load models'}</p>`;
-        return;
-    }
-
-    // Handle empty list
-    if (models.length === 0) {
-        modelList.innerHTML = '<p class="setting-help">No models installed</p>';
-        return;
-    }
-
-    models.forEach(model => {
-        const sizeGB = (model.size / (1024 * 1024 * 1024)).toFixed(1);
-        const item = document.createElement('div');
-        item.className = 'model-list-item';
-        item.innerHTML = `
-            <span class="model-name">${model.name}</span>
-            <span class="model-size">${sizeGB} GB</span>
-            <button type="button" class="btn btn-danger btn-small"
-                    onclick="deleteOllamaModel('${model.name.replace(/'/g, "\\'")}')"
-                    aria-label="Delete ${model.name}">
-                Delete
-            </button>
-        `;
-        modelList.appendChild(item);
-    });
+    await checkAIStatus();
 }
 
 // ============================================
