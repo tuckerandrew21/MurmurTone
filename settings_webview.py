@@ -678,6 +678,83 @@ class SettingsAPI:
         except Exception as e:
             return {"success": False, "error": str(e)}
 
+    def get_ollama_models(self):
+        """Get list of installed Ollama models with sizes."""
+        try:
+            from ai_cleanup import get_ollama_models_with_sizes, validate_ollama_url
+
+            url = self._config.get("ollama_url", "http://localhost:11434")
+
+            if not validate_ollama_url(url):
+                return {"success": False, "error": "Invalid Ollama URL"}
+
+            models = get_ollama_models_with_sizes(url)
+            return {"success": True, "data": {"models": models}}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def pull_ollama_model(self, model_name):
+        """
+        Start downloading an Ollama model in background.
+        Progress is reported via JavaScript callbacks.
+        """
+        def do_pull():
+            try:
+                from ai_cleanup import pull_ollama_model as pull_model, validate_ollama_url
+
+                url = self._config.get("ollama_url", "http://localhost:11434")
+
+                if not validate_ollama_url(url):
+                    self._window.evaluate_js(
+                        'window.onOllamaModelError && window.onOllamaModelError("Invalid Ollama URL")'
+                    )
+                    return
+
+                def progress_callback(percent, status):
+                    # Escape quotes for JavaScript
+                    status_escaped = status.replace("\\", "\\\\").replace("'", "\\'").replace('"', '\\"')
+                    self._window.evaluate_js(
+                        f'window.onOllamaModelProgress && window.onOllamaModelProgress({percent}, "{status_escaped}")'
+                    )
+
+                self._window.evaluate_js(
+                    'window.onOllamaModelProgress && window.onOllamaModelProgress(0, "Connecting to Ollama...")'
+                )
+
+                success, message = pull_model(model_name, url, progress_callback)
+
+                if success:
+                    self._window.evaluate_js(
+                        'window.onOllamaModelComplete && window.onOllamaModelComplete(true)'
+                    )
+                else:
+                    error_msg = message.replace("\\", "\\\\").replace("'", "\\'").replace('"', '\\"')
+                    self._window.evaluate_js(
+                        f'window.onOllamaModelError && window.onOllamaModelError("{error_msg}")'
+                    )
+
+            except Exception as e:
+                error_msg = str(e).replace("\\", "\\\\").replace("'", "\\'").replace('"', '\\"')
+                self._window.evaluate_js(
+                    f'window.onOllamaModelError && window.onOllamaModelError("{error_msg}")'
+                )
+
+        thread = threading.Thread(target=do_pull, daemon=True)
+        thread.start()
+        return {"success": True, "message": "Download started"}
+
+    def delete_ollama_model(self, model_name):
+        """Delete an Ollama model to free disk space."""
+        try:
+            from ai_cleanup import delete_ollama_model as delete_model
+
+            url = self._config.get("ollama_url", "http://localhost:11434")
+            success, message = delete_model(model_name, url)
+
+            return {"success": success, "message": message}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
     def check_for_updates(self):
         """Check GitHub releases for newer version."""
         try:

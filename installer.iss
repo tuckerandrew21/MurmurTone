@@ -71,6 +71,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 Name: "startuprun"; Description: "Launch {#MyAppName} at Windows startup"; GroupDescription: "Startup Options:"; Flags: unchecked
 Name: "gpusupport"; Description: "Include NVIDIA GPU acceleration (adds ~1.6 GB)"; GroupDescription: "GPU Support:"; Flags: unchecked
+Name: "ollamainstall"; Description: "Install Ollama for AI text cleanup (~300 MB download)"; GroupDescription: "AI Features:"; Flags: unchecked
 
 [Files]
 ; Main application files (built by PyInstaller)
@@ -78,6 +79,9 @@ Source: "dist\MurmurTone\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdi
 
 ; GPU libraries (optional - only if gpusupport task selected)
 Source: "gpu_libs\*.dll"; DestDir: "{app}"; Tasks: gpusupport; Flags: ignoreversion skipifsourcedoesntexist
+
+; Ollama installer (optional - only if ollamainstall task selected)
+Source: "ollama\OllamaSetup.exe"; DestDir: "{tmp}"; Tasks: ollamainstall; Flags: deleteafterinstall skipifsourcedoesntexist
 
 ; Additional files
 Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion
@@ -95,6 +99,9 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"""; Flags: uninsdeletevalue; Tasks: startuprun
 
 [Run]
+; Install Ollama silently if selected (runs before app launch)
+Filename: "{tmp}\OllamaSetup.exe"; Parameters: "/VERYSILENT /NORESTART"; Tasks: ollamainstall; StatusMsg: "Installing Ollama..."; Flags: waituntilterminated skipifdoesntexist
+
 ; Option to launch app after installation
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 

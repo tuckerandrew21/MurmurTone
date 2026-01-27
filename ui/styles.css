@@ -2041,3 +2041,87 @@ body {
     opacity: 0.5;
     pointer-events: none;
 }
+
+/* ============================================
+   Ollama Model List
+   ============================================ */
+.model-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    width: 100%;
+    max-width: 400px;
+}
+
+.model-list-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--slate-800);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--slate-700);
+}
+
+.model-list-item:hover {
+    background: var(--slate-700);
+}
+
+.model-list-item .model-name {
+    flex: 1;
+    font-weight: 500;
+    color: var(--slate-100);
+    font-size: var(--font-size-sm);
+}
+
+.model-list-item .model-size {
+    color: var(--slate-400);
+    font-size: var(--font-size-xs);
+}
+
+/* Danger button (delete) */
+.btn-danger {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--error);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:hover {
+    background: rgba(239, 68, 68, 0.25);
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+/* Small button variant */
+.btn-small {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--font-size-xs);
+}
+
+/* ============================================
+   Progress Bar Container (for model download)
+   ============================================ */
+.progress-bar-container {
+    width: 200px;
+    height: 8px;
+    background: var(--slate-700);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.progress-bar-container .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--primary-light));
+    border-radius: var(--radius-sm);
+    transition: width 0.3s ease;
+}
+
+/* Indeterminate animation for unknown progress */
+.progress-bar-container .progress-bar.indeterminate {
+    width: 30% !important;
+    animation: indeterminate 1.5s infinite ease-in-out;
+}
+
+@keyframes indeterminate {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(400%); }
+}

@@ -2,8 +2,9 @@
 AI-powered text cleanup using local Ollama LLM.
 Provides grammar fixes and formality adjustments while staying 100% offline.
 """
+import json
 import requests
-from typing import Optional, List
+from typing import Optional, List, Callable
 from urllib.parse import urlparse
 
 
@@ -243,3 +244,146 @@ def test_ollama_connection(model: str, url: str = "http://localhost:11434") -> t
         return True, f"Connection successful! Using model: {model}"
     else:
         return False, "Connection succeeded but model did not respond correctly."
+
+
+def pull_ollama_model(
+    model: str = "llama3.2:3b",
+    url: str = "http://localhost:11434",
+    progress_callback: Optional[Callable[[int, str], None]] = None
+) -> tuple[bool, str]:
+    """
+    Pull (download) an Ollama model with progress tracking.
+
+    Args:
+        model: Model name to pull (e.g., "llama3.2:3b")
+        url: Ollama API URL
+        progress_callback: Optional callback(percent: int, status: str)
+            - percent: 0-100 for determinate progress, -1 for indeterminate
+            - status: Human-readable status message
+
+    Returns:
+        Tuple of (success, message)
+    """
+    if not validate_ollama_url(url):
+        return False, "Invalid Ollama URL"
+
+    try:
+        response = requests.post(
+            f"{url}/api/pull",
+            json={"model": model, "stream": True},
+            stream=True,
+            timeout=1800  # 30 min timeout for large models
+        )
+
+        if response.status_code != 200:
+            return False, f"HTTP {response.status_code}: {response.text}"
+
+        for line in response.iter_lines():
+            if line:
+                try:
+                    data = json.loads(line.decode())
+                except json.JSONDecodeError:
+                    continue
+
+                status = data.get("status", "")
+                error = data.get("error", "")
+
+                if error:
+                    return False, error
+
+                # Calculate progress percentage
+                if "completed" in data and "total" in data:
+                    total = data["total"]
+                    completed = data["completed"]
+                    if total > 0:
+                        percent = int((completed / total) * 100)
+                        mb_done = completed / (1024 * 1024)
+                        mb_total = total / (1024 * 1024)
+                        if progress_callback:
+                            progress_callback(percent, f"Downloading: {mb_done:.1f} / {mb_total:.1f} MB")
+                elif status == "success":
+                    if progress_callback:
+                        progress_callback(100, "Download complete!")
+                    return True, f"Model {model} downloaded successfully"
+                elif progress_callback:
+                    # Indeterminate progress for status messages
+                    progress_callback(-1, status)
+
+        return True, f"Model {model} pulled successfully"
+
+    except requests.Timeout:
+        return False, "Download timed out"
+    except requests.RequestException as e:
+        return False, str(e)
+    except Exception as e:
+        return False, f"Unexpected error: {e}"
+
+
+def delete_ollama_model(
+    model: str,
+    url: str = "http://localhost:11434"
+) -> tuple[bool, str]:
+    """
+    Delete an Ollama model to free disk space.
+
+    Args:
+        model: Model name to delete (e.g., "llama3.2:3b")
+        url: Ollama API URL
+
+    Returns:
+        Tuple of (success, message)
+    """
+    if not validate_ollama_url(url):
+        return False, "Invalid Ollama URL"
+
+    if not model or not model.strip():
+        return False, "Model name is required"
+
+    try:
+        response = requests.delete(
+            f"{url}/api/delete",
+            json={"model": model},
+            timeout=30
+        )
+
+        if response.status_code == 200:
+            return True, f"Model {model} deleted successfully"
+        elif response.status_code == 404:
+            return False, f"Model {model} not found"
+        else:
+            return False, f"HTTP {response.status_code}: {response.text}"
+
+    except requests.RequestException as e:
+        return False, str(e)
+    except Exception as e:
+        return False, f"Unexpected error: {e}"
+
+
+def get_ollama_models_with_sizes(url: str = "http://localhost:11434") -> List[dict]:
+    """
+    Get list of installed Ollama models with their sizes.
+
+    Args:
+        url: Ollama API URL
+
+    Returns:
+        List of dicts with 'name', 'size', and 'modified' keys
+    """
+    if not validate_ollama_url(url):
+        return []
+
+    try:
+        response = requests.get(f"{url}/api/tags", timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            models = []
+            for m in data.get("models", []):
+                models.append({
+                    "name": m.get("name", ""),
+                    "size": m.get("size", 0),
+                    "modified": m.get("modified_at", "")
+                })
+            return models
+        return []
+    except (requests.RequestException, Exception):
+        return []

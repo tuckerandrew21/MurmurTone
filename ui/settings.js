@@ -560,6 +560,11 @@ async function populateForm() {
     // Update visibility
     updateAiCleanupVisibility();
     updatePreviewVisibility();
+
+    // Load Ollama models if AI cleanup is enabled
+    if (settings.ai_cleanup_enabled) {
+        refreshOllamaModels();
+    }
     toggleFormalityRow();
     hideOllamaConfigRows();
 
@@ -774,9 +779,10 @@ function setupFormListeners() {
         if (checked) {
             setTimeout(() => testOllamaConnection(), 200);
         } else {
-            // Hide action row when disabled
+            // Hide action row and model prompts when disabled
             const actionRow = document.getElementById('ollama-action-row');
             if (actionRow) actionRow.style.display = 'none';
+            hideModelDownloadPrompt();
         }
     });
     addInputListener('ollama-url', (value) => saveSetting('ollama_url', value), 1000);
@@ -799,11 +805,25 @@ function setupFormListeners() {
         retryOllamaBtn.addEventListener('click', testOllamaConnection);
     }
 
-    // Download Ollama button
+    // Download Ollama button (opens Ollama website)
     const downloadOllamaBtn = document.getElementById('download-ollama-btn');
     if (downloadOllamaBtn) {
         downloadOllamaBtn.addEventListener('click', () => {
             window.open('https://ollama.ai/download', '_blank');
+        });
+    }
+
+    // Download Ollama model button (downloads model via API)
+    const downloadOllamaModelBtn = document.getElementById('download-ollama-model-btn');
+    if (downloadOllamaModelBtn) {
+        downloadOllamaModelBtn.addEventListener('click', downloadOllamaModel);
+    }
+
+    // Refresh models when model dropdown changes
+    const ollamaModelSelect = document.getElementById('ollama-model');
+    if (ollamaModelSelect) {
+        ollamaModelSelect.addEventListener('change', () => {
+            checkAndPromptModelDownload();
         });
     }
 
@@ -2491,6 +2511,253 @@ async function testOllamaConnection() {
     } finally {
         if (btn) btn.disabled = false;
     }
+
+    // After successful connection, check models
+    if (badge && badge.classList.contains('available')) {
+        await checkAndPromptModelDownload();
+    }
+}
+
+// ============================================
+// Ollama Model Management
+// ============================================
+
+let isOllamaDownloading = false;
+
+/**
+ * Callback from Python: Update download progress
+ */
+window.onOllamaModelProgress = function(percent, status) {
+    const progressRow = document.getElementById('ollama-download-progress-row');
+    const downloadRow = document.getElementById('ollama-model-download-row');
+    const progressBar = document.getElementById('ollama-download-progress');
+    const progressText = document.getElementById('ollama-download-progress-text');
+    const downloadBtn = document.getElementById('download-ollama-model-btn');
+
+    // Show progress, hide download prompt
+    if (progressRow) progressRow.classList.remove('hidden');
+    if (downloadRow) downloadRow.classList.add('hidden');
+
+    if (progressBar) {
+        if (percent >= 0) {
+            progressBar.style.width = `${percent}%`;
+            progressBar.classList.remove('indeterminate');
+        } else {
+            // Indeterminate state
+            progressBar.classList.add('indeterminate');
+        }
+    }
+    if (progressText) progressText.textContent = status;
+    if (downloadBtn) {
+        downloadBtn.disabled = true;
+        downloadBtn.textContent = 'Downloading...';
+    }
+};
+
+/**
+ * Callback from Python: Download complete
+ */
+window.onOllamaModelComplete = function(success) {
+    isOllamaDownloading = false;
+    const progressRow = document.getElementById('ollama-download-progress-row');
+    const downloadRow = document.getElementById('ollama-model-download-row');
+    const downloadBtn = document.getElementById('download-ollama-model-btn');
+
+    if (downloadBtn) {
+        downloadBtn.disabled = false;
+        downloadBtn.textContent = 'Download Model';
+    }
+
+    if (success) {
+        showToast('Model downloaded successfully!', 'success');
+        // Refresh model list
+        refreshOllamaModels();
+        // Hide progress and download prompt
+        setTimeout(() => {
+            if (progressRow) progressRow.classList.add('hidden');
+            if (downloadRow) downloadRow.classList.add('hidden');
+        }, 1500);
+    }
+};
+
+/**
+ * Callback from Python: Download error
+ */
+window.onOllamaModelError = function(error) {
+    isOllamaDownloading = false;
+    const progressRow = document.getElementById('ollama-download-progress-row');
+    const downloadRow = document.getElementById('ollama-model-download-row');
+    const downloadBtn = document.getElementById('download-ollama-model-btn');
+
+    if (progressRow) progressRow.classList.add('hidden');
+    if (downloadRow) downloadRow.classList.remove('hidden');
+    if (downloadBtn) {
+        downloadBtn.disabled = false;
+        downloadBtn.textContent = 'Download Model';
+    }
+
+    showToast(`Model download failed: ${error}`, 'error');
+};
+
+/**
+ * Check if selected model is installed, prompt download if not
+ */
+async function checkAndPromptModelDownload() {
+    const aiCleanupEnabled = document.getElementById('ai-cleanup')?.checked;
+    if (!aiCleanupEnabled) {
+        hideModelDownloadPrompt();
+        return;
+    }
+
+    try {
+        const result = await pywebview.api.get_ollama_models();
+        if (!result.success) {
+            console.error('Failed to get Ollama models:', result.error);
+            return;
+        }
+
+        const models = result.data.models || [];
+        const selectedModel = document.getElementById('ollama-model')?.value || 'llama3.2:3b';
+
+        // Check if selected model is installed
+        const modelBase = selectedModel.split(':')[0];
+        const modelInstalled = models.some(m => m.name === selectedModel || m.name.startsWith(modelBase + ':'));
+
+        if (!modelInstalled) {
+            showModelDownloadPrompt(selectedModel);
+        } else {
+            hideModelDownloadPrompt();
+        }
+
+        // Update installed models list
+        updateOllamaModelList(models);
+    } catch (error) {
+        console.error('Error checking Ollama models:', error);
+    }
+}
+
+/**
+ * Show prompt to download missing model
+ */
+function showModelDownloadPrompt(modelName) {
+    const downloadRow = document.getElementById('ollama-model-download-row');
+    const modelNameSpan = document.getElementById('ollama-model-name');
+
+    if (downloadRow) downloadRow.classList.remove('hidden');
+    if (modelNameSpan) modelNameSpan.textContent = modelName;
+}
+
+/**
+ * Hide model download prompt
+ */
+function hideModelDownloadPrompt() {
+    const downloadRow = document.getElementById('ollama-model-download-row');
+    const progressRow = document.getElementById('ollama-download-progress-row');
+
+    if (downloadRow) downloadRow.classList.add('hidden');
+    if (progressRow) progressRow.classList.add('hidden');
+}
+
+/**
+ * Download the selected Ollama model
+ */
+async function downloadOllamaModel() {
+    if (isOllamaDownloading) return;
+
+    const modelSelect = document.getElementById('ollama-model');
+    const model = modelSelect?.value || 'llama3.2:3b';
+
+    isOllamaDownloading = true;
+
+    try {
+        await pywebview.api.pull_ollama_model(model);
+        // Progress will be reported via callbacks
+    } catch (error) {
+        console.error('Error starting Ollama model download:', error);
+        window.onOllamaModelError(error.message || 'Unknown error');
+    }
+}
+
+/**
+ * Refresh list of installed Ollama models
+ */
+async function refreshOllamaModels() {
+    try {
+        const result = await pywebview.api.get_ollama_models();
+        if (result.success) {
+            updateOllamaModelList(result.data.models || []);
+            // Also check if we need to show download prompt
+            await checkAndPromptModelDownload();
+        } else {
+            // Ollama not available or error
+            updateOllamaModelList(null, result.error || 'Could not connect to Ollama');
+        }
+    } catch (error) {
+        console.error('Error refreshing Ollama models:', error);
+        updateOllamaModelList(null, 'Ollama not running');
+    }
+}
+
+/**
+ * Delete an Ollama model
+ */
+async function deleteOllamaModel(modelName) {
+    if (!confirm(`Delete model "${modelName}"?\n\nThis will free up disk space but the model will need to be re-downloaded to use again.`)) {
+        return;
+    }
+
+    try {
+        const result = await pywebview.api.delete_ollama_model(modelName);
+        if (result.success) {
+            showToast(`Model ${modelName} deleted`, 'success');
+            await refreshOllamaModels();
+        } else {
+            showToast(`Failed to delete: ${result.error || result.message}`, 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting Ollama model:', error);
+        showToast('Failed to delete model', 'error');
+    }
+}
+
+/**
+ * Update the installed models list in the UI
+ * @param {Array|null} models - List of models, or null if error
+ * @param {string} errorMessage - Error message to display if models is null
+ */
+function updateOllamaModelList(models, errorMessage = null) {
+    const modelList = document.getElementById('ollama-installed-models');
+    if (!modelList) return;
+
+    modelList.innerHTML = '';
+
+    // Handle error state
+    if (models === null) {
+        modelList.innerHTML = `<p class="setting-help" style="color: var(--slate-400);">${errorMessage || 'Could not load models'}</p>`;
+        return;
+    }
+
+    // Handle empty list
+    if (models.length === 0) {
+        modelList.innerHTML = '<p class="setting-help">No models installed</p>';
+        return;
+    }
+
+    models.forEach(model => {
+        const sizeGB = (model.size / (1024 * 1024 * 1024)).toFixed(1);
+        const item = document.createElement('div');
+        item.className = 'model-list-item';
+        item.innerHTML = `
+            <span class="model-name">${model.name}</span>
+            <span class="model-size">${sizeGB} GB</span>
+            <button type="button" class="btn btn-danger btn-small"
+                    onclick="deleteOllamaModel('${model.name.replace(/'/g, "\\'")}')"
+                    aria-label="Delete ${model.name}">
+                Delete
+            </button>
+        `;
+        modelList.appendChild(item);
+    });
 }
 
 // ============================================

@@ -685,6 +685,37 @@
                                 </select>
                             </div>
 
+                            <!-- Model Download Prompt (shown when model not installed) -->
+                            <div class="setting-row toggle-row hidden" id="ollama-model-download-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Model Not Installed</label>
+                                    <p class="setting-help">Model <strong id="ollama-model-name">llama3.2:3b</strong> needs to be downloaded (~2 GB).</p>
+                                </div>
+                                <button type="button" id="download-ollama-model-btn" class="btn btn-primary" data-testid="download-ollama-model-btn">Download Model</button>
+                            </div>
+
+                            <!-- Model Download Progress (shown during download) -->
+                            <div class="setting-row toggle-row hidden" id="ollama-download-progress-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Downloading Model</label>
+                                    <p class="setting-help" id="ollama-download-progress-text">Connecting...</p>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar" id="ollama-download-progress" style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                            <!-- Installed Models List -->
+                            <div class="setting-row toggle-row" id="ollama-installed-models-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Installed Models</label>
+                                    <p class="setting-help">Manage downloaded AI models.</p>
+                                </div>
+                                <div id="ollama-installed-models" class="model-list">
+                                    <p class="setting-help">Loading...</p>
+                                </div>
+                            </div>
+
                             <div class="setting-row toggle-row">
                                 <div class="setting-info">
                                     <label class="setting-label">Cleanup Mode</label>
