@@ -998,7 +998,8 @@ def main():
     webview.settings['REMOTE_DEBUGGING_PORT'] = 9222
 
     # Start webview (blocks until window is closed)
-    webview.start(debug=True)
+    # debug=False hides DevTools window, CDP still works via REMOTE_DEBUGGING_PORT
+    webview.start(debug=False)
 
 
 if __name__ == "__main__":
