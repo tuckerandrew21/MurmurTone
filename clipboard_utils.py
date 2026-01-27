@@ -28,6 +28,10 @@ if sys.platform != "win32":
         """No-op on non-Windows platforms."""
         pass
 
+    def set_text(text):
+        """No-op on non-Windows platforms."""
+        return False
+
 else:
     # Windows API constants
     CF_TEXT = 1
@@ -266,3 +270,60 @@ else:
 
         thread = threading.Thread(target=_restore_after_delay, daemon=True)
         thread.start()
+
+    def set_text(text: str) -> bool:
+        """
+        Set clipboard text using Windows API (no tkinter dependency).
+
+        Args:
+            text: The text to copy to clipboard
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if not text:
+            return False
+
+        if not _open_clipboard_with_retry():
+            log.warning("Could not open clipboard to set text")
+            return False
+
+        try:
+            EmptyClipboard()
+
+            # Encode as UTF-16 (Windows Unicode format) with null terminator
+            encoded = text.encode('utf-16-le') + b'\x00\x00'
+            size = len(encoded)
+
+            # Allocate global memory
+            handle = GlobalAlloc(GMEM_MOVEABLE, size)
+            if not handle:
+                log.error("Could not allocate memory for clipboard")
+                return False
+
+            # Lock and copy data
+            ptr = GlobalLock(handle)
+            if not ptr:
+                GlobalFree(handle)
+                log.error("Could not lock clipboard memory")
+                return False
+
+            try:
+                ctypes.memmove(ptr, encoded, size)
+            finally:
+                GlobalUnlock(handle)
+
+            # Set clipboard data (clipboard takes ownership of handle)
+            if not SetClipboardData(CF_UNICODETEXT, handle):
+                GlobalFree(handle)
+                log.error("Could not set clipboard data")
+                return False
+
+            log.debug(f"Set clipboard text ({len(text)} chars)")
+            return True
+
+        except Exception as e:
+            log.error(f"Error setting clipboard text: {e}")
+            return False
+        finally:
+            CloseClipboard()

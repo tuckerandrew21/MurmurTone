@@ -299,7 +299,24 @@ def hotkey_to_string(hotkey):
     if hotkey.get("shift"):
         parts.append("Shift")
     key = hotkey.get("key", "space")
-    parts.append(key.capitalize() if len(key) > 1 else key.upper())
+
+    # Map key names to readable display
+    display_map = {
+        "scrolllock": "ScrollLock",
+        "scroll_lock": "ScrollLock",
+        "capslock": "CapsLock",
+        "caps_lock": "CapsLock",
+        "numlock": "NumLock",
+        "num_lock": "NumLock",
+        "pageup": "PageUp",
+        "page_up": "PageUp",
+        "pagedown": "PageDown",
+        "page_down": "PageDown",
+        "printscreen": "PrintScreen",
+        "print_screen": "PrintScreen",
+    }
+    key_display = display_map.get(key.lower(), key.capitalize() if len(key) > 1 else key.upper())
+    parts.append(key_display)
     return "+".join(parts)
 
 

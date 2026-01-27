@@ -834,17 +834,9 @@ def stop_recording():
             # Save current clipboard contents first
             saved_clipboard = clipboard_utils.save_clipboard()
 
-            # Copy to clipboard using tkinter (more reliable than ctypes)
-            try:
-                import tkinter as tk
-                root = tk.Tk()
-                root.withdraw()
-                root.clipboard_clear()
-                root.clipboard_append(text_with_space)
-                root.update()
-                root.destroy()
-            except Exception as e:
-                log.error(f"Clipboard error: {e}")
+            # Copy to clipboard using Windows API (tkinter conflicts with PyWebView)
+            if not clipboard_utils.set_text(text_with_space):
+                log.error("Failed to copy text to clipboard")
 
             # Paste
             log.info(f"Pasting: {text}")
@@ -861,17 +853,10 @@ def stop_recording():
                 clipboard_utils.restore_clipboard_async(saved_clipboard, delay_ms=400)
         else:
             # Clipboard mode without auto-paste (manual paste by user)
-            try:
-                import tkinter as tk
-                root = tk.Tk()
-                root.withdraw()
-                root.clipboard_clear()
-                root.clipboard_append(text_with_space)
-                root.update()
-                root.destroy()
+            if clipboard_utils.set_text(text_with_space):
                 log.info(f"Copied to clipboard: {text}")
-            except Exception as e:
-                log.error(f"Clipboard error: {e}")
+            else:
+                log.error("Failed to copy text to clipboard")
         # Success sound after text output
         play_sound(success_sound, sound_type="success")
     elif actions_executed:
@@ -898,6 +883,23 @@ def check_hotkey():
     shift_required = hotkey.get("shift", False)
     alt_required = hotkey.get("alt", False)
     main_key = hotkey.get("key", "space").lower()
+
+    # Normalize JS key names to pynput names (JS uses no underscores)
+    key_name_map = {
+        "scrolllock": "scroll_lock",
+        "capslock": "caps_lock",
+        "numlock": "num_lock",
+        "pageup": "page_up",
+        "pagedown": "page_down",
+        "arrowup": "up",
+        "arrowdown": "down",
+        "arrowleft": "left",
+        "arrowright": "right",
+        "backspace": "backspace",
+        "printscreen": "print_screen",
+        "pause": "pause",
+    }
+    main_key = key_name_map.get(main_key, main_key)
 
     ctrl_pressed = Key.ctrl_l in current_keys or Key.ctrl_r in current_keys
     shift_pressed = Key.shift in current_keys or Key.shift_l in current_keys or Key.shift_r in current_keys
