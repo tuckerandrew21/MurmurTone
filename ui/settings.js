@@ -449,6 +449,8 @@ async function populateForm() {
 
     // Recording mode
     setDropdown('recording-mode', settings.recording_mode ?? 'push_to_talk');
+    setSlider('silence-threshold', settings.silence_threshold_db ?? -20, ' dB');
+    updateAutoStopOptionsVisibility(settings.recording_mode ?? 'push_to_talk');
 
     // Language
     setDropdown('language', settings.language ?? 'en');
@@ -583,7 +585,11 @@ function setupFormListeners() {
     setupHotkeyComboCapture('hotkey-capture', (hotkey) => saveSetting('hotkey', hotkey));
 
     // Recording mode
-    addDropdownListener('recording-mode', (value) => saveSetting('recording_mode', value));
+    addDropdownListener('recording-mode', (value) => {
+        saveSetting('recording_mode', value);
+        updateAutoStopOptionsVisibility(value);
+    });
+    addSliderListener('silence-threshold', (value) => saveSetting('silence_threshold_db', parseInt(value)), ' dB');
 
     // Language
     addDropdownListener('language', (value) => saveSetting('language', value));
@@ -1421,6 +1427,20 @@ function updateNoiseGateVisibility() {
 
     if (options) {
         if (enabled) {
+            options.classList.remove('hidden');
+        } else {
+            options.classList.add('hidden');
+        }
+    }
+}
+
+/**
+ * Update auto-stop options visibility based on recording mode
+ */
+function updateAutoStopOptionsVisibility(mode) {
+    const options = document.getElementById('auto-stop-options');
+    if (options) {
+        if (mode === 'auto_stop') {
             options.classList.remove('hidden');
         } else {
             options.classList.add('hidden');
@@ -3055,6 +3075,7 @@ function createMockApi() {
         model_size: 'medium',
         processing_mode: 'auto',
         silence_duration_sec: 2.0,
+        silence_threshold_db: -20,
         custom_vocabulary: ['MurmurTone', 'PyWebView'],
         sample_rate: 16000,
         input_device: null,

@@ -96,6 +96,7 @@ command_sound = None
 
 # Silence detection state
 silence_start_time = None
+peak_db_level = -100  # Peak audio level during current recording (for adaptive threshold)
 
 # Recording duration tracking
 recording_start_time = None
@@ -578,12 +579,13 @@ def auto_stop_recording():
         return
 
     log.info("Auto-stopped (silence detected)")
+
     silence_start_time = None
     stop_recording()
 
 
 def audio_callback(indata, frames, time_info, status):
-    global audio_data, is_recording, silence_start_time, last_duration_update
+    global audio_data, is_recording, silence_start_time, last_duration_update, peak_db_level
 
     if not is_recording:
         return
@@ -616,11 +618,21 @@ def audio_callback(indata, frames, time_info, status):
     if app_config.get("recording_mode") != "auto_stop":
         return
 
+    # Adaptive silence detection: track peak level and detect significant drop
+    # Update peak level (only track levels above noise floor)
+    if db > -90:
+        peak_db_level = max(peak_db_level, db)
+
     silence_duration = app_config.get("silence_duration_sec", 2.0)
+    # Silence margin: how many dB below peak to consider silence (configurable)
+    silence_margin = app_config.get("silence_threshold_db", -20)  # -20 means 20dB below peak
+    # Calculate dynamic threshold based on peak level
+    dynamic_threshold = peak_db_level + silence_margin
+
     current_time = time.time()
 
-    if db < threshold_db:
-        # Below threshold - silence detected
+    if db < dynamic_threshold:
+        # Below dynamic threshold - silence detected
         if silence_start_time is None:
             silence_start_time = current_time
         elif (current_time - silence_start_time) >= silence_duration:
@@ -633,7 +645,7 @@ def audio_callback(indata, frames, time_info, status):
 
 
 def start_recording():
-    global is_recording, audio_data, stream, silence_start_time, recording_start_time, last_duration_update
+    global is_recording, audio_data, stream, silence_start_time, recording_start_time, last_duration_update, peak_db_level
     if not model_ready:
         log.info("Model still loading, please wait...")
         return
@@ -655,6 +667,7 @@ def start_recording():
     is_recording = True
     audio_data = []
     silence_start_time = None
+    peak_db_level = -100  # Reset peak level for adaptive silence detection
     sample_rate = app_config.get("sample_rate", 16000)
     # Get selected input device (None = system default)
     device_index = config.get_device_index(app_config.get("input_device"))

@@ -196,6 +196,25 @@ def validate_noise_threshold(value, default=-40, min_val=-60, max_val=-20):
         return default
 
 
+def validate_silence_threshold(value, default=-20, min_val=-40, max_val=-10):
+    """Validate and clamp silence margin in dB (how much below peak triggers stop).
+
+    Args:
+        value: Input value (negative dB margin)
+        default: Default value if invalid (-20 = 20 dB below peak)
+        min_val: Minimum allowed value (-40 = very sensitive)
+        max_val: Maximum allowed value (-10 = less sensitive)
+
+    Returns:
+        int: Valid silence margin in dB
+    """
+    try:
+        threshold = int(value)
+        return max(min_val, min(max_val, threshold))
+    except (ValueError, TypeError):
+        return default
+
+
 def validate_url(url: str, default: str = "") -> str:
     """Validate URL format and length.
 

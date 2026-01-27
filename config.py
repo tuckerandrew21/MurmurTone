@@ -22,8 +22,9 @@ DEFAULTS = {
         "alt": False,
         "key": "space"
     },
-    "recording_mode": "auto_stop",  # "push_to_talk" or "auto_stop"
+    "recording_mode": "auto_stop",  # "push_to_talk" or "auto_stop" or "toggle"
     "silence_duration_sec": 2.0,
+    "silence_threshold_db": -20,  # dB margin below peak for auto-stop (-40 = very sensitive, -10 = less sensitive)
     "audio_feedback": True,
     "input_device": None,  # None = system default, or device name string
     "auto_paste": True,  # Automatically paste after transcription
