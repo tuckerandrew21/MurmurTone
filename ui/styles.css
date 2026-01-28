@@ -508,6 +508,59 @@ body {
 }
 
 /* ============================================
+   Audio Level Meter
+   ============================================ */
+.audio-level-section {
+    margin-top: var(--space-lg);
+    padding-top: var(--space-lg);
+    border-top: 1px solid var(--slate-700);
+}
+
+.audio-level-meter {
+    display: flex;
+    gap: 3px;
+    padding: 8px;
+    background: var(--slate-900);
+    border-radius: var(--radius-md);
+    margin-top: var(--space-sm);
+}
+
+.audio-level-segment {
+    flex: 1;
+    height: 20px;
+    border-radius: 2px;
+    transition: opacity 50ms ease-out;
+}
+
+.audio-level-segment.green {
+    background: var(--primary);
+}
+
+.audio-level-segment.yellow {
+    background: #eab308;
+}
+
+.audio-level-segment.red {
+    background: #ef4444;
+}
+
+.audio-level-segment.off {
+    opacity: 0.15;
+}
+
+.audio-level-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 10px;
+    color: var(--slate-500);
+}
+
+.audio-level-section .setting-help {
+    margin-top: var(--space-sm);
+}
+
+/* ============================================
    Form Controls: Toggle Switch
    ============================================ */
 .toggle {

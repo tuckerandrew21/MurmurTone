@@ -285,6 +285,13 @@ function navigateTo(page) {
     } catch (e) {
         // localStorage may not be available
     }
+
+    // Start/stop audio meter based on page
+    if (page === 'audio') {
+        startAudioMeter();
+    } else {
+        stopAudioMeter();
+    }
 }
 
 /**
@@ -450,7 +457,13 @@ function setupFormListeners() {
     addCheckboxListener('start-with-windows', (checked) => saveSetting('start_with_windows', checked));
 
     // Audio settings
-    addDropdownListener('input-device', (value) => saveSetting('input_device', value || null));
+    addDropdownListener('input-device', (value) => {
+        saveSetting('input_device', value || null);
+        // Restart audio meter with new device if on audio page
+        if (currentPage === 'audio') {
+            startAudioMeter();
+        }
+    });
     addDropdownListener('sample-rate', (value) => saveSetting('sample_rate', parseInt(value)));
     // Save as 0-100 directly
     addSliderListener('feedback-volume', (value) => {
@@ -1191,6 +1204,82 @@ async function loadAudioDevices() {
             refreshBtn.classList.remove('loading');
         }
     }
+}
+
+// ============================================
+// Audio Level Meter (uses Python backend)
+// ============================================
+
+let audioMeterRunning = false;
+
+/**
+ * Initialize and start the audio level meter via Python backend
+ */
+async function startAudioMeter() {
+    const meter = document.getElementById('audio-level-meter');
+    if (!meter) return;
+
+    // Stop any existing meter first
+    await stopAudioMeter();
+
+    // Create 16 segments: 10 green, 4 yellow, 2 red
+    meter.innerHTML = '';
+    for (let i = 0; i < 16; i++) {
+        const seg = document.createElement('div');
+        seg.className = 'audio-level-segment off';
+        if (i < 10) {
+            seg.classList.add('green');
+        } else if (i < 14) {
+            seg.classList.add('yellow');
+        } else {
+            seg.classList.add('red');
+        }
+        meter.appendChild(seg);
+    }
+
+    // Register callback for audio level updates from Python
+    window.onAudioLevel = function(db) {
+        // Convert dB (-60 to -20) to 0-1 level
+        // -60 dB = 0, -20 dB = 1
+        const level = Math.max(0, Math.min(1, (db + 60) / 40));
+        const segments = document.querySelectorAll('.audio-level-segment');
+        const activeCount = Math.floor(level * 16);
+
+        segments.forEach((seg, i) => {
+            if (i < activeCount) {
+                seg.classList.remove('off');
+            } else {
+                seg.classList.add('off');
+            }
+        });
+    };
+
+    try {
+        const result = await pywebview.api.start_microphone_test();
+        if (result.success) {
+            audioMeterRunning = true;
+        } else {
+            console.error('Audio meter error:', result.error);
+        }
+    } catch (err) {
+        console.error('Audio meter error:', err);
+    }
+}
+
+/**
+ * Stop the audio level meter
+ */
+async function stopAudioMeter() {
+    if (!audioMeterRunning) return;
+
+    try {
+        await pywebview.api.stop_microphone_test();
+    } catch (err) {
+        console.error('Error stopping audio meter:', err);
+    }
+
+    audioMeterRunning = false;
+    window.onAudioLevel = null;
 }
 
 /**
