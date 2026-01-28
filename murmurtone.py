@@ -86,13 +86,9 @@ settings_process = None
 key_listener = None
 transcription_history = text_processor.TranscriptionHistory()
 
-# Audio feedback sounds
+# Audio feedback sounds (just start/stop clicks)
 start_sound = None
 stop_sound = None
-processing_sound = None
-success_sound = None
-error_sound = None
-command_sound = None
 
 # Silence detection state
 silence_start_time = None
@@ -163,132 +159,6 @@ def generate_click_sound(frequency=800, duration_ms=50, volume=0.3):
     return buffer.getvalue()
 
 
-def generate_two_tone_sound(freq1=400, freq2=600, duration_ms=100, volume=0.3):
-    """Generate a two-tone ascending sound as WAV bytes."""
-    sample_rate = 44100
-    num_samples = int(sample_rate * duration_ms / 1000)
-    half_samples = num_samples // 2
-
-    t1 = np.linspace(0, duration_ms / 2000, half_samples, dtype=np.float32)
-    t2 = np.linspace(0, duration_ms / 2000, num_samples - half_samples, dtype=np.float32)
-
-    # First tone then second tone
-    wave1 = np.sin(2 * np.pi * freq1 * t1) * volume
-    wave2 = np.sin(2 * np.pi * freq2 * t2) * volume
-    wave_data = np.concatenate([wave1, wave2])
-
-    # Apply fade envelope
-    fade_samples = int(num_samples * 0.1)
-    if fade_samples > 0:
-        wave_data[:fade_samples] *= np.linspace(0, 1, fade_samples)
-        wave_data[-fade_samples:] *= np.linspace(1, 0, fade_samples)
-
-    # Convert to 16-bit PCM
-    pcm_data = (wave_data * 32767).astype(np.int16)
-
-    buffer = io.BytesIO()
-    with wave.open(buffer, 'wb') as wf:
-        wf.setnchannels(1)
-        wf.setsampwidth(2)
-        wf.setframerate(sample_rate)
-        wf.writeframes(pcm_data.tobytes())
-
-    return buffer.getvalue()
-
-
-def generate_chime_sound(frequency=800, duration_ms=150, volume=0.3):
-    """Generate a pleasant chime sound with harmonics as WAV bytes."""
-    sample_rate = 44100
-    num_samples = int(sample_rate * duration_ms / 1000)
-
-    t = np.linspace(0, duration_ms / 1000, num_samples, dtype=np.float32)
-    # Main frequency plus harmonics for richer sound
-    wave_data = (np.sin(2 * np.pi * frequency * t) * 0.6 +
-                 np.sin(2 * np.pi * frequency * 2 * t) * 0.25 +
-                 np.sin(2 * np.pi * frequency * 3 * t) * 0.15) * volume
-
-    # Apply longer fade for chime effect
-    fade_in = int(num_samples * 0.05)
-    fade_out = int(num_samples * 0.4)
-    if fade_in > 0:
-        wave_data[:fade_in] *= np.linspace(0, 1, fade_in)
-    if fade_out > 0:
-        wave_data[-fade_out:] *= np.linspace(1, 0, fade_out)
-
-    pcm_data = (wave_data * 32767).astype(np.int16)
-
-    buffer = io.BytesIO()
-    with wave.open(buffer, 'wb') as wf:
-        wf.setnchannels(1)
-        wf.setsampwidth(2)
-        wf.setframerate(sample_rate)
-        wf.writeframes(pcm_data.tobytes())
-
-    return buffer.getvalue()
-
-
-def generate_double_beep_sound(frequency=900, duration_ms=40, gap_ms=30, volume=0.3):
-    """Generate a quick double-beep sound for command confirmation."""
-    sample_rate = 44100
-    beep_samples = int(sample_rate * duration_ms / 1000)
-    gap_samples = int(sample_rate * gap_ms / 1000)
-
-    t = np.linspace(0, duration_ms / 1000, beep_samples, dtype=np.float32)
-    beep = np.sin(2 * np.pi * frequency * t) * volume
-
-    # Quick fade to avoid clicks
-    fade = int(beep_samples * 0.15)
-    if fade > 0:
-        beep[:fade] *= np.linspace(0, 1, fade)
-        beep[-fade:] *= np.linspace(1, 0, fade)
-
-    # Two beeps with gap
-    gap = np.zeros(gap_samples, dtype=np.float32)
-    wave_data = np.concatenate([beep, gap, beep])
-
-    pcm_data = (wave_data * 32767).astype(np.int16)
-
-    buffer = io.BytesIO()
-    with wave.open(buffer, 'wb') as wf:
-        wf.setnchannels(1)
-        wf.setsampwidth(2)
-        wf.setframerate(sample_rate)
-        wf.writeframes(pcm_data.tobytes())
-
-    return buffer.getvalue()
-
-
-def generate_error_buzz_sound(freq_start=400, freq_end=200, duration_ms=120, volume=0.3):
-    """Generate a descending buzz sound for errors (clearly 'bad')."""
-    sample_rate = 44100
-    num_samples = int(sample_rate * duration_ms / 1000)
-
-    t = np.linspace(0, duration_ms / 1000, num_samples, dtype=np.float32)
-    # Descending frequency sweep
-    freq = np.linspace(freq_start, freq_end, num_samples)
-    wave_data = np.sin(2 * np.pi * freq * t) * volume
-
-    # Add slight buzz with second harmonic
-    wave_data += np.sin(2 * np.pi * freq * 2 * t) * volume * 0.2
-
-    # Fade envelope
-    fade = int(num_samples * 0.1)
-    if fade > 0:
-        wave_data[:fade] *= np.linspace(0, 1, fade)
-        wave_data[-fade:] *= np.linspace(1, 0, fade)
-
-    pcm_data = (wave_data * 32767).astype(np.int16)
-
-    buffer = io.BytesIO()
-    with wave.open(buffer, 'wb') as wf:
-        wf.setnchannels(1)
-        wf.setsampwidth(2)
-        wf.setframerate(sample_rate)
-        wf.writeframes(pcm_data.tobytes())
-
-    return buffer.getvalue()
-
-
 def apply_volume_to_wav(wav_data, volume):
     """Apply volume scaling to WAV bytes.
 
@@ -324,48 +194,31 @@ def apply_volume_to_wav(wav_data, volume):
 
 
 def init_sounds():
-    """Initialize audio feedback sounds at full volume (volume applied at playback)."""
-    global start_sound, stop_sound, processing_sound, success_sound, error_sound, command_sound
+    """Initialize audio feedback sounds (just start/stop clicks)."""
+    global start_sound, stop_sound
     try:
-        # Generate reference sounds at full volume - volume is applied at playback time
-        # Each sound is designed to be distinct:
-        # - start: high pitch click (1200Hz) - "listening"
-        # - stop: lower pitch click (500Hz) - "got it"
-        # - processing: ascending two-tone - "thinking"
-        # - success: pleasant chime - "done"
-        # - error: descending buzz - "problem"
-        # - command: quick double-beep - "action triggered"
-        start_sound = generate_click_sound(frequency=1200, duration_ms=40, volume=1.0)
-        stop_sound = generate_click_sound(frequency=500, duration_ms=60, volume=1.0)
-        processing_sound = generate_two_tone_sound(freq1=400, freq2=600, duration_ms=100, volume=1.0)
-        success_sound = generate_chime_sound(frequency=800, duration_ms=150, volume=1.0)
-        error_sound = generate_error_buzz_sound(freq_start=400, freq_end=200, duration_ms=120, volume=1.0)
-        command_sound = generate_double_beep_sound(frequency=900, duration_ms=40, gap_ms=30, volume=1.0)
+        # Generate click sounds - volume is applied at playback time
+        start_sound = generate_click_sound(frequency=1200, duration_ms=40, volume=1.0)  # High click
+        stop_sound = generate_click_sound(frequency=500, duration_ms=60, volume=1.0)    # Low click
     except Exception as e:
         log.warning(f"Could not initialize sounds: {e}")
-        start_sound = stop_sound = processing_sound = success_sound = error_sound = command_sound = None
+        start_sound = stop_sound = None
 
 
-def play_sound(sound_data, sound_type=None):
+def play_sound(sound_data):
     """Play a sound asynchronously (non-blocking).
 
     Args:
         sound_data: WAV bytes to play
-        sound_type: Optional type ('processing', 'success', 'error') to check specific setting
     """
-    if not app_config.get("audio_feedback", True):
-        return
-
-    # Check specific sound type setting if provided
-    if sound_type:
-        setting_key = f"sound_{sound_type}"
-        if not app_config.get(setting_key, True):
+    if sound_data:
+        # Hot reload settings from config file to pick up changes immediately
+        current_config = config.load_config()
+        if not current_config.get("audio_feedback", True):
             return
 
-    if sound_data:
-        # Read current volume from config file (hot reload)
         # Volume is stored as 0-100 percentage, convert to 0.0-1.0 multiplier
-        volume_percent = config.load_config().get("audio_feedback_volume", 100)
+        volume_percent = current_config.get("audio_feedback_volume", 100)
         current_volume = volume_percent / 100.0
         scaled_sound = apply_volume_to_wav(sound_data, current_volume)
 
@@ -757,7 +610,6 @@ def stop_recording():
         return
 
     log.info("Transcribing...")
-    play_sound(processing_sound, sound_type="processing")
     if app_config.get("preview_enabled", True):
         preview_window.show_transcribing()
     audio = np.concatenate(local_audio_data, axis=0).flatten()
@@ -924,16 +776,12 @@ def stop_recording():
             # Restore clipboard contents asynchronously
             if saved_clipboard:
                 clipboard_utils.restore_clipboard_async(saved_clipboard, delay_ms=400)
-        # Success sound after text output
-        play_sound(success_sound, sound_type="success")
     elif actions_executed:
         log.info(f"Action executed: {', '.join(actions)}")
-        play_sound(command_sound, sound_type="command")
         if app_config.get("preview_enabled", True):
             preview_window.hide()
     else:
         log.info("No speech detected")
-        play_sound(error_sound, sound_type="error")
         if app_config.get("preview_enabled", True):
             preview_window.hide()
 

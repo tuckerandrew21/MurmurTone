@@ -335,10 +335,6 @@ async function populateForm() {
     if (volumePercent <= 1) volumePercent = Math.round(volumePercent * 100);
     setSlider('feedback-volume', volumePercent, '%');
     setCheckbox('audio-feedback-enabled', settings.audio_feedback ?? true);
-    setCheckbox('sound-processing', settings.sound_processing ?? true);
-    setCheckbox('sound-success', settings.sound_success ?? true);
-    setCheckbox('sound-error', settings.sound_error ?? true);
-    setCheckbox('sound-command', settings.sound_command ?? true);
 
     // Update conditional visibility
     updateAudioFeedbackVisibility();
@@ -473,10 +469,6 @@ function setupFormListeners() {
         saveSetting('audio_feedback', checked);
         updateAudioFeedbackVisibility();
     });
-    addCheckboxListener('sound-processing', (checked) => saveSetting('sound_processing', checked));
-    addCheckboxListener('sound-success', (checked) => saveSetting('sound_success', checked));
-    addCheckboxListener('sound-error', (checked) => saveSetting('sound_error', checked));
-    addCheckboxListener('sound-command', (checked) => saveSetting('sound_command', checked));
 
     // Refresh devices button
     const refreshBtn = document.getElementById('refresh-devices-btn');

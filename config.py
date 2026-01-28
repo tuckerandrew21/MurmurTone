@@ -48,10 +48,6 @@ DEFAULTS = {
     "processing_mode": "auto",  # auto, cpu, gpu-balanced, gpu-quality
     # Audio feedback settings
     "audio_feedback_volume": 30,  # 0 to 100
-    "sound_processing": True,
-    "sound_success": True,
-    "sound_error": True,
-    "sound_command": True,
     # Whisper transcription optimization
     "initial_prompt": "Use proper punctuation including periods, commas, and question marks.",  # Context hint for Whisper
     "custom_vocabulary": [],  # List of custom terms for better recognition: ["TensorFlow", "Kubernetes", "Dr. Smith"]

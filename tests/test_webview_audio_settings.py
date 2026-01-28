@@ -212,109 +212,65 @@ class TestAudioFeedbackMasterToggle:
 
 
 class TestVolumeConversion:
-    """Test volume conversion between UI (0-100) and config (0.0-1.0)."""
+    """Test volume stored as 0-100 integer percentage."""
 
     @patch('config.save_config')
-    def test_volume_stored_as_float(self, mock_save):
-        """Verify volume is stored as float 0.0-1.0 in config."""
+    def test_volume_stored_as_integer(self, mock_save):
+        """Verify volume is stored as 0-100 integer in config."""
         api = SettingsAPI()
 
-        # UI sends 0.5 (already converted by JS from 50%)
-        result = api.save_setting("audio_feedback_volume", 0.5)
+        # UI sends 50 (percentage)
+        result = api.save_setting("audio_feedback_volume", 50)
 
         assert result["success"] is True
-        assert api._config["audio_feedback_volume"] == 0.5
-        assert isinstance(api._config["audio_feedback_volume"], float)
+        assert api._config["audio_feedback_volume"] == 50
+        assert isinstance(api._config["audio_feedback_volume"], int)
         mock_save.assert_called_once()
 
     @patch('config.save_config')
     def test_volume_clamped_to_range(self, mock_save):
-        """Test volume is clamped to 0.0-1.0."""
+        """Test volume is clamped to 0-100."""
         api = SettingsAPI()
 
         # Below minimum
-        result = api.save_setting("audio_feedback_volume", -0.5)
+        result = api.save_setting("audio_feedback_volume", -10)
         assert result["success"] is True
-        assert api._config["audio_feedback_volume"] == 0.0
+        assert api._config["audio_feedback_volume"] == 0
 
         # Above maximum
-        result = api.save_setting("audio_feedback_volume", 1.5)
+        result = api.save_setting("audio_feedback_volume", 150)
         assert result["success"] is True
-        assert api._config["audio_feedback_volume"] == 1.0
+        assert api._config["audio_feedback_volume"] == 100
 
     @patch('config.save_config')
     def test_volume_zero_is_valid(self, mock_save):
         """Test volume of 0 (mute) is valid."""
         api = SettingsAPI()
-        result = api.save_setting("audio_feedback_volume", 0.0)
+        result = api.save_setting("audio_feedback_volume", 0)
 
         assert result["success"] is True
-        assert api._config["audio_feedback_volume"] == 0.0
+        assert api._config["audio_feedback_volume"] == 0
         mock_save.assert_called_once()
 
     @patch('config.save_config')
     def test_volume_max_is_valid(self, mock_save):
-        """Test volume of 1.0 (100%) is valid."""
+        """Test volume of 100 is valid."""
         api = SettingsAPI()
-        result = api.save_setting("audio_feedback_volume", 1.0)
+        result = api.save_setting("audio_feedback_volume", 100)
 
         assert result["success"] is True
-        assert api._config["audio_feedback_volume"] == 1.0
+        assert api._config["audio_feedback_volume"] == 100
         mock_save.assert_called_once()
 
     @patch('config.save_config')
     def test_volume_accepts_string_input(self, mock_save):
         """Test volume accepts string (from JS) and converts."""
         api = SettingsAPI()
-        result = api.save_setting("audio_feedback_volume", "0.7")
+        result = api.save_setting("audio_feedback_volume", "70")
 
         assert result["success"] is True
-        assert api._config["audio_feedback_volume"] == 0.7
+        assert api._config["audio_feedback_volume"] == 70
         mock_save.assert_called_once()
-
-
-class TestIndividualSoundToggles:
-    """Test individual sound notification toggles."""
-
-    @patch('config.save_config')
-    def test_sound_processing_toggle(self, mock_save):
-        """Test processing sound toggle."""
-        api = SettingsAPI()
-
-        result = api.save_setting("sound_processing", False)
-        assert result["success"] is True
-        assert api._config["sound_processing"] is False
-
-        result = api.save_setting("sound_processing", True)
-        assert result["success"] is True
-        assert api._config["sound_processing"] is True
-
-    @patch('config.save_config')
-    def test_sound_success_toggle(self, mock_save):
-        """Test success sound toggle."""
-        api = SettingsAPI()
-        result = api.save_setting("sound_success", False)
-
-        assert result["success"] is True
-        assert api._config["sound_success"] is False
-
-    @patch('config.save_config')
-    def test_sound_error_toggle(self, mock_save):
-        """Test error sound toggle."""
-        api = SettingsAPI()
-        result = api.save_setting("sound_error", False)
-
-        assert result["success"] is True
-        assert api._config["sound_error"] is False
-
-    @patch('config.save_config')
-    def test_sound_command_toggle(self, mock_save):
-        """Test command sound toggle."""
-        api = SettingsAPI()
-        result = api.save_setting("sound_command", False)
-
-        assert result["success"] is True
-        assert api._config["sound_command"] is False
 
 
 class TestAudioSettingsPersistence:
@@ -333,21 +289,13 @@ class TestAudioSettingsPersistence:
         api.save_setting("input_device", "Blue Yeti")
         api.save_setting("sample_rate", 48000)
         api.save_setting("audio_feedback", True)
-        api.save_setting("audio_feedback_volume", 0.75)
-        api.save_setting("sound_processing", True)
-        api.save_setting("sound_success", False)
-        api.save_setting("sound_error", True)
-        api.save_setting("sound_command", False)
+        api.save_setting("audio_feedback_volume", 75)
 
         # Verify all persisted in internal config
         assert api._config["input_device"]["name"] == "Blue Yeti"
         assert api._config["sample_rate"] == 48000
         assert api._config["audio_feedback"] is True
-        assert api._config["audio_feedback_volume"] == 0.75
-        assert api._config["sound_processing"] is True
-        assert api._config["sound_success"] is False
-        assert api._config["sound_error"] is True
-        assert api._config["sound_command"] is False
+        assert api._config["audio_feedback_volume"] == 75
 
 
 class TestEdgeCases:
@@ -378,37 +326,31 @@ class TestConfigMigration:
     """Test migration of legacy/broken config values."""
 
     @patch('config.save_config')
-    def test_migrate_broken_volume_values_above_one(self, mock_save):
-        """Fix volume values stored as integers (50-100) instead of floats (0.5-1.0)."""
+    def test_volume_clamped_to_valid_range(self, mock_save):
+        """Volume values are clamped to 0-100."""
         api = SettingsAPI()
 
-        # Simulate loading config with broken volume (integer instead of float)
-        api._config["audio_feedback_volume"] = 50  # Bug: stored as integer
-
-        # When saving any setting, volume should be clamped
-        result = api.save_setting("audio_feedback_volume", 50)
-
+        # Above max should be clamped to 100
+        result = api.save_setting("audio_feedback_volume", 150)
         assert result["success"] is True
-        # Should be clamped to 1.0 (max valid value)
-        assert api._config["audio_feedback_volume"] == 1.0
+        assert api._config["audio_feedback_volume"] == 100
 
     @patch('config.save_config')
-    def test_volume_migration_preserves_valid_values(self, mock_save):
-        """Ensure valid float values (0.0-1.0) are not modified."""
+    def test_volume_preserves_valid_values(self, mock_save):
+        """Valid volume values (0-100) are preserved."""
         api = SettingsAPI()
 
         # Save valid volume
-        result = api.save_setting("audio_feedback_volume", 0.75)
+        result = api.save_setting("audio_feedback_volume", 75)
         assert result["success"] is True
-        assert api._config["audio_feedback_volume"] == 0.75
+        assert api._config["audio_feedback_volume"] == 75
 
     @patch('config.load_config')
     def test_missing_audio_feedback_key_defaults_to_true(self, mock_load):
         """Handle configs without audio_feedback key (old versions)."""
         # Config without audio_feedback key
         mock_load.return_value = {
-            "audio_feedback_volume": 0.5,
-            "sound_processing": True
+            "audio_feedback_volume": 50
         }
 
         api = SettingsAPI()
@@ -464,50 +406,50 @@ class TestMicrophoneTestMemoryManagement:
 
 
 class TestVolumeEdgeCases:
-    """Additional volume conversion scenarios."""
+    """Additional volume edge case scenarios."""
 
     @patch('config.save_config')
-    def test_volume_fractional_percentages(self, mock_save):
-        """Test non-round percentages (e.g., 33%, 67%)."""
+    def test_volume_mid_range_values(self, mock_save):
+        """Test mid-range volume values."""
         api = SettingsAPI()
 
-        # Test 33% (0.33)
-        result = api.save_setting("audio_feedback_volume", 0.33)
+        # Test 33%
+        result = api.save_setting("audio_feedback_volume", 33)
         assert result["success"] is True
-        assert abs(api._config["audio_feedback_volume"] - 0.33) < 0.01
+        assert api._config["audio_feedback_volume"] == 33
 
-        # Test 67% (0.67)
-        result = api.save_setting("audio_feedback_volume", 0.67)
+        # Test 67%
+        result = api.save_setting("audio_feedback_volume", 67)
         assert result["success"] is True
-        assert abs(api._config["audio_feedback_volume"] - 0.67) < 0.01
+        assert api._config["audio_feedback_volume"] == 67
 
     @patch('config.save_config')
-    def test_volume_very_small_values(self, mock_save):
-        """Test very small but valid volume values."""
+    def test_volume_low_values(self, mock_save):
+        """Test low volume values."""
         api = SettingsAPI()
 
-        # Test 1% (0.01)
-        result = api.save_setting("audio_feedback_volume", 0.01)
+        # Test 1%
+        result = api.save_setting("audio_feedback_volume", 1)
         assert result["success"] is True
-        assert api._config["audio_feedback_volume"] == 0.01
+        assert api._config["audio_feedback_volume"] == 1
 
     @patch('config.save_config')
     def test_volume_negative_clamped_to_zero(self, mock_save):
         """Test negative values are clamped to 0."""
         api = SettingsAPI()
 
-        result = api.save_setting("audio_feedback_volume", -0.3)
+        result = api.save_setting("audio_feedback_volume", -10)
         assert result["success"] is True
-        assert api._config["audio_feedback_volume"] == 0.0
+        assert api._config["audio_feedback_volume"] == 0
 
     @patch('config.save_config')
-    def test_volume_above_max_clamped_to_one(self, mock_save):
-        """Test values above 1.0 are clamped."""
+    def test_volume_above_max_clamped_to_hundred(self, mock_save):
+        """Test values above 100 are clamped."""
         api = SettingsAPI()
 
-        result = api.save_setting("audio_feedback_volume", 2.5)
+        result = api.save_setting("audio_feedback_volume", 250)
         assert result["success"] is True
-        assert api._config["audio_feedback_volume"] == 1.0
+        assert api._config["audio_feedback_volume"] == 100
 
 
 class TestAudioFeedbackVisibilityInteractions:
@@ -518,41 +460,21 @@ class TestAudioFeedbackVisibilityInteractions:
         """Verify sub-control values retained when master toggle turned off/on."""
         api = SettingsAPI()
 
-        # Set volume to 0.75
-        api.save_setting("audio_feedback_volume", 0.75)
-        assert api._config["audio_feedback_volume"] == 0.75
+        # Set volume to 75%
+        api.save_setting("audio_feedback_volume", 75)
+        assert api._config["audio_feedback_volume"] == 75
 
         # Disable master toggle
         api.save_setting("audio_feedback", False)
 
-        # Volume should still be 0.75
-        assert api._config["audio_feedback_volume"] == 0.75
+        # Volume should still be 75
+        assert api._config["audio_feedback_volume"] == 75
 
         # Re-enable master toggle
         api.save_setting("audio_feedback", True)
 
-        # Volume should still be 0.75
-        assert api._config["audio_feedback_volume"] == 0.75
-
-    @patch('config.save_config')
-    def test_individual_toggles_work_independently(self, mock_save):
-        """Ensure individual sound toggles work correctly when master enabled."""
-        api = SettingsAPI()
-
-        # Enable master toggle
-        api.save_setting("audio_feedback", True)
-
-        # Change individual toggles
-        api.save_setting("sound_processing", False)
-        api.save_setting("sound_success", True)
-        api.save_setting("sound_error", False)
-        api.save_setting("sound_command", True)
-
-        # Verify each persisted independently
-        assert api._config["sound_processing"] is False
-        assert api._config["sound_success"] is True
-        assert api._config["sound_error"] is False
-        assert api._config["sound_command"] is True
+        # Volume should still be 75
+        assert api._config["audio_feedback_volume"] == 75
 
 
 class TestConcurrentOperations:
@@ -707,11 +629,7 @@ class TestBackwardsCompatibility:
         """Test configs from before master toggle was added."""
         # Old config without audio_feedback
         old_config = {
-            "audio_feedback_volume": 0.5,
-            "sound_processing": True,
-            "sound_success": True,
-            "sound_error": True,
-            "sound_command": True
+            "audio_feedback_volume": 0.5
         }
         mock_load.return_value = old_config
 
