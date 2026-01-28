@@ -20,17 +20,12 @@ class TestGeneralPageFlow:
         """Simulate user changing Output settings."""
         api = SettingsAPI()
 
-        # User toggles auto-paste off
-        result = api.save_setting("auto_paste", False)
-        assert result["success"] is True
-
         # User changes paste mode to direct
         result = api.save_setting("paste_mode", "direct")
         assert result["success"] is True
 
-        # Verify both settings persisted
+        # Verify setting persisted
         all_settings = api.get_all_settings()
-        assert all_settings["data"]["auto_paste"] is False
         assert all_settings["data"]["paste_mode"] == "direct"
 
     def test_user_configures_preview_window(self):
@@ -79,7 +74,7 @@ class TestConfigPersistence:
         api = SettingsAPI()
 
         # Change multiple settings
-        api.save_setting("auto_paste", False)
+        api.save_setting("audio_feedback", False)
         api.save_setting("preview_position", "center")
         api.save_setting("preview_font_size", 16)
 

@@ -842,9 +842,8 @@ def stop_recording():
                 keyboard_controller.type(char)
                 if typing_delay > 0:
                     time.sleep(typing_delay)
-        elif app_config.get("auto_paste", True):
-            # Clipboard mode with auto-paste
-            # Save current clipboard contents first
+        else:
+            # Clipboard mode - copy, paste, then restore original clipboard
             saved_clipboard = clipboard_utils.save_clipboard()
 
             # Copy to clipboard using Windows API (tkinter conflicts with PyWebView)
@@ -864,12 +863,6 @@ def stop_recording():
             # Restore clipboard contents asynchronously
             if saved_clipboard:
                 clipboard_utils.restore_clipboard_async(saved_clipboard, delay_ms=400)
-        else:
-            # Clipboard mode without auto-paste (manual paste by user)
-            if clipboard_utils.set_text(text_with_space):
-                log.info(f"Copied to clipboard: {text}")
-            else:
-                log.error("Failed to copy text to clipboard")
         # Success sound after text output
         play_sound(success_sound, sound_type="success")
     elif actions_executed:

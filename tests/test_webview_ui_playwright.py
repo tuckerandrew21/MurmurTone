@@ -45,12 +45,9 @@ class TestGeneralPageUI:
 
         Manual test steps:
         1. Navigate to General page
-        2. Use browser_evaluate to check auto-paste checkbox exists
-        3. Use browser_click to toggle auto-paste
-        4. Use browser_evaluate to verify state changed
-        5. Use browser_evaluate to get paste-mode dropdown value
-        6. Use browser_click to change paste mode
-        7. Use browser_evaluate to verify paste mode changed
+        2. Use browser_evaluate to get paste-mode dropdown value
+        3. Use browser_click to change paste mode
+        4. Use browser_evaluate to verify paste mode changed
         """
         pass
 
@@ -152,7 +149,6 @@ class TestGeneralPageUI:
         1. Launch PyWebView: py -3.12 settings_webview.py
         2. Navigate to General page
         3. Change settings:
-           - auto_paste: false
            - paste_mode: "direct"
            - preview_position: "center"
            - preview_font_size: 16
@@ -160,7 +156,6 @@ class TestGeneralPageUI:
         5. Launch Tkinter: py -3.12 settings_gui.py
         6. Navigate to General tab
         7. Verify settings match:
-           - Auto-paste checkbox: unchecked
            - Paste Mode dropdown: shows "Type" (note: Tkinter bug, should be "Direct")
            - Preview Position dropdown: shows "Center"
            - Preview Font Size: 16 (in config, not visible in Tkinter GUI)
@@ -182,7 +177,7 @@ def playwright_evaluate(function_code):
 
     Example usage:
         result = playwright_evaluate(
-            "() => document.getElementById('auto-paste')?.checked"
+            "() => document.getElementById('paste-mode')?.value"
         )
     """
     # This would use the actual Playwright MCP browser_evaluate tool
@@ -195,7 +190,7 @@ def playwright_click(element_description, element_ref):
     Helper to click an element using Playwright MCP.
 
     Example usage:
-        playwright_click("Auto-paste checkbox", "auto-paste")
+        playwright_click("Paste mode dropdown", "paste-mode")
     """
     # This would use the actual Playwright MCP browser_click tool
     # For now, this is a placeholder

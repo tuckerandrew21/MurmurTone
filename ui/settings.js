@@ -524,7 +524,6 @@ async function populateForm() {
     checkGpuStatus();
 
     // Text settings
-    setCheckbox('auto-paste', settings.auto_paste ?? true);
     setDropdown('paste-mode', settings.paste_mode ?? 'clipboard');
     updatePasteModeHelp();
     setCheckbox('voice-commands', settings.voice_commands_enabled ?? true);
@@ -737,7 +736,6 @@ function setupFormListeners() {
     }
 
     // Text settings
-    addCheckboxListener('auto-paste', (checked) => saveSetting('auto_paste', checked));
     addDropdownListener('paste-mode', (value) => {
         saveSetting('paste_mode', value);
         updatePasteModeHelp();
@@ -3066,7 +3064,6 @@ function createMockApi() {
         sound_success: true,
         sound_error: true,
         sound_command: true,
-        auto_paste: true,
         paste_mode: 'clipboard',
         voice_commands_enabled: true,
         scratch_that_enabled: true,

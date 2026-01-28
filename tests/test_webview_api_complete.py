@@ -52,7 +52,6 @@ class TestGetAllSettings:
 
         # Check a sample of important keys exist
         data = result["data"]
-        assert "auto_paste" in data
         assert "preview_enabled" in data
         assert "model_size" in data
         assert "language" in data
@@ -65,10 +64,10 @@ class TestSaveSetting:
         """Verify simple setting saves correctly."""
         api = SettingsAPI()
 
-        result = api.save_setting("auto_paste", False)
+        result = api.save_setting("preview_enabled", False)
 
         assert result["success"] is True
-        assert api._config["auto_paste"] is False
+        assert api._config["preview_enabled"] is False
 
     def test_saves_nested_hotkey_setting(self):
         """Verify nested hotkey setting saves correctly."""
@@ -93,7 +92,7 @@ class TestSaveSetting:
         api = SettingsAPI()
         mocker.patch('config.save_config', side_effect=Exception("Write failed"))
 
-        result = api.save_setting("auto_paste", True)
+        result = api.save_setting("preview_enabled", True)
 
         assert result["success"] is False
         assert "Write failed" in result["error"]
@@ -107,12 +106,12 @@ class TestSaveMultipleSettings:
         api = SettingsAPI()
 
         result = api.save_multiple_settings({
-            "auto_paste": False,
+            "audio_feedback": False,
             "preview_enabled": True
         })
 
         assert result["success"] is True
-        assert api._config["auto_paste"] is False
+        assert api._config["audio_feedback"] is False
         assert api._config["preview_enabled"] is True
 
     def test_saves_nested_settings(self):
@@ -133,7 +132,7 @@ class TestSaveMultipleSettings:
         api = SettingsAPI()
         mocker.patch('config.save_config', side_effect=Exception("Error"))
 
-        result = api.save_multiple_settings({"auto_paste": False})
+        result = api.save_multiple_settings({"audio_feedback": False})
 
         assert result["success"] is False
 
@@ -489,12 +488,12 @@ class TestResetToDefaults:
     def test_resets_settings(self):
         """Verify settings are reset to defaults."""
         api = SettingsAPI()
-        api._config["auto_paste"] = False  # Non-default value
+        api._config["audio_feedback"] = False  # Non-default value
 
         result = api.reset_to_defaults()
 
         assert result["success"] is True
-        assert api._config["auto_paste"] == config.DEFAULTS["auto_paste"]
+        assert api._config["audio_feedback"] == config.DEFAULTS["audio_feedback"]
 
     def test_preserves_license_info(self):
         """Verify license info is preserved after reset."""

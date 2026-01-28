@@ -27,7 +27,6 @@ DEFAULTS = {
     "silence_threshold_db": -20,  # dB margin below peak for auto-stop (-40 = very sensitive, -10 = less sensitive)
     "audio_feedback": True,
     "input_device": None,  # None = system default, or device name string
-    "auto_paste": True,  # Automatically paste after transcription
     "paste_mode": "clipboard",  # "clipboard" (uses Ctrl+V) or "direct" (types directly)
     "direct_typing_delay_ms": 5,  # Delay between characters in direct typing mode (ms)
     "start_with_windows": False,  # Launch on Windows startup

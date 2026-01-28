@@ -14,27 +14,7 @@ import config
 
 
 class TestOutputSettings:
-    """Test Output section settings (auto_paste, paste_mode)."""
-
-    def test_auto_paste_loads_from_config(self):
-        """Verify auto_paste setting loads correctly."""
-        with patch('config.load_config') as mock_load:
-            mock_load.return_value = {**config.DEFAULTS, "auto_paste": False}
-            api = SettingsAPI()
-
-            result = api.get_all_settings()
-
-            assert result["success"] is True
-            assert result["data"]["auto_paste"] is False
-
-    def test_auto_paste_saves_correctly(self):
-        """Verify auto_paste setting saves correctly."""
-        api = SettingsAPI()
-
-        result = api.save_setting("auto_paste", False)
-
-        assert result["success"] is True
-        assert api._config["auto_paste"] is False
+    """Test Output section settings (paste_mode)."""
 
     def test_paste_mode_valid_values(self):
         """Verify paste_mode accepts valid values (clipboard and direct, NOT type)."""
@@ -150,7 +130,6 @@ class TestFeatureParity:
             "hotkey",
             "recording_mode",
             "language",
-            "auto_paste",
             "paste_mode",
             "preview_enabled",
             "preview_position",
@@ -176,7 +155,6 @@ class TestFeatureParity:
         assert "hotkey" in data
         assert "recording_mode" in data
         assert "language" in data
-        assert "auto_paste" in data
         assert "paste_mode" in data
         assert "preview_enabled" in data
         assert "preview_position" in data

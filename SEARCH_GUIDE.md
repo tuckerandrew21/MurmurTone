@@ -14,8 +14,7 @@ The MurmurTone settings GUI now includes a powerful search feature that filters 
 
 ### Tab 1: General
 - **Hotkey**: hotkey, keyboard shortcut, key, scroll lock, pause
-- **Auto-paste**: auto paste, paste, automatic, typing
-- **Paste Mode**: paste mode, clipboard, direct typing
+- **Paste Mode**: paste mode, clipboard, direct typing, paste, automatic
 - **Silence**: silence, timeout, auto stop, duration
 - **Preview**: preview, window, overlay, show, position, corner, placement, auto hide, delay, theme, dark, light, font, size
 - **Startup**: startup, start with windows, boot, launch
@@ -47,7 +46,7 @@ The MurmurTone settings GUI now includes a powerful search feature that filters 
 ## Examples
 
 - Type **"gpu"** → Shows GPU status, processing mode, and CUDA install options (Tab 3)
-- Type **"paste"** → Shows auto-paste and paste mode settings (Tab 1)
+- Type **"paste"** → Shows paste mode settings (Tab 1)
 - Type **"noise"** → Shows noise gate settings and level meter (Tab 2)
 - Type **"filler"** → Shows filler removal settings (Tab 4)
 - Type **"preview"** → Shows all preview window settings (Tab 1)

@@ -281,7 +281,6 @@ def test_configuration_defaults():
         "language",
         "hotkey",
         "recording_mode",
-        "auto_paste",
         "voice_commands_enabled",
         "custom_vocabulary",
         "translation_enabled",
