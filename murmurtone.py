@@ -897,20 +897,32 @@ def check_hotkey():
     alt_required = hotkey.get("alt", False)
     main_key = hotkey.get("key", "space").lower()
 
-    # Normalize JS key names to pynput names (JS uses no underscores)
+    # Normalize JS key names to pynput names
+    # JS KeyboardEvent.key values (lowercased) → pynput Key.name
     key_name_map = {
-        "scrolllock": "scroll_lock",
-        "capslock": "caps_lock",
-        "numlock": "num_lock",
-        "pageup": "page_up",
-        "pagedown": "page_down",
+        # Navigation keys (JS uses "Arrow" prefix)
         "arrowup": "up",
         "arrowdown": "down",
         "arrowleft": "left",
         "arrowright": "right",
-        "backspace": "backspace",
+        "pageup": "page_up",
+        "pagedown": "page_down",
+        # Lock keys (JS has no underscores)
+        "scrolllock": "scroll_lock",
+        "capslock": "caps_lock",
+        "numlock": "num_lock",
+        # Special keys
+        "escape": "esc",
         "printscreen": "print_screen",
-        "pause": "pause",
+        "contextmenu": "menu",
+        # Media keys (JS names differ from pynput)
+        "mediaplaypause": "media_play_pause",
+        "mediastop": "media_stop",
+        "mediatracknext": "media_next",
+        "mediatrackprevious": "media_previous",
+        "audiovolumeup": "media_volume_up",
+        "audiovolumedown": "media_volume_down",
+        "audiovolumemute": "media_volume_mute",
     }
     main_key = key_name_map.get(main_key, main_key)
 
@@ -935,9 +947,28 @@ def check_hotkey():
         except AttributeError:
             pass
 
-    # Check special keys like space
-    if main_key == "space" and Key.space in current_keys:
-        return True
+    # Check special keys via pynput Key.* constants
+    # Build map dynamically from all available Key attributes
+    special_key_names = [
+        # Common keys
+        "space", "enter", "tab", "backspace", "delete", "insert",
+        "home", "end", "esc", "pause", "menu",
+        # Lock/function keys
+        "print_screen", "scroll_lock", "caps_lock", "num_lock",
+        # Arrow keys
+        "up", "down", "left", "right", "page_up", "page_down",
+        # Media keys
+        "media_play_pause", "media_stop", "media_next", "media_previous",
+        "media_volume_up", "media_volume_down", "media_volume_mute",
+        # Function keys
+        "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10",
+        "f11", "f12", "f13", "f14", "f15", "f16", "f17", "f18", "f19", "f20",
+        "f21", "f22", "f23", "f24",
+    ]
+    for name in special_key_names:
+        if hasattr(Key, name) and getattr(Key, name) in current_keys:
+            if main_key == name:
+                return True
 
     return False
 
