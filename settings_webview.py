@@ -903,6 +903,33 @@ class SettingsAPI:
             return {"success": False, "error": str(e)}
 
 
+def apply_taskbar_icon(window):
+    """Apply MurmurTone icon to taskbar (works with frameless windows)."""
+    if sys.platform != "win32":
+        return
+
+    try:
+        hwnd = window.native.Handle.ToInt64()
+        icon_path = os.path.join(os.path.dirname(__file__), "assets", "logo", "murmurtone-icon.ico")
+
+        if os.path.exists(icon_path):
+            user32 = ctypes.windll.user32
+            IMAGE_ICON = 1
+            LR_LOADFROMFILE = 0x00000010
+            LR_DEFAULTSIZE = 0x00000040
+
+            hicon = user32.LoadImageW(None, icon_path, IMAGE_ICON, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE)
+
+            if hicon:
+                WM_SETICON = 0x0080
+                ICON_SMALL = 0
+                ICON_BIG = 1
+                user32.SendMessageW(hwnd, WM_SETICON, ICON_SMALL, hicon)
+                user32.SendMessageW(hwnd, WM_SETICON, ICON_BIG, hicon)
+    except Exception:
+        pass
+
+
 def apply_dark_titlebar_and_icon(window):
     """Apply dark title bar and custom icon on Windows 10/11."""
     if sys.platform != "win32":
@@ -997,6 +1024,10 @@ def create_window_with_api():
 
 def main():
     """Entry point for the settings GUI."""
+    # Set Windows App ID for proper taskbar grouping (before creating window)
+    if sys.platform == "win32":
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("MurmurTone.Settings")
+
     # Start bundled Ollama subprocess (for AI features)
     # This is a no-op if Ollama is already running (e.g., user has it installed)
     ollama_started = ollama_manager.start_ollama()
@@ -1007,8 +1038,8 @@ def main():
 
     api, window = create_window_with_api()
 
-    # Skip DWM title bar code for frameless windows - we use custom HTML titlebar
-    # window.events.shown += lambda: apply_dark_titlebar_and_icon(window)
+    # Apply taskbar icon (DWM title bar not needed for frameless windows)
+    window.events.shown += lambda: apply_taskbar_icon(window)
 
     # Check for updates on startup if enabled
     window.events.shown += lambda: api.check_updates_on_startup()
