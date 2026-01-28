@@ -88,7 +88,6 @@ class SettingsAPI:
         "sample_rate": settings_logic.validate_sample_rate,
         "silence_duration_sec": settings_logic.validate_silence_duration,
         "silence_threshold_db": settings_logic.validate_silence_threshold,  # Wider range for low-gain mics
-        "noise_gate_threshold_db": settings_logic.validate_noise_threshold,
         # audio_feedback_volume removed - conversion happens in JS, validation below
         "preview_auto_hide_delay": settings_logic.validate_preview_delay,
         # Text tab validators

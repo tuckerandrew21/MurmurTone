@@ -46,9 +46,6 @@ DEFAULTS = {
     "preview_font_size": 11,  # 8-18
     # GPU/CUDA settings - processing_mode combines device + compute type
     "processing_mode": "auto",  # auto, cpu, gpu-balanced, gpu-quality
-    # Noise gate settings
-    "noise_gate_enabled": True,
-    "noise_gate_threshold_db": -40,  # Range: -60 to -20 dB
     # Audio feedback settings
     "audio_feedback_volume": 30,  # 0 to 100
     "sound_processing": True,

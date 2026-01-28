@@ -100,54 +100,6 @@ class TestSampleRateSettings:
         assert api._config["sample_rate"] == 16000
 
 
-class TestNoiseGateSettings:
-    """Test noise gate configuration."""
-
-    @patch('config.save_config')
-    def test_enable_noise_gate(self, mock_save):
-        """Test enabling noise gate."""
-        api = SettingsAPI()
-        result = api.save_setting("noise_gate_enabled", True)
-
-        assert result["success"] is True
-        assert api._config["noise_gate_enabled"] is True
-        mock_save.assert_called_once()
-
-    @patch('config.save_config')
-    def test_disable_noise_gate(self, mock_save):
-        """Test disabling noise gate."""
-        api = SettingsAPI()
-        result = api.save_setting("noise_gate_enabled", False)
-
-        assert result["success"] is True
-        assert api._config["noise_gate_enabled"] is False
-        mock_save.assert_called_once()
-
-    @patch('config.save_config')
-    @patch('settings_logic.validate_noise_threshold')
-    def test_threshold_range_validation(self, mock_validate, mock_save):
-        """Test threshold validation (-60 to -20 dB)."""
-        api = SettingsAPI()
-
-        # Valid threshold
-        mock_validate.return_value = -40
-        result = api.save_setting("noise_gate_threshold_db", -40)
-        assert result["success"] is True
-        assert api._config["noise_gate_threshold_db"] == -40
-
-        # Below minimum should clamp to -60
-        mock_validate.return_value = -60
-        result = api.save_setting("noise_gate_threshold_db", -80)
-        assert result["success"] is True
-        assert api._config["noise_gate_threshold_db"] == -60
-
-        # Above maximum should clamp to -20
-        mock_validate.return_value = -20
-        result = api.save_setting("noise_gate_threshold_db", -10)
-        assert result["success"] is True
-        assert api._config["noise_gate_threshold_db"] == -20
-
-
 class TestMicrophoneTest:
     """Test microphone test functionality."""
 
@@ -369,21 +321,17 @@ class TestAudioSettingsPersistence:
     """Test that audio settings persist correctly."""
 
     @patch('settings_logic.validate_sample_rate')
-    @patch('settings_logic.validate_noise_threshold')
     @patch('config.save_config')
-    def test_all_audio_settings_persist_together(self, mock_save, mock_validate_threshold, mock_validate_rate):
+    def test_all_audio_settings_persist_together(self, mock_save, mock_validate_rate):
         """Simulate user configuring all audio settings."""
         # Setup validators to pass through values
         mock_validate_rate.return_value = 48000
-        mock_validate_threshold.return_value = -35
 
         api = SettingsAPI()
 
         # Configure all settings
         api.save_setting("input_device", "Blue Yeti")
         api.save_setting("sample_rate", 48000)
-        api.save_setting("noise_gate_enabled", True)
-        api.save_setting("noise_gate_threshold_db", -35)
         api.save_setting("audio_feedback", True)
         api.save_setting("audio_feedback_volume", 0.75)
         api.save_setting("sound_processing", True)
@@ -394,8 +342,6 @@ class TestAudioSettingsPersistence:
         # Verify all persisted in internal config
         assert api._config["input_device"]["name"] == "Blue Yeti"
         assert api._config["sample_rate"] == 48000
-        assert api._config["noise_gate_enabled"] is True
-        assert api._config["noise_gate_threshold_db"] == -35
         assert api._config["audio_feedback"] is True
         assert api._config["audio_feedback_volume"] == 0.75
         assert api._config["sound_processing"] is True

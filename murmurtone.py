@@ -594,17 +594,9 @@ def audio_callback(indata, frames, time_info, status):
     rms = calculate_rms(indata)
     db = rms_to_db(rms)
 
-    # Get noise gate settings
-    noise_gate_enabled = app_config.get("noise_gate_enabled", True)
-    threshold_db = app_config.get("noise_gate_threshold_db", -40)
-
-    # Apply noise gate - skip frames below threshold
-    if noise_gate_enabled and db < threshold_db:
-        # Don't record this frame - it's below the noise gate
-        pass
-    else:
-        # Record this frame
-        audio_data.append(indata.copy())
+    # Always capture audio - let Whisper handle any background noise
+    # The noise gate was too fragile and filtered actual speech
+    audio_data.append(indata.copy())
 
     # Update preview window with duration once per second
     if recording_start_time is not None and app_config.get("preview_enabled", True):
@@ -714,6 +706,7 @@ def stop_recording():
         return
     is_recording = False
     silence_start_time = None
+    log.info(f"Stopping recording - captured {len(audio_data)} frames")
 
     play_sound(stop_sound)
     update_tray_icon(recording=False)
@@ -724,7 +717,7 @@ def stop_recording():
         stream = None
 
     if not audio_data:
-        log.debug("No audio captured")
+        log.warning("No audio captured - microphone may not be working")
         if app_config.get("preview_enabled", True):
             preview_window.hide()
         return

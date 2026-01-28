@@ -85,141 +85,6 @@ window.onModelDownloadError = function(error) {
 };
 
 // ============================================
-// Microphone Test Callbacks (called from Python)
-// ============================================
-
-let isMicTesting = false;
-
-window.onAudioLevel = function(db) {
-    const fill = document.getElementById('audio-level-fill');
-
-    if (fill) {
-        // Map -60 to -20 dB to 0-100%
-        const percent = Math.max(0, Math.min(100, ((db + 60) / 40) * 100));
-        fill.style.width = `${percent}%`;
-    }
-};
-
-/**
- * Update threshold handle position based on current value
- */
-function updateThresholdHandle() {
-    const threshold = document.getElementById('noise-gate-threshold');
-    const handle = document.getElementById('threshold-handle');
-
-    if (threshold && handle) {
-        const thresholdDb = parseInt(threshold.value || -40);
-        const percent = ((thresholdDb + 60) / 40) * 100;
-        handle.style.left = `${percent}%`;
-    }
-}
-
-/**
- * Setup draggable threshold handle
- */
-function setupThresholdDrag() {
-    const meter = document.getElementById('threshold-meter');
-    const handle = document.getElementById('threshold-handle');
-    const threshold = document.getElementById('noise-gate-threshold');
-    const valueDisplay = document.getElementById('noise-gate-threshold-value');
-
-    if (!meter || !handle || !threshold) return;
-
-    let isDragging = false;
-
-    function updateFromPosition(clientX) {
-        const rect = meter.getBoundingClientRect();
-        const x = clientX - rect.left;
-        const percent = Math.max(0, Math.min(100, (x / rect.width) * 100));
-
-        // Convert percent to dB (-60 to -20 range)
-        const db = Math.round(-60 + (percent / 100) * 40);
-
-        // Update handle position
-        handle.style.left = `${percent}%`;
-
-        // Update hidden input and display
-        threshold.value = db;
-        if (valueDisplay) {
-            valueDisplay.textContent = `${db} dB`;
-        }
-
-        // Save to config
-        saveSetting('noise_gate_threshold_db', db);
-    }
-
-    handle.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        handle.classList.add('dragging');
-        e.preventDefault();
-    });
-
-    meter.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        handle.classList.add('dragging');
-        updateFromPosition(e.clientX);
-    });
-
-    document.addEventListener('mousemove', (e) => {
-        if (isDragging) {
-            updateFromPosition(e.clientX);
-        }
-    });
-
-    document.addEventListener('mouseup', () => {
-        if (isDragging) {
-            isDragging = false;
-            handle.classList.remove('dragging');
-        }
-    });
-
-    // Initialize handle position
-    updateThresholdHandle();
-}
-
-/**
- * Toggle microphone test on/off
- */
-async function toggleMicTest() {
-    const btn = document.getElementById('mic-test-btn');
-    const fill = document.getElementById('audio-level-fill');
-
-    if (isMicTesting) {
-        // Stop test
-        try {
-            await pywebview.api.stop_microphone_test();
-        } catch (e) {
-            console.error('Error stopping mic test:', e);
-        }
-        isMicTesting = false;
-        if (btn) {
-            btn.textContent = 'Test';
-            btn.classList.remove('testing');
-        }
-        if (fill) {
-            fill.style.width = '0%';
-        }
-    } else {
-        // Start test
-        try {
-            const result = await pywebview.api.start_microphone_test();
-            if (result.success) {
-                isMicTesting = true;
-                if (btn) {
-                    btn.textContent = 'Stop';
-                    btn.classList.add('testing');
-                }
-            } else {
-                showToast(`Microphone test failed: ${result.error}`, 'error');
-            }
-        } catch (e) {
-            console.error('Error starting mic test:', e);
-            showToast('Failed to start microphone test', 'error');
-        }
-    }
-}
-
-// ============================================
 // Initialization
 // ============================================
 
@@ -458,8 +323,6 @@ async function populateForm() {
 
     // Audio settings
     setDropdown('sample-rate', settings.sample_rate ?? 16000);
-    setCheckbox('noise-gate-enabled', settings.noise_gate_enabled ?? true);
-    setSlider('noise-gate-threshold', settings.noise_gate_threshold_db ?? -40, 'dB');
     // Handle both 0.0-1.0 (legacy) and 0-100 formats
     let volumePercent = settings.audio_feedback_volume ?? 50;
     if (volumePercent <= 1) volumePercent = Math.round(volumePercent * 100);
@@ -471,11 +334,7 @@ async function populateForm() {
     setCheckbox('sound-command', settings.sound_command ?? true);
 
     // Update conditional visibility
-    updateNoiseGateVisibility();
     updateAudioFeedbackVisibility();
-
-    // Setup draggable threshold handle
-    setupThresholdDrag();
 
     // Load audio devices
     loadAudioDevices();
@@ -593,11 +452,6 @@ function setupFormListeners() {
     // Audio settings
     addDropdownListener('input-device', (value) => saveSetting('input_device', value || null));
     addDropdownListener('sample-rate', (value) => saveSetting('sample_rate', parseInt(value)));
-    addCheckboxListener('noise-gate-enabled', (checked) => {
-        saveSetting('noise_gate_enabled', checked);
-        updateNoiseGateVisibility();
-    });
-    // noise-gate-threshold is now handled by setupThresholdDrag()
     // Save as 0-100 directly
     addSliderListener('feedback-volume', (value) => {
         saveSetting('audio_feedback_volume', parseInt(value));
@@ -610,14 +464,6 @@ function setupFormListeners() {
     addCheckboxListener('sound-success', (checked) => saveSetting('sound_success', checked));
     addCheckboxListener('sound-error', (checked) => saveSetting('sound_error', checked));
     addCheckboxListener('sound-command', (checked) => saveSetting('sound_command', checked));
-
-    // Microphone test button
-    const micTestBtn = document.getElementById('mic-test-btn');
-    if (micTestBtn) {
-        micTestBtn.addEventListener('click', toggleMicTest);
-    }
-
-    // Threshold handle is initialized in setupThresholdDrag()
 
     // Refresh devices button
     const refreshBtn = document.getElementById('refresh-devices-btn');
@@ -646,15 +492,6 @@ function setupFormListeners() {
         translationLearnMore.addEventListener('click', (e) => {
             e.preventDefault();
             pywebview.api.open_url('https://murmurtone.com/docs/translation');
-        });
-    }
-
-    // Noise gate learn more link
-    const noiseGateLearnMore = document.getElementById('noise-gate-learn-more');
-    if (noiseGateLearnMore) {
-        noiseGateLearnMore.addEventListener('click', (e) => {
-            e.preventDefault();
-            pywebview.api.open_url('https://murmurtone.com/docs/noise-gate');
         });
     }
 
@@ -1407,22 +1244,6 @@ async function loadProcessingModeOptions() {
     } catch (error) {
         console.error('Error loading processing mode options:', error);
         // Keep existing hardcoded options as fallback
-    }
-}
-
-/**
- * Update noise gate options visibility based on toggle state
- */
-function updateNoiseGateVisibility() {
-    const enabled = document.getElementById('noise-gate-enabled')?.checked;
-    const options = document.getElementById('noise-gate-options');
-
-    if (options) {
-        if (enabled) {
-            options.classList.remove('hidden');
-        } else {
-            options.classList.add('hidden');
-        }
     }
 }
 
@@ -3057,8 +2878,6 @@ function createMockApi() {
         custom_vocabulary: ['MurmurTone', 'PyWebView'],
         sample_rate: 16000,
         input_device: null,
-        noise_gate_enabled: true,
-        noise_gate_threshold_db: -40,
         audio_feedback_volume: 50,
         sound_processing: true,
         sound_success: true,

@@ -329,40 +329,6 @@
                         </div>
                     </div>
 
-                    <!-- Noise Gate Section -->
-                    <div class="settings-section">
-                        <h3 class="section-title">Noise Gate</h3>
-
-                        <div class="setting-row toggle-row">
-                            <div class="setting-info">
-                                <label class="setting-label">Enable Noise Gate</label>
-                                <p class="setting-help">Filter out background noise below a threshold.</p>
-                            </div>
-                            <label class="toggle">
-                                <input type="checkbox" id="noise-gate-enabled" data-testid="noise-gate-enabled">
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
-
-                        <div class="child-settings" id="noise-gate-options">
-                            <div class="setting-row toggle-row">
-                                <div class="setting-info">
-                                    <label class="setting-label">Threshold</label>
-                                    <p class="setting-help">Sound level required to start recording. Drag to adjust.</p>
-                                </div>
-                                <div class="threshold-meter-container">
-                                    <div class="threshold-meter" id="threshold-meter" data-testid="noise-gate-threshold">
-                                        <div class="meter-fill" id="audio-level-fill"></div>
-                                        <div class="threshold-handle" id="threshold-handle"></div>
-                                    </div>
-                                    <button type="button" class="btn btn-secondary" id="mic-test-btn">Test</button>
-                                </div>
-                                <!-- Hidden input for form compatibility -->
-                                <input type="hidden" id="noise-gate-threshold" value="-40">
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Audio Feedback Section -->
                     <div class="settings-section">
                         <h3 class="section-title">Audio Feedback</h3>

@@ -177,25 +177,6 @@ def validate_volume(value, default=100, min_val=0, max_val=100):
         return default
 
 
-def validate_noise_threshold(value, default=-40, min_val=-60, max_val=-20):
-    """Validate and clamp noise threshold in dB.
-
-    Args:
-        value: Input value
-        default: Default value if invalid
-        min_val: Minimum allowed value
-        max_val: Maximum allowed value
-
-    Returns:
-        int: Valid noise threshold in dB
-    """
-    try:
-        threshold = int(value)
-        return max(min_val, min(max_val, threshold))
-    except (ValueError, TypeError):
-        return default
-
-
 def validate_silence_threshold(value, default=-20, min_val=-40, max_val=-10):
     """Validate and clamp silence margin in dB (how much below peak triggers stop).
 
@@ -503,8 +484,6 @@ def build_settings_dict(
     paste_mode,
     start_with_windows,
     processing_mode,
-    noise_gate_enabled,
-    noise_gate_threshold_db,
     audio_feedback_volume,
     sound_processing,
     sound_success,
@@ -550,8 +529,6 @@ def build_settings_dict(
         "paste_mode": paste_mode,
         "start_with_windows": start_with_windows,
         "processing_mode": processing_mode,
-        "noise_gate_enabled": noise_gate_enabled,
-        "noise_gate_threshold_db": noise_gate_threshold_db,
         "audio_feedback_volume": audio_feedback_volume,
         "sound_processing": sound_processing,
         "sound_success": sound_success,

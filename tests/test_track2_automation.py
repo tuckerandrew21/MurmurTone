@@ -131,8 +131,7 @@ class TestSettingsConfig:
         required_keys = [
             "model_size", "language", "hotkey", "recording_mode",
             "silence_duration_sec", "audio_feedback", "input_device",
-            "processing_mode", "noise_gate_enabled",
-            "voice_commands_enabled", "ai_cleanup_enabled",
+            "processing_mode", "voice_commands_enabled", "ai_cleanup_enabled",
             "preview_enabled", "translation_enabled"
         ]
 
