@@ -102,6 +102,11 @@ peak_db_level = -100  # Peak audio level during current recording (for adaptive 
 recording_start_time = None
 last_duration_update = 0
 
+# Thread safety for recording state
+recording_lock = threading.Lock()
+last_recording_toggle = 0.0
+DEBOUNCE_MS = 300  # Minimum ms between recording toggles
+
 # Status icons
 icon_ready = None
 icon_recording = None
@@ -611,24 +616,30 @@ def audio_callback(indata, frames, time_info, status):
         return
 
     # Adaptive silence detection: track peak level and detect significant drop
-    # Update peak level (only track levels above noise floor)
-    if db > -90:
+    # Only count loud sounds as speech (> -50 dB), not ambient noise
+    if db > -50:
         peak_db_level = max(peak_db_level, db)
 
     silence_duration = app_config.get("silence_duration_sec", 2.0)
-    # Silence margin: how many dB below peak to consider silence (configurable)
-    silence_margin = app_config.get("silence_threshold_db", -20)  # -20 means 20dB below peak
-    # Calculate dynamic threshold based on peak level
-    dynamic_threshold = peak_db_level + silence_margin
+    silence_margin = app_config.get("silence_threshold_db", -20)
+
+    # Use adaptive threshold only if we detected actual speech
+    # Otherwise use a fixed threshold for "no speech" detection
+    if peak_db_level > -90:  # Speech was detected
+        dynamic_threshold = peak_db_level + silence_margin
+    else:
+        # No speech detected - use fixed threshold (quiet room)
+        dynamic_threshold = -50  # If quieter than -50 dB, consider it silence
 
     current_time = time.time()
 
-    if db < dynamic_threshold:
-        # Below dynamic threshold - silence detected
+    if db <= dynamic_threshold:
+        # At or below threshold - silence detected
         if silence_start_time is None:
             silence_start_time = current_time
         elif (current_time - silence_start_time) >= silence_duration:
-            # Silence duration exceeded - trigger stop via thread to avoid callback blocking
+            # Silence duration exceeded - trigger stop
+            log.info(f"Silence duration {silence_duration}s exceeded, triggering auto-stop")
             threading.Thread(target=auto_stop_recording, daemon=True).start()
             silence_start_time = None  # Prevent re-triggering
     else:
@@ -637,29 +648,37 @@ def audio_callback(indata, frames, time_info, status):
 
 
 def start_recording():
-    global is_recording, audio_data, stream, silence_start_time, recording_start_time, last_duration_update, peak_db_level
-    if not model_ready:
-        log.info("Model still loading, please wait...")
-        return
-    if is_recording:
-        return
+    global is_recording, audio_data, stream, silence_start_time, recording_start_time, last_duration_update, peak_db_level, last_recording_toggle
 
+    with recording_lock:
+        # Debounce check - prevent rapid toggling
+        now = time.time()
+        if (now - last_recording_toggle) < (DEBOUNCE_MS / 1000):
+            return
+
+        if not model_ready:
+            log.info("Model still loading, please wait...")
+            return
+        if is_recording:
+            return
+
+        last_recording_toggle = now
+        is_recording = True
+        audio_data = []
+        silence_start_time = None
+        peak_db_level = -100  # Reset peak level for adaptive silence detection
+        recording_start_time = time.time()
+        last_duration_update = 0
+
+    # These operations can run outside the lock
     play_sound(start_sound)
     update_tray_icon(recording=True)
-
-    # Track recording start time for duration display
-    recording_start_time = time.time()
-    last_duration_update = 0
 
     # Show preview window if enabled
     if app_config.get("preview_enabled", True):
         preview_window.show_recording(duration_seconds=0)
 
     log.info("Recording...")
-    is_recording = True
-    audio_data = []
-    silence_start_time = None
-    peak_db_level = -100  # Reset peak level for adaptive silence detection
     sample_rate = app_config.get("sample_rate", 16000)
     # Get selected input device (None = system default)
     device_index = config.get_device_index(app_config.get("input_device"))
@@ -701,22 +720,37 @@ def transcribe_with_fallback(audio, transcribe_params):
 
 
 def stop_recording():
-    global is_recording, stream, audio_data, silence_start_time
-    if not is_recording:
-        return
-    is_recording = False
-    silence_start_time = None
-    log.info(f"Stopping recording - captured {len(audio_data)} frames")
+    global is_recording, stream, audio_data, silence_start_time, last_recording_toggle
+
+    # Capture local references under lock to prevent race conditions
+    local_stream = None
+    local_audio_data = None
+
+    with recording_lock:
+        if not is_recording:
+            return
+
+        last_recording_toggle = time.time()
+        is_recording = False
+        silence_start_time = None
+
+        # Capture and clear globals atomically
+        local_stream = stream
+        stream = None
+        local_audio_data = audio_data
+        audio_data = []
+
+    log.info(f"Stopping recording - captured {len(local_audio_data)} frames")
 
     play_sound(stop_sound)
     update_tray_icon(recording=False)
 
-    if stream:
-        stream.stop()
-        stream.close()
-        stream = None
+    # Close stream outside lock (safe - using local reference)
+    if local_stream:
+        local_stream.stop()
+        local_stream.close()
 
-    if not audio_data:
+    if not local_audio_data:
         log.warning("No audio captured - microphone may not be working")
         if app_config.get("preview_enabled", True):
             preview_window.hide()
@@ -726,7 +760,7 @@ def stop_recording():
     play_sound(processing_sound, sound_type="processing")
     if app_config.get("preview_enabled", True):
         preview_window.show_transcribing()
-    audio = np.concatenate(audio_data, axis=0).flatten()
+    audio = np.concatenate(local_audio_data, axis=0).flatten()
 
     # Determine task and language based on translation mode
     if app_config.get("translation_enabled"):
@@ -757,6 +791,40 @@ def stop_recording():
 
     # Use fallback wrapper that handles GPU failures gracefully
     raw_text = transcribe_with_fallback(audio, transcribe_params)
+
+    # Filter out prompt hallucinations (Whisper echoes the prompt when given silence)
+    if initial_prompt and raw_text:
+        text_lower = raw_text.lower()
+        prompt_lower = initial_prompt.lower()
+        is_hallucination = False
+
+        # Check 1: Distinctive words from prompt appear in output
+        # Words like "punctuation" are unlikely in normal speech
+        distinctive_words = ['punctuation', 'grammar', 'capitalize', 'spelling']
+        for word in distinctive_words:
+            if word in prompt_lower and word in text_lower:
+                is_hallucination = True
+                break
+
+        # Check 2: Repetitive output (same phrase appears twice) - classic hallucination
+        if not is_hallucination and len(raw_text) > 20:
+            # Split into rough halves and check similarity
+            mid = len(text_lower) // 2
+            first_half = text_lower[:mid]
+            second_half = text_lower[mid:]
+            # Check for repeated phrases
+            words = text_lower.split()
+            if len(words) >= 6:
+                first_part = ' '.join(words[:len(words)//2])
+                second_part = ' '.join(words[len(words)//2:])
+                # If halves are very similar, it's repetitive hallucination
+                common = set(first_part.split()) & set(second_part.split())
+                if len(common) >= 3:
+                    is_hallucination = True
+
+        if is_hallucination:
+            log.info(f"Filtered prompt hallucination: {raw_text}")
+            raw_text = ""
 
     # Process text through the pipeline (dictionary, fillers, commands)
     text, should_scratch, scratch_length, actions = text_processor.process_text(
@@ -964,13 +1032,17 @@ def on_press(key):
     current_keys.add(key)
 
     if check_hotkey():
+        recording_mode = app_config.get("recording_mode")
+
         if is_recording:
-            # In auto_stop or toggle mode, pressing hotkey again stops recording
-            recording_mode = app_config.get("recording_mode")
-            if recording_mode in ("auto_stop", "toggle"):
+            # Only toggle mode allows manual stop via hotkey press
+            # auto_stop: ignore press (silence will stop)
+            # push_to_talk: ignore press (release will stop)
+            if recording_mode == "toggle":
                 threading.Thread(target=stop_recording, daemon=True).start()
         else:
-            start_recording()
+            # All modes: pressing starts recording (in thread to avoid blocking)
+            threading.Thread(target=start_recording, daemon=True).start()
 
 
 def on_release(key):
